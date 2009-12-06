@@ -1,0 +1,140 @@
+<html>
+<title>Currently in the 'pu' branch</title>
+<style type="text/css" media="all">
+    body {
+      width: 600px;
+    }
+</style>
+<body>
+<h1>Currently in the 'pu' branch</h1>
+<p>The comment about each topic branch is taken from the latest
+<em>What's cooking in erlang/otp</em> email and may no longer apply if
+the topic branch has been updated.
+<ul>
+<li><a href="http://github.com/erlang/otp/commit/e6aaf9db3df8125151b01bc1377f06bb40a4b8e4">bg/avoid-etop-in-include</a> (erts):
+
+<ul>
+<li><a href="http://github.com/erlang/otp/commit/7a4cf4b687c5f99e5154c1c4132b5813cd2a3bd9">system test: fix build of test suites on Windows</a></li>
+</ul>
+<p></li>
+<li><a href="http://github.com/erlang/otp/commit/a0f261d63ea5035b34abd2cd7ae9c9fde2a1f658">bg/public_key-include_lib</a> (public_key):
+
+<ul>
+<li><a href="http://github.com/erlang/otp/commit/2c6d9b57ce4557a431bcf02565c3634a0ed7ca61">public_key: fix build of test suites on Windows</a></li>
+</ul>
+<p></li>
+<li><a href="http://github.com/erlang/otp/commit/80b542d3a565d8b175b2a949b3691fe6b8c5a35f">rb/stdlib_re_unicode_fixes</a> (stdlib):
+
+<ul>
+<li><a href="http://github.com/erlang/otp/commit/8642f800e1ae88f6887a3d6f05380bc95da84959">Refactor out repeated block in re module</a></li>
+<li><a href="http://github.com/erlang/otp/commit/5f413fefe642293332a09e0c1a23cfb42072a2d9">Fix re:replace/4 to handle unicode charlist Replacement argument</a></li>
+<li><a href="http://github.com/erlang/otp/commit/92c58499985f9afa8ce42a0fcbc4f971012be76f">Fix re:replace/4 to handle unicode charlist RE argument</a></li>
+<li><a href="http://github.com/erlang/otp/commit/dcabe28b8b55880463fe83e837ae7c41e99739a0">Fix re:replace/4 to handle binary unicode output when nothing replaced</a></li>
+</ul>
+<p></li>
+<li><a href="http://github.com/erlang/otp/commit/011cba2036d0bf5ec756f324301637ccd7867552">ta/ensure_dir_eexist</a> (stdlib):
+
+<ul>
+<li><a href="http://github.com/erlang/otp/commit/ecd339d1b4225627ecb371ed66d43139766fd4a8">Don't return a false {error,eexist} in filelib:ensure_dir/1</a></li>
+</ul>
+<p></li>
+<li><a href="http://github.com/erlang/otp/commit/27d0b7f2aa959d3b541e8bd86e53ae0066315822">gc/hipe_darwin_amd64</a> (erts):
+
+<ul>
+<li><a href="http://github.com/erlang/otp/commit/32ca14f44de136fe517787f0fa1e53df6b0d0bc8">Fix hipe memory allocation problems on darwin/amd64.</a></li>
+<li><a href="http://github.com/erlang/otp/commit/427f1db8dd74742d8584ff820a60bac25c01cd1f">Porting x86 darwin fixes to amd64 darwin hipe asm/m4 code.</a></li>
+<li><a href="http://github.com/erlang/otp/commit/43ae4b743eafdeba7979e575990c590039ba79e3">Automatically enable hipe for darwin/amd64 builds.</a></li>
+<li><a href="http://github.com/erlang/otp/commit/733ce7ae705a712a2017f9124e3448b5a100aee0">Allow configure to enable_hipe for darwin/amd64 builds.</a></li>
+</ul>
+<p></li>
+<li><a href="http://github.com/erlang/otp/commit/d828c631598f2ede7730e715bfa659015289d4b5">jb/atom_table_size_env</a> (erts, otp):
+
+<ul>
+<li><a href="http://github.com/erlang/otp/commit/ca57c14075650110208449b5c256caee4e4ba282">Added ERL_ATOM_TABLE_SIZE environment variable</a></li>
+</ul>
+<p></li>
+<li><a href="http://github.com/erlang/otp/commit/91f9049fcc61fbfdca44501d3505c970a404928b">pan/enable_m32_build</a> (erts, otp):
+
+<ul>
+<li><a href="http://github.com/erlang/otp/commit/15c78172e83901403e69a6999f22c3160b64c742">Teach configure --enable-m32-build for forcing a 32-bit build</a></li>
+</ul>
+<p></li>
+<li><a href="http://github.com/erlang/otp/commit/341e4e23ed335c88e1362494d67009d05fbdd1f1">jp/dependencies_makefile</a> (compiler, erts):
+
+<ul>
+<li><a href="http://github.com/erlang/otp/commit/bf2708d3b92705320679c51ace9d2c208d779298">squash! fix snprintf for Windows</a></li>
+<li><a href="http://github.com/erlang/otp/commit/7cbc4374a3621e26067c187ce36d3e75dfa70873">Add dependencies Makefile generation to erlc(1) and compile(3)</a></li>
+</ul>
+<p>Now also builds on Windows.
+
+<p>
+
+</li>
+<li><a href="http://github.com/erlang/otp/commit/ade20548d426b0d67f316bfd8f030cb61331e7c7">is/mnesia-send-compressed</a> (mnesia):
+
+<ul>
+<li><a href="http://github.com/erlang/otp/commit/583d00b9085681414bf8855db3f0063291eafd45">Update documentation to describe the new Mnesia option "send_compressed"</a></li>
+<li><a href="http://github.com/erlang/otp/commit/86f786eb11d77171a80bb3cd3b7298fbb787534f">Add option to compress data when copying tables between Mnesia nodes</a></li>
+</ul>
+<p></li>
+<li><a href="http://github.com/erlang/otp/commit/befb9045e66e33640522641cdd84b81d729f8e64">yh/fix-re-run-corruption</a> (erts):
+
+<ul>
+<li><a href="http://github.com/erlang/otp/commit/9ac35e83bee6d71abd73cb4047c4b4593176496e">Fix re:run/3 sometimes executes on corrupted data by garbage collection</a></li>
+</ul>
+<p></li>
+<li><a href="http://github.com/erlang/otp/commit/491b0acca158afdc1f3fa354dcdd2707ff75153c">sc/sctp-connect-nowait</a> (kernel):
+
+<ul>
+<li><a href="http://github.com/erlang/otp/commit/ae3d819044ea6fb77ecf15ceed4a0cfe611572b4">Implement a non-blocking SCTP connect</a></li>
+</ul>
+<p></li>
+<li><a href="http://github.com/erlang/otp/commit/678fdcd833f6848887301205a43a7eb0d7636887">va/rb-improvements</a> (sasl):
+
+<ul>
+<li><a href="http://github.com/erlang/otp/commit/5391383193d4fe024c470c8db7579f45dd9a8c3d">New function to filter reports by date</a></li>
+<li><a href="http://github.com/erlang/otp/commit/ed283484cfff13405da02e097e98fe2a8dc02c65">New rb:filter/1 function to ease report filtering</a></li>
+<li><a href="http://github.com/erlang/otp/commit/e5bd09137ea459255f1661efc4cc5ca1bea4bfdf">Add rb:re/1 to grep reports using the re module</a></li>
+<li><a href="http://github.com/erlang/otp/commit/07c6ad442552a1b8d4d10a68b526378368a59253">Fix minor typo in read_report/1</a></li>
+</ul>
+<p></li>
+<li><a href="http://github.com/erlang/otp/commit/1a551eab54e2b31d33ad2db1e8ca93374c830494">cf/epp-macro-overloading</a> (otp, stdlib):
+
+<ul>
+<li><a href="http://github.com/erlang/otp/commit/162ec270ed3c9a2a1aa8469b61525f3f184a4057">update the documentation on preprocessor in the reference manual</a></li>
+<li><a href="http://github.com/erlang/otp/commit/8dcc9f8f1c2949d5d6d820294b3584c097c932e3">epp: change rules to choose the right version of a macro</a></li>
+<li><a href="http://github.com/erlang/otp/commit/f7a89593e50a5be9e73b954109a4009ff07b4878">epp: Add support of macros overloading</a></li>
+<li><a href="http://github.com/erlang/otp/commit/52543e06781ef0e9676f75636d0d069c1a813664">epp: fix bug in the function scan_undef</a></li>
+</ul>
+<p>Extend the pre-processor to allow overloading of macros with
+the same name but different arities.
+
+<p>
+
+</li>
+<li><a href="http://github.com/erlang/otp/commit/73c41b941df5b261614365c619878c85170f4501">at/odbc_osx_fix</a> (odbc):
+
+<ul>
+<li><a href="http://github.com/erlang/otp/commit/88c71c95d23afc3d185d64b050cb5fba243d4cee">Workaround broken ODBC implementation on OSX 10.5</a></li>
+</ul>
+<p></li>
+<li><a href="http://github.com/erlang/otp/commit/8ce902b4e2ce47ccc8cee872066d508ebf1e224b">db/tv_nthtail_fix</a> (tv):
+
+<ul>
+<li><a href="http://github.com/erlang/otp/commit/abe07595f90a5a83ce96100fbd1c0da40a765704">Fix for tv which restarts while trying to open a table</a></li>
+</ul>
+<p>The author of this topic branch has found the real reason for
+the problem and has made some progress in resolving it.
+
+<p>
+
+</li>
+<li><a href="http://github.com/erlang/otp/commit/c10590aa71225df36c3641370f639a0a4d412b40">po/odbc-update-delete-no-rows</a> (odbc):
+
+<ul>
+<li><a href="http://github.com/erlang/otp/commit/1a564f84da39a309e40353ae52f2bb4366268a1e">SQL_NO_DATA and SQLSTATE 00000 indicate success for updates/deletes that affect no rows</a></li>
+</ul>
+<p></li>
+</ul>
+</body>
+</html>
