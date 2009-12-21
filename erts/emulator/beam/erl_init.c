@@ -798,6 +798,12 @@ erl_start(int argc, char **argv)
 	user_requested_db_max_tabs = 0;
 
     envbufsz = sizeof(envbuf);
+    if (erts_sys_getenv(ERL_ATOM_TABLE_SIZE, envbuf, &envbufsz) == 0)
+	user_requested_atom_table_size = atoi(envbuf);
+    else
+	user_requested_atom_table_size = 0;
+
+    envbufsz = sizeof(envbuf);
     if (erts_sys_getenv("ERL_FULLSWEEP_AFTER", envbuf, &envbufsz) == 0) {
 	Uint16 max_gen_gcs = atoi(envbuf);
 	erts_smp_atomic_set(&erts_max_gen_gcs, (long) max_gen_gcs);

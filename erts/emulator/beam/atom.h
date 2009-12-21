@@ -26,6 +26,7 @@
 
 #include "erl_atom_table.h"
 
+#define ERL_ATOM_TABLE_SIZE "ERL_ATOM_TABLE_SIZE"
 #define MAX_ATOM_LENGTH 255
 #define ATOM_LIMIT (1024*1024)
 
@@ -40,6 +41,7 @@ typedef struct atom {
 } Atom;
 
 extern IndexTable erts_atom_table;
+extern int user_requested_atom_table_size;
 
 ERTS_GLB_INLINE Atom* atom_tab(Uint i);
 ERTS_GLB_INLINE int erts_is_atom_bytes(byte *text, size_t len, Eterm term);

@@ -907,6 +907,12 @@
           to allow nodes of independent clusters to co-exist on the same host.
           All nodes in a cluster must use the same epmd port number.</p>
       </item>
+      <tag><c><![CDATA[ERL_ATOM_TABLE_SIZE]]></c></tag>
+      <item>
+        <p>The content of this environment variable is the maximum number of
+          atoms the emulator can handle. The default value is 1048576 which is
+          the minimum.</p>
+      </item>
     </taglist>
   </section>
 
