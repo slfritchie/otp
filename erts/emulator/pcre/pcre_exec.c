@@ -5389,6 +5389,49 @@ void erts_pcre_free_restart_data(void *restart_data) {
     (erts_pcre_free)(top);
   }
 }
+
+void erts_pcre_restart_data_moved(void* restart_data, const char* old_subject, int slength, int distance)
+{
+  PcreExecContext *exec_context;
+  match_data *md;
+  heapframe *frame;
+
+#define in_area(ptr,start,nbytes) \
+ ((unsigned long)((char*)(ptr) - (char*)(start)) < (nbytes))
+#define fixup(v,s,e) \
+  if( in_area(v, old_subject+(s), slength+(e)) ){ \
+    v += distance; \
+  }
+
+  exec_context = (PcreExecContext *) restart_data;
+
+  fixup( exec_context->Xstart_match,   0, 1 );
+  fixup( exec_context->Xend_subject,   0, 1 );
+  fixup( exec_context->Xreq_byte_ptr, -1, 0 );
+
+  md = exec_context->Xmd;
+  fixup( md->start_subject,   0, 0 );
+  fixup( md->end_subject,     0, 1 );
+  fixup( md->start_match_ptr, 0, 1 );
+  fixup( md->end_match_ptr,   0, 1 );
+
+  /* first frame is dummy stack. see LOOP_COUNT_RETURN: and LOOP_COUNT_BREAK: */
+  frame = md->state_save;
+  frame = frame != NULL ? frame->Xprevframe : NULL;
+
+  /* actual pcre heapframes. */
+  for(; frame != NULL; frame = frame->Xprevframe )
+  {
+    fixup( frame->Xeptr,   0, 1 );
+    fixup( frame->Xmstart, 0, 1 );
+    fixup( frame->Xpp,         0, 1 );
+    fixup( frame->Xsaved_eptr, 0, 0 );
+  }
+
+#undef in_area
+#undef fixup
+}
+
 #endif
 
 /* End of pcre_exec.c */
