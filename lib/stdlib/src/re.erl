@@ -263,7 +263,7 @@ replace(Subject,RE,Replacement,Options) ->
     
 
 do_replace(FlatSubject,Subject,RE,Replacement,Options) ->
-    case re:run(FlatSubject,RE,Options) of
+    case re:run([FlatSubject],RE,Options) of
 	nomatch ->
 	    Subject;
 	{match,[Mlist|T]} when is_list(Mlist) ->
