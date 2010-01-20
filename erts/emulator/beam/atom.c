@@ -28,10 +28,17 @@
 #include "hash.h"
 #include "atom.h"
 
+#ifndef MAX
+#  define MAX(x, y) (((x) > (y)) ? (x) : (y))
+#endif
+#ifndef MIN
+#  define MIN(x, y) (((x) < (y)) ? (x) : (y))
+#endif
 
 #define ATOM_SIZE  3000
 
 IndexTable erts_atom_table;	/* The index table */
+int user_requested_atom_table_size; /* User-specified atom table size */
 
 #include "erl_smp.h"
 
@@ -303,6 +310,7 @@ init_atom_table(void)
 {
     HashFunctions f;
     int i;
+    int atom_table_size;
     Atom a;
 
 #ifdef ERTS_ATOM_PUT_OPS_STAT
@@ -321,8 +329,10 @@ init_atom_table(void)
     atom_space = 0;
     text_list = NULL;
 
+    atom_table_size = MIN(MAX(user_requested_atom_table_size, ATOM_LIMIT),
+			  MAX_ATOM_INDEX + 1);
     erts_index_init(ERTS_ALC_T_ATOM_TABLE, &erts_atom_table,
-		    "atom_tab", ATOM_SIZE, ATOM_LIMIT, f);
+		    "atom_tab", ATOM_SIZE, atom_table_size, f);
     more_atom_space();
 
     /* Ordinary atoms */
