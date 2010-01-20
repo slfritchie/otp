@@ -43,6 +43,52 @@
   </description>
   <funcs>
     <func>
+      <name>filter(Filters)</name>
+      <name>filter(Filters, Dates)</name>
+      <fsummary>Filter reports and displays them on the screen</fsummary>
+      <type>
+        <v>Filters = [filter()]</v>
+        <v>filter() = {Key, Value} | {Key, Value, no} | {Key, RegExp, re} | {Key, RegExp, re, no}</v>
+        <v>Key = term()</v>
+        <v>Value = term()</v>
+        <v>RegExp = Opaque datatype containing a compiled regular expression</v>
+        <v>Dates = {DateFrom, DateTo} | {DateFrom, from} | {DateTo, to}</v>
+        <v>DateFrom = DateTo = {date(), time()}</v>
+        <v>date() and time() are the same type as in the <c>calendar</c> module</v>
+      </type>
+      <desc>
+        <p>This function displays the reports that match the provided filters.</p>
+        <p>
+          When a filter includes the <c>no</c> atom it will exclude the reports that match
+          that filter.
+        </p>
+        <p>
+          The reports are matched using the <c>proplists</c> module. The report must be a proplist
+          to be matched against any of the <c>filters()</c>.
+        </p>
+	<p>
+	  If the filter is of the form <c>{Key, RegExp, re}</c> the report must contain an element with
+	  <c>key = Key</c> and <c>Value</c> must match the RegExp regular expression.
+	</p>
+	<p>
+	  If the Dates parameter is provided, then the reports are filtered according to the date
+	  when they occurred. If Dates is of the form <c>{DateFrom, from}</c> then reports that occurred
+	  after DateFrom are displayed.
+	</p>
+	<p>
+	  If Dates is of the form <c>{DateTo, to}</c> then reports that occurred before DateTo
+	  are displayed.
+	</p>
+	<p>
+	  If two Dates are provided, then reports that occurred between those dates are returned.
+	</p>
+	<p>
+	   If you only want to filter only by dates, then you can provide the empty list as the Filters
+	   parameter.
+	</p>
+      </desc>
+    </func>
+    <func>
       <name>grep(RegExp)</name>
       <fsummary>Search the reports for a regular expression</fsummary>
       <type>
@@ -85,6 +131,23 @@
           </p>
         <p>If no <c>Type</c> is given, all reports are listed.
           </p>
+      </desc>
+    </func>
+    <func>
+      <name>re(RegExp)</name>
+      <fsummary>Search the reports for a regular expression</fsummary>
+      <type>
+        <v>RegExp = Opaque datatype containing a compiled regular expression.</v>
+      </type>
+      <desc>
+        <p>All reports containing the regular expression <c>RegExp</c>
+          are printed.
+          </p>
+        <p><c>RegExp</c> is an opaque datatype that can be obtained by
+	  calling <c>re:compile/1</c> or <c>re:compile/2</c>. Refer to
+	  the module <c>re</c> for more information on the usage of
+	  compiled regular expressions.
+        </p>
       </desc>
     </func>
     <func>
