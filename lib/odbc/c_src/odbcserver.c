@@ -475,7 +475,35 @@ static db_result_msg db_connect(byte *args, db_state *state)
 	    DO_EXIT(EXIT_FREE);
     
 	return msg;
+    } else {
+
+    int auto_commit_mode, trace_driver, use_srollable_cursors;
+
+    if(erl_auto_commit_mode == ON) {
+	auto_commit_mode = SQL_AUTOCOMMIT_ON;
+    } else {
+	auto_commit_mode = SQL_AUTOCOMMIT_OFF;
     }
+
+    if(erl_trace_driver == ON) {
+	trace_driver = SQL_OPT_TRACE_ON;
+    } else {
+	trace_driver = SQL_OPT_TRACE_OFF;
+    }
+
+    if(!sql_success(SQLSetConnectAttr(connection_handle(state),
+				      SQL_ATTR_CONNECTION_TIMEOUT,
+				      (SQLPOINTER)TIME_OUT, 0)))
+	DO_EXIT(EXIT_CONNECTION);
+    if(!sql_success(SQLSetConnectAttr(connection_handle(state),
+				      SQL_ATTR_AUTOCOMMIT,
+				      (SQLPOINTER)auto_commit_mode, 0)))
+	DO_EXIT(EXIT_CONNECTION);
+    if(!sql_success(SQLSetConnectAttr(connection_handle(state),
+				      SQL_ATTR_TRACE,
+				      (SQLPOINTER)trace_driver, 0)))
+	DO_EXIT(EXIT_CONNECTION);
+   }
 
     msg = retrive_scrollable_cursor_support_info(state);
   
@@ -1930,21 +1958,6 @@ static void clean_state(db_state *state)
 static void init_driver(int erl_auto_commit_mode, int erl_trace_driver,
 			db_state *state)
 {
-  
-    int auto_commit_mode, trace_driver, use_srollable_cursors;
-  
-    if(erl_auto_commit_mode == ON) {
-	auto_commit_mode = SQL_AUTOCOMMIT_ON;
-    } else {
-	auto_commit_mode = SQL_AUTOCOMMIT_OFF;
-    }
-
-    if(erl_trace_driver == ON) {
-	trace_driver = SQL_OPT_TRACE_ON;
-    } else {
-	trace_driver = SQL_OPT_TRACE_OFF;
-    }
-  
     if(!sql_success(SQLAllocHandle(SQL_HANDLE_ENV,
 				   SQL_NULL_HANDLE,
 				   &environment_handle(state))))
@@ -1957,18 +1970,6 @@ static void init_driver(int erl_auto_commit_mode, int erl_trace_driver,
 				   environment_handle(state),
 				   &connection_handle(state))))
 	DO_EXIT(EXIT_ALLOC);
-    if(!sql_success(SQLSetConnectAttr(connection_handle(state),
-				      SQL_ATTR_CONNECTION_TIMEOUT,
-				      (SQLPOINTER)TIME_OUT, 0)))
-	DO_EXIT(EXIT_CONNECTION);
-    if(!sql_success(SQLSetConnectAttr(connection_handle(state),
-				      SQL_ATTR_AUTOCOMMIT,
-				      (SQLPOINTER)auto_commit_mode, 0)))
-	DO_EXIT(EXIT_CONNECTION);
-    if(!sql_success(SQLSetConnectAttr(connection_handle(state),
-				      SQL_ATTR_TRACE,
-				      (SQLPOINTER)trace_driver, 0)))
-	DO_EXIT(EXIT_CONNECTION);
 }
 
 static void init_param_column(param_array *params, byte *buffer, int *index,
