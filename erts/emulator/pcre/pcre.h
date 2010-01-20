@@ -311,6 +311,7 @@ PCRE_EXP_DECL const char *erts_pcre_version(void);
 
 #ifdef ERLANG_INTEGRATION
 PCRE_EXP_DECL void  erts_pcre_free_restart_data(void *restart_data);
+PCRE_EXP_DECL void  erts_pcre_restart_data_moved(void *restart_data, const char *, int, int);
 #endif
 #ifdef __cplusplus
 }  /* extern "C" */

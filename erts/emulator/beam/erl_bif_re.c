@@ -1119,6 +1119,32 @@ static BIF_RETTYPE re_exec_trap(BIF_ALIST_3)
     restartp->extra.restart_data = &restartp->restart_data;
     restartp->extra.restart_flags = 0;
     
+    if( (restartp->flags & RESTART_FLAG_SUBJECT_IN_BINARY) && restartp->restart_data != NULL ) {
+	Eterm real_bin;
+	Uint offset;
+	Eterm* bptr;
+	int bitoffs;
+	int bitsize;
+	ProcBin* pb;
+	char* new_subject;
+
+	ASSERT( is_binary(BIF_ARG_1) );
+	ERTS_GET_REAL_BIN(BIF_ARG_1, real_bin, offset, bitoffs, bitsize);
+
+	bptr = binary_val(real_bin);
+	ASSERT( !(bitsize != 0 || bitoffs != 0 ||  (*bptr != HEADER_PROC_BIN)) );
+	pb = (ProcBin *) bptr;
+	new_subject = (char *) (pb->bytes+offset);
+	if( new_subject != restartp->subject ) {
+	    int slength;
+	    int distance;
+	    slength  = binary_size(BIF_ARG_1);
+	    distance = new_subject - restartp->subject;
+	    erts_pcre_restart_data_moved(restartp->restart_data, restartp->subject, slength, distance);
+	    restartp->subject = new_subject;
+	}
+    }
+
 #ifdef DEBUG
     loop_count = 0xFFFFFFFF;
 #endif
