@@ -197,6 +197,7 @@ atom erlang
 atom ERROR='ERROR'
 atom error_handler
 atom error_logger
+atom erts_de_busy_limit
 atom ets
 atom ETS_TRANSFER='ETS-TRANSFER'
 atom event

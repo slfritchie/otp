@@ -874,6 +874,18 @@
           <seealso marker="kernel:error_logger#warning_map/0">error_logger(3)</seealso>
           for further information.</p>
       </item>
+      <tag><c><![CDATA[+zFlag Value]]></c></tag>
+      <item>
+        <p>Miscellaneous flags.</p>
+        <taglist>
+          <tag><marker id="+zerts_de_busy_limit"><c>+zerts_de_busy_limit size</c></marker></tag>
+          <item>
+            <p>Set the value of erts_de_busy_limit.  Larger values can
+               help prevent busy distribution port system messages.
+               The default limit is 128 kilobytes.</p>
+          </item>
+        </taglist>
+      </item>
     </taglist>
   </section>
 

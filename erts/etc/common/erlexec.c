@@ -131,6 +131,12 @@ static char *plush_val_switches[] = {
     NULL
 };
 
+/* +z arguments with values */
+static char *plusz_val_switches[] = {
+    "erts_de_busy_limit",
+    NULL
+};
+
 
 /*
  * Define sleep(seconds) in terms of Sleep() on Windows.
@@ -877,6 +883,20 @@ int main(int argc, char **argv)
 					     pluss_val_switches))
 			  goto the_default;
 		      else {
+			  if (i+1 >= argc
+			      || argv[i+1][0] == '-'
+			      || argv[i+1][0] == '+')
+			      usage(argv[i]);
+			  argv[i][0] = '-';
+			  add_Eargs(argv[i]);
+			  add_Eargs(argv[i+1]);
+			  i++;
+		      }
+		      break;
+		  case 'z':
+		      if (!is_one_of_strings(&argv[i][2], plusz_val_switches)) {
+			  goto the_default;
+		      } else {
 			  if (i+1 >= argc
 			      || argv[i+1][0] == '-'
 			      || argv[i+1][0] == '+')
