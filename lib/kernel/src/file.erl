@@ -41,7 +41,7 @@
 	 pread/2, pread/3, pwrite/2, pwrite/3,
 	 read_line/1,
 	 position/2, truncate/1, datasync/1, sync/1,
-	 copy/2, copy/3]).
+	 copy/2, copy/3, sendfile/4, sendfile/3, sendfile/2]).
 %% High level operations
 -export([consult/1, path_consult/2]).
 -export([eval/1, eval/2, path_eval/2, path_eval/3, path_open/3]).
@@ -277,6 +277,79 @@ raw_write_file_info(Name, #file_info{} = Info) ->
 	Error ->
 	    Error
     end.
+
+%% sendfile/4
+-spec sendfile(File :: io_device() | fd(), Sock :: port(),
+	       Offset :: non_neg_integer(), Bytes :: non_neg_integer())
+	      -> {'ok', non_neg_integer()} | {'error', posix()}.
+sendfile(_, _, _, 0) ->
+    {ok, 0};
+%% TODO: how to call is_pid(File) variant
+sendfile(File, SockFD, Offset, Bytes) when is_integer(SockFD) andalso is_pid(File) ->
+    R = file_request(File, {sendfile, SockFD, Offset, Bytes}),
+    wait_file_reply(File, R);
+sendfile(File, Sock, Offset, Bytes) when is_pid(File) andalso is_port(Sock) ->
+    {ok, SockFD} = prim_inet:getfd(Sock),
+    sendfile(File, SockFD, Offset, Bytes);
+sendfile(#file_descriptor{module = Module} = Handle, SockFD, Offset, Bytes)
+  when is_integer(SockFD) ->
+    Module:sendfile(Handle, SockFD, Offset, Bytes);
+sendfile(#file_descriptor{module = Module} = Handle, Sock, Offset, Bytes)
+  when is_port(Sock) ->
+    {ok, SockFD} = prim_inet:getfd(Sock),
+    Module:sendfile(Handle, SockFD, Offset, Bytes);
+sendfile(_, _, _, _) ->
+    {error, badarg}.
+
+%% sendfile/3
+-spec sendfile(File :: fd(), Sock :: port(), ChunkSize :: non_neg_integer())
+	      -> {'ok', non_neg_integer()} | {'error', posix()}.
+sendfile(File, Sock, ChunkSize) ->
+    Offset = 0,
+    {ok, #file_info{size = Bytes}} = file:read_file_info(File),
+    {ok, Fd} = file:open(File, [read, raw, binary]),
+    {ok, SockFD} = prim_inet:getfd(Sock),
+    Res = sendfile_chunked_loop(Fd, SockFD, Offset, Bytes, Bytes, ChunkSize),
+    %% Res = sendfile_chunked_loop(Fd, Sock, Offset, Bytes, Bytes, ChunkSize),
+    ok = file:close(Fd),
+    Res.
+
+-spec sendfile_calc_size(Bytes :: non_neg_integer(),
+			 ChunkSize :: non_neg_integer()) -> non_neg_integer().
+sendfile_calc_size(Bytes, ChunkSize) when Bytes >= ChunkSize -> ChunkSize;
+sendfile_calc_size(0, _) -> 0;
+sendfile_calc_size(Bytes, _) -> Bytes.
+
+-spec sendfile_chunked_loop(Fd :: fd(), SockFD :: fd(),
+			    Offset0 :: non_neg_integer(),
+			    Bytes :: non_neg_integer(),
+			    BytesLeft0 :: non_neg_integer(),
+			    ChunkSize :: non_neg_integer())
+			   -> {'ok', non_neg_integer()} | {'error', posix()}.
+sendfile_chunked_loop(Fd, SockFD, Offset0, Bytes, BytesLeft0, ChunkSize) ->
+    ToWrite = sendfile_calc_size(BytesLeft0, ChunkSize),
+    case sendfile(Fd, SockFD, Offset0, ToWrite) of
+	{ok, 0} ->
+	    {ok, Bytes};
+	{ok, Written} ->
+	    Offset1 = Offset0 + Written,
+	    BytesLeft1 = BytesLeft0 - Written,
+	    sendfile_chunked_loop(Fd, SockFD, Offset1, Bytes,
+				  BytesLeft1, ChunkSize);
+	{error, Posix} ->
+	    {error, Posix}
+    end.
+
+%% sendfile/2
+-spec sendfile(File :: fd(), Sock :: port()) ->
+	{'ok', non_neg_integer()} | {'error', posix()}.
+sendfile(File, Sock) ->
+    Offset = 0,
+    {ok, #file_info{size = Bytes}} = file:read_file_info(File),
+    {ok, Fd} = file:open(File, [read, raw, binary]),
+    Res = sendfile(Fd, Sock, Offset, Bytes),
+    ok = file:close(Fd),
+    Res.
 
 %%%-----------------------------------------------------------------
 %%% File io server functions.

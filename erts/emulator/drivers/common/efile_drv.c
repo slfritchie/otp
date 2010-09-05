@@ -55,6 +55,7 @@
 #define FILE_READ_LINE          29
 #define FILE_FDATASYNC          30
 #define FILE_FADVISE            31
+#define FILE_SENDFILE           32
 
 /* Return codes */
 
@@ -364,6 +365,11 @@ struct t_data
 	    Sint64 length;
 	    int advise;
 	} fadvise;
+	struct {
+	    Sint destfd;
+	    off_t offset;
+	    size_t size;
+	} sendfile;
     } c;
     char b[1];
 };
@@ -1665,6 +1671,75 @@ static void invoke_fadvise(void *data)
     d->result_ok = efile_fadvise(&d->errInfo, fd, offset, length, advise);
 }
 
+static void invoke_sendfile(void *data)
+{
+    struct t_data *d = (struct t_data *) data;
+    int fd = (int) d->fd;
+    int destfd = (int) d->c.sendfile.destfd;
+    off_t offset = (off_t) d->c.sendfile.offset;
+    size_t count = (size_t) d->c.sendfile.size;
+    d->result_ok = efile_sendfile(&d->errInfo, fd, destfd, &offset, &count);
+
+    if (d->result_ok)
+	d->again=0;
+    else {
+	switch(d->errInfo.posix_errno){
+	/* TODO */
+	/* is this the right way? */
+	case 0: /*ok*/
+#if defined(__linux__)
+	/* case EAGAIN: TODO: is the check in efile_sendfile() enough? */
+	case EBADF:
+	case EFAULT:
+	case EINVAL:
+	case EIO:
+	case ENOMEM:
+#elif defined(__FreeBSD__)
+	/* case EAGAIN: TODO: is the check in efile_sendfile() enough? */
+	case EBADF:
+	case EBUSY:
+	case EFAULT:
+	/* case EINTR: TODO: is the check in efile_sendfile() enough? */
+	case EINVAL:
+	case EIO:
+	case ENOTCONN:
+	case ENOTSOCK:
+	case EOPNOTSUPP:
+	case EPIPE:
+/* TODO: check which to use */
+/* #elif defined(__APPLE__) && defined(__MACH__) */
+#elif defined(__APPLE__) && defined(__MACH__) && !defined(__DARWIN__)
+	/* case EAGAIN: TODO: is the check in efile_sendfile() enough? */
+	case EBADF:
+	case ENOTSUP:
+	case ENOTSOCK:
+	case EFAULT:
+	/* case EINTR: TODO: is the check in efile_sendfile() enough? */
+	case EINVAL:
+	case EIO:
+	case ENOTCONN:
+	case EOPNOTSUPP:
+/* TODO: check which to use */
+/* #if defined(__linux__) || defined(__solaris__) */
+#elif defined(__SVR4) && defined(__sun)
+	case EAFNOSUPPORT:
+	/* case EAGAIN: TODO: is the check in efile_sendfile() enough? */
+	case EBADF:
+	case EINVAL:
+	case EIO:
+	case ENOTCONN:
+	case EOPNOTSUPP:
+	case EPIPE:
+	/* case EINTR: TODO: is the check in efile_sendfile() enough? */
+#endif
+	    d->again = 0;
+	    break;
+	default:
+	    d->again = 1;
+	};
+    }
+}
+
 static void free_readdir(void *data)
 {
     struct t_data *d = (struct t_data *) data;
@@ -2077,6 +2152,10 @@ file_async_ready(ErlDrvData e, ErlDrvThreadData data)
 	  }
 	  free_preadv(data);
 	  break;
+      case FILE_SENDFILE:
+	  reply_Uint(desc, d->c.sendfile.size);
+	  free_data(data);
+	  break;
       default:
 	abort();
     }
@@ -2388,6 +2467,22 @@ file_output(ErlDrvData e, char* buf, int count)
         d->c.fadvise.advise = get_int32(((uchar*) buf) + 2 * sizeof(Sint64));
         goto done;
     }
+
+    case FILE_SENDFILE:
+	{
+	    d = EF_SAFE_ALLOC(sizeof(struct t_data));
+	    d->fd = fd;
+	    d->command = command;
+	    d->invoke = invoke_sendfile;
+	    d->free = free_data;
+	    d->level = 2;
+	    d->c.sendfile.destfd = get_int32((uchar*) buf);
+	    // TODO: are off_t and size_t 64bit on all platforms?
+	    d->c.sendfile.offset = get_int64(((uchar*) buf) + sizeof(Sint32));
+	    d->c.sendfile.size = get_int64(((uchar*) buf) + sizeof(Sint32)
+					   + sizeof(Sint64));
+	    goto done;
+	}
 
     }
 
