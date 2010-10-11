@@ -1,0 +1,574 @@
+<?xml version="1.0" encoding="latin1" ?>
+<!DOCTYPE erlref SYSTEM "erlref.dtd">
+
+<erlref>
+  <header>
+    <copyright>
+      <year>2010</year>
+      <holder>Ericsson AB. All Rights Reserved.</holder>
+    </copyright>
+    <legalnotice>
+      The contents of this file are subject to the Erlang Public License,
+      Version 1.1, (the "License"); you may not use this file except in
+      compliance with the License. You should have received a copy of the
+      Erlang Public License along with this software. If not, it can be
+      retrieved online at http://www.erlang.org/.
+
+      Software distributed under the License is distributed on an "AS IS"
+      basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. See
+      the License for the specific language governing rights and limitations
+      under the License.
+
+    </legalnotice>
+
+    <title>gen_stream</title>
+    <prepared>Jay Nelson</prepared>
+    <responsible>Jay Nelson</responsible>
+    <docno>1</docno>
+    <approved></approved>
+    <checked></checked>
+    <date>2010-05-10</date>
+    <rev>A</rev>
+    <file></file>
+  </header>
+  <module>gen_stream</module>
+  <modulesummary>Generic Serial Stream Behaviour</modulesummary>
+  <description>
+    <warning><p>
+	This is a new, experimental behaviour introduced in build R14A.
+	The functionality described here has not been approved as an
+	officially supported feature, and may be removed from the
+	distribution or the API and approach may be significantly
+	altered prior to the final release. Use at your own risk.
+    </p></warning>
+    <p>A behaviour module for implementing efficient serial stream
+      processing of large data sets from a file, binary or synthetic
+      source. In the case of file or binary data sources, a callback
+      module is optionally provided only to transform the data, whereas
+      the generative approaches require additional code either in the
+      form of a module callback or a continuation-based fun.  A server
+      process (gen_stream) implemented using this module will have a
+      standard set of interface functions and include functionality for
+      tracing and error reporting. It will also fit into an OTP supervision
+      tree. Refer to
+      <seealso marker="doc/design_principles:gen_server_concepts">OTP Design Principles</seealso>
+      for more information.</p>
+    <p>A synthetic gen_stream behaviour assumes all specific parts are
+      located in a callback module exporting a pre-defined set of functions.
+      The relationship between the gen_stream functions and the callback
+      functions can be illustrated as follows:</p>
+    <pre>
+gen_stream module            Callback module
+-----------------            ---------------
+gen_stream:start_link -----> Module:init/1
+
+gen_stream:next_chunk -----> Module:extract_block/5
+                             Module:extract_final_block/5
+                             Module:inc_progress/2
+
+gen_stream:stream_pos -----> Module:stream_pos/1
+gen_stream:stream_size ----> Module:stream_size/1
+
+-                     -----> Module:terminate/2
+
+-                     -----> Module:code_change/3
+
+-                     -----> Module:format_status/2</pre>
+
+    <p>If a callback function fails or returns a bad value,
+      the gen_stream will terminate.</p>
+    <p>A gen_stream handles system messages as documented in
+       <seealso marker="sys">sys(3)</seealso>. The <c>sys</c> module
+       can be used for debugging a gen_stream.</p>
+    <p>Note that a gen_stream does not trap exit signals automatically,
+      this must be explicitly initiated in the callback module.</p>
+    <p>Unless otherwise stated, all functions in this module fail if
+      the specified gen_stream does not exist or if bad arguments are
+      given.</p>
+  </description>
+
+  <section>
+    <title>Stream Principles</title>
+    <p>A gen_stream implements serialized server access to a
+      process-striped buffer. The buffer caches a data source which
+      may be slow to access directly, or is repetitive, larger
+      than memory or time dependent and can only be efficiently accessed
+      by generating it on demand. In all cases, a gen_stream server
+      delivers the data serially in chunk-size pieces.</p>
+    <p>Internally a cache buffer represents a segment of stream data
+      split across multiple processes. Each buffer process has a stack
+      of buffers of a fixed chunk size, and the data stream is painted
+      across the buffers in round-robin fashion, logically striping a
+      block of data to the first buffer of each process, then the second
+      and so on until all processes have their buffer stack full. Clients
+      of the gen_stream process proceed through the data stream,
+      receiving a single block from one of the buffer processes in
+      response to each request for more data. The filling of buffers
+      and the delivery of responses appear to happen concurrently, and
+      the backing processes can refill their buffers independently as
+      necessary, creating the impression to the client that data is
+      always immediately available.</p>
+    <p>Concurrency is encapsulated inside the gen_stream abstraction,
+      providing parallel loading of the cache data so that initialization
+      latency is masked and, hopefully, serial access to the entire stream
+      avoids intermittent delays. The amount of concurrency and chunk
+      sizing are heavily application dependent, therefore the choices
+      are exposed as initialization parameters. It is recommended that
+      benchmark tests and careful measurement be used to determine
+      the appropriate options for initialization.</p>
+    <p>The underlying functionality is provided using a gen_server, so
+      some of the applicable options are merely passed on to the internal
+      gen_server itself. Descriptions of the parameters and caveats can be
+      found by reading the <seealso marker="gen_server">gen_server
+      reference page</seealso>.</p>
+    <p>The current implementation limits the striped processes to be local
+      to the node on which the gen_stream server is running.</p>
+  </section>
+
+  <funcs>
+    <func>
+      <name>start_link(Options) -> Result</name>
+      <name>start_link(ServerName, Options) -> Result</name>
+      <fsummary>Create a gen_stream process in a supervision tree.</fsummary>
+      <type>
+        <v>ServerName = {local,Name} | {global,GlobalName}</v>
+        <v>&nbsp;Name = atom()</v>
+        <v>&nbsp;GlobalName = term()</v>
+        <v>Options = [StreamOption | ServerOption]</v>
+        <v>&nbsp;StreamOption = {stream,Type} | {num_procs,int()} | {num_chunks,int()} | {chunk_size,int()} | {block_factor,int()} | {is_circular,bool()} | {x_mfa,{Module,Fun}} | {x_fun,Fun}</v>
+        <v>&nbsp;&nbsp;Type = {binary,binary()} | {file,FileName} | {behaviour,Module,ModArgs}</v>
+        <v>&nbsp;&nbsp;&nbsp;Module = atom()</v>
+	<v>&nbsp;&nbsp;&nbsp;ModArgs = term()</v>
+	<v>&nbsp;ServerOption = See <seealso marker="gen_server#start_link/3">gen_server Options</seealso></v>
+        <v>Result = {ok,Pid} | ignore | {error,Error}</v>
+        <v>&nbsp;Pid = pid()</v>
+        <v>&nbsp;Error = {already_started,Pid} | term()</v>
+      </type>
+      <desc>
+        <p>Creates a gen_stream process as part of a supervision tree.
+          The function should be called, directly or indirectly, by
+          the supervisor. It will, among other things, ensure that
+          the gen_stream is linked to the supervisor.</p>
+	<p>If the stream type is specified as either <c>binary</c>
+	  or <c>file</c>, no callback module is used, nor should
+	  one be implemented. The gen_stream instance will manage
+	  the data internally with the user generally calling either
+	  <c>next_block/1</c> or one of the functions for reporting
+	  information about the stream size or progress.</p>
+        <p>In the case of a <c>behaviour</c> gen_stream a callback module
+	  provides the functionality to generate and drive the streaming
+	  activity. <c>Module:init/1</c> is called to initialize the
+	  stream's internal state. To ensure a synchronized start-up,
+	  <c>start_link/1,2</c> does not return until <c>Module:init/1</c>
+	  has returned.</p>
+	<p>The <c>x_mfa</c> and <c>x_fun</c> options are used to transform
+	  a binary chunk before writing it to the internal process buffer.
+	  Progress is measured by the size of the untransformed binary blocks
+	  delivered to the buffers, but the caller will receive transformed
+	  data when consuming the stream. In both cases, the function is
+	  expected to accept a binary but is free to return any term as
+	  a result of the transformation. Only one of the two options is
+	  allowed, and neither is required. If supplied, the transformation
+	  is performed by a buffering process, blocking it from replying
+	  to data requests during conversion but allowing all parallel blocks
+	  to be converted concurrently.</p>
+	<p>Only the <c>stream_type</c> option is required.  The default
+	  for the other options are: 1 process, 1 chunk per process,
+	  8K chunk size, block factor of 1, non-circular stream with no
+	  data transformation.</p>
+        <p>If <c>ServerName={local,Name}</c> the gen_stream is
+          registered locally as <c>Name</c> using <c>register/2</c>.
+          If <c>ServerName={global,GlobalName}</c> the gen_stream is
+          registered globally as <c>GlobalName</c> using
+          <c>global:register_name/2</c>. If no name is provided,
+          the gen_stream is not registered.</p>
+	<p><c>Options</c> is a property list of gen_stream specific
+	  options as listed above, or
+	  <seealso marker="gen_server#start_link/3">gen_server options</seealso>.</p>
+        <p><c>ModArgs</c> is an arbitrary term which is passed as
+          the argument to <c>Module:init/1</c>.</p>
+	<p>A <c>ServerOption</c> is one of the corresponding gen_server
+	  options used to initialize the underlying gen_server.</p>
+        <p>If the gen_stream is successfully created and initialized
+          the function returns <c>{ok,Pid}</c>, where <c>Pid</c> is
+          the pid of the gen_stream. If there already exists a process
+          with the specified <c>ServerName</c> the function returns
+          <c>{error,{already_started,Pid}}</c>, where <c>Pid</c> is
+          the pid of that process.</p>
+        <p>If <c>Module:init/1</c> fails with <c>Reason</c>,
+          the function returns <c>{error,Reason}</c>. If
+          <c>Module:init/1</c> returns <c>{stop,Reason}</c> or
+          <c>ignore</c>, the process is terminated and the function
+          returns <c>{error,Reason}</c> or <c>ignore</c>, respectively.</p>
+      </desc>
+    </func>
+    <func>
+      <name>start(Options) -> Result</name>
+      <name>start(ServerName, Options) -> Result</name>
+      <fsummary>Create a stand-alone gen_stream process.</fsummary>
+      <type>
+        <v>ServerName = {local,Name} | {global,GlobalName}</v>
+        <v>&nbsp;Name = atom()</v>
+        <v>&nbsp;GlobalName = term()</v>
+        <v>Options = [StreamOption | ServerOption]</v>
+        <v>&nbsp;StreamOption = {stream,Type} | {num_procs,int()} | {num_chunks,int()} | {chunk_size,int()} | {block_factor,int()} | {is_circular,bool()} | {x_mfa,{Module,Fun}} | {x_fun,Fun} </v>
+        <v>&nbsp;&nbsp;Type = {binary,binary()} | {file,FileName} | {behaviour,Module,ModArgs}</v>
+        <v>&nbsp;&nbsp;&nbsp;Module = atom()</v>
+	<v>&nbsp;&nbsp;&nbsp;ModArgs = list()</v>
+	<v>&nbsp;ServerOption = See <seealso marker="gen_server#start_link/3">gen_server Options</seealso></v>
+        <v>Result = {ok,Pid} | ignore | {error,Error}</v>
+        <v>&nbsp;Pid = pid()</v>
+        <v>&nbsp;Error = {already_started,Pid} | term()</v>
+      </type>
+      <desc>
+        <p>Creates a stand-alone gen_stream process (i.e., a gen_stream
+          which is not part of a supervision tree) which has no
+          supervisor.</p>
+        <p>See <seealso marker="#start_link/3">start_link/3,4</seealso>
+          for a description of arguments and return values.</p>
+      </desc>
+    </func>
+    <func>
+      <name>next_block(ServerRef) -> Reply</name>
+      <name>next_block(ServerRef, Timeout) -> Reply</name>
+      <fsummary>Get the next block of data from the stream.</fsummary>
+      <type>
+	<v>ServerRef = See <seealso marker="gen_server#call/2">gen_server:call/2,3</seealso></v>
+	<v>Timeout = See <seealso marker="gen_server#call/2">gen_server:call/2,3</seealso></v>
+	<v>Reply = {next_block, Block | end_of_stream}</v>
+	<v>&nbsp;Block = binary() | any()</v>
+      </type>
+      <desc>
+        <p>Synchronously get the next block of data for a stream.
+          The gen_stream will call <c>Module:extract_block/5</c> and/or
+	  <c>Module:extract_final_block/5</c> to handle the request
+	  followed by <c>Module:inc_progress/2</c> to advance the
+	  stream position and percent complete state information.</p>
+	<p>The binary block that is returned should be the
+	  same size as the <c>chunk_size</c> multiplied by the
+	  <c>block_factor</c> specified in the
+	  <seealso marker="#start_link/1">start_link/1,2</seealso> or
+	  <seealso marker="#start/1">start/1,2</seealso> function, unless
+	  it is the last block of the stream. If a transform function is
+	  provided using the <c>x_mfa</c> or <c>x_fun</c> options, the
+	  binary may be transformed to any other data structure
+	  (however, the stream position and percent complete are
+	  calculated based on the size of the binary block data prior
+	  to conversion).</p>
+	<p>Once the gen_stream responds with <c>end_of_stream</c>, the
+	  internal worker processes will terminate and all subsequent
+	  calls will return <c>end_of_stream</c>.</p>
+        <p>This call may fail for several reasons, including timeout and
+          if the called gen_stream terminated before or during the call.</p>
+      </desc>
+    </func>
+    <func>
+      <name>pct_complete(ServerRef) -> Reply</name>
+      <fsummary>Get the percent of the data stream already delivered to the client.</fsummary>
+      <type>
+	<v>Reply = {pct_complete, PctComplete}</v>
+	<v>&nbsp;PctComplete = integer() | atom()</v>
+      </type>
+      <desc>
+	<p>Gets the percent of the stream that has already been
+	  served. If the stream was initialized as a circular stream,
+	  the response will be <c>is_circular</c>. If a behaviour is
+	  used to implement a generated stream, it is free to indicate
+	  any atom for the size of the buffer and this same atom will
+	  be returned in the <c>Reply</c> here.</p>
+      </desc>
+    </func>
+    <func>
+      <name>stream_pos(ServerRef) -> Reply</name>
+      <fsummary>Get the current position in the data stream.</fsummary>
+      <type>
+	<v>Reply = {stream_pos, Pos}</v>
+	<v>&nbsp;Pos = integer() | atom()</v>
+      </type>
+      <desc>
+	<p>Reports the current position of the stream as indicated by the
+	  sum of the size of all data blocks that have been delivered
+	  (prior to transformation, if applied), providing a count of
+	  the bytes seen. If a behaviour is used to implement a generated
+	  stream, the current position is indicated by the last return
+	  value of <c>Module:inc_progress/2</c>.</p>
+      </desc>
+    </func>
+    <func>
+      <name>stream_size(Server) -> Reply</name>
+      <fsummary>Get the size of the data stream.</fsummary>
+      <type>
+	<v>Reply = {stream_size, Size}</v>
+	<v>&nbsp;Size = integer() | atom()</v>
+      </type>
+      <desc>
+	<p>Gets the size of the entire stream, regardless of whether
+	any of it has been delivered to the client yet. In the case
+	of a circular stream, this call returns <c>is_circular</c>.
+	If a behaviour is used to implement a generated stream, it is
+	free to indicate any atom for the size of the buffer, unless
+	the stream is also marked as circular.</p>
+      </desc>
+    </func>
+  </funcs>
+
+  <section>
+    <title>CALLBACK FUNCTIONS</title>
+    <p>The following functions should be exported from a <c>gen_stream</c>
+      callback module. The callback approach is only used when the
+      startup options include the stream type <c>{behavior,Module,ModArgs}</c>.</p>
+  </section>
+  <funcs>
+    <func>
+      <name>Module:init(Args) -> Result</name>
+      <fsummary>Initialize process and internal state.</fsummary>
+      <type>
+        <v>Args = term()</v>
+        <v>Result =  {ok,State} | {ok,State,Timeout} | {ok,State,hibernate} | {stop,Reason} | ignore</v>
+        <v>&nbsp;State = term()</v>
+        <v>&nbsp;Timeout = int()>=0 | infinity</v>
+        <v>&nbsp;Reason = term()</v>
+      </type>
+      <desc>
+        <marker id="Moduleinit"></marker>
+        <p>Whenever a gen_stream is started using
+          <seealso marker="#start/1">gen_stream:start/1,2</seealso> or
+          <seealso marker="#start_link/1">gen_stream:start_link/1,2</seealso>,
+          this function is called by the new process to initialize.</p>
+        <p><c>Args</c> is the <c>Args</c> argument provided to the start
+          function.</p>
+        <p>If the initialization is successful, the function should
+          return <c>{ok,State}</c>, <c>{ok,State,Timeout}</c> or <c>{ok,State,hibernate}</c>, where
+          <c>State</c> is the internal state of the gen_stream.</p>
+        <p>If an integer timeout value is provided, a timeout will occur
+          unless a request or a message is received within <c>Timeout</c>
+	  milliseconds.</p>
+	<p>If <c>hibernate</c> is specified instead of a timeout value, the process will go
+	   into hibernation when waiting for the next message to arrive (by calling
+	   <seealso marker="proc_lib#hibernate/3">proc_lib:hibernate/3</seealso>).</p>
+        <p>If something goes wrong during the initialization
+          the function should return <c>{stop,Reason}</c> where
+          <c>Reason</c> is any term, or <c>ignore</c>.</p>
+      </desc>
+    </func>
+    <func>
+      <name>Module:stream_length(ModArgs) -> Size</name>
+      <fsummary>Get the size of the data stream.</fsummary>
+      <type>
+	<v>Size = integer()  | atom()</v>
+      </type>
+      <desc>
+	<marker id="Modulestream_length"></marker>
+	<p>Returns the length of the stream so that gen_stream can report
+	  its size and percentage complete properly.  If the size of the
+	  stream cannot be determined, a descriptive atom may be returned
+	  such as <c>is_circular</c> or <c>infinite</c>.
+	</p>
+	<p>The initialization phase of a gen_stream involves determining
+	  and recording the size of the stream. This function will be
+	  called, passing the ModArgs from the
+	  <seealso marker="#start/1">gen_stream:start/1,2</seealso> or
+	  <seealso marker="#start_link/1">gen_stream:start_link/1,2</seealso>
+	  function, and the result is used to validate the startup
+	  options.</p>
+      </desc>
+    </func>
+    <func>
+      <name>Module:extract_block(State, Pos, NumBytes, ChunkSize, BlockFactor) -> Data</name>
+      <fsummary>Get the next block from the data stream.</fsummary>
+      <type>
+	<v>State = term()</v>
+	<v>Pos = integer()</v>
+	<v>NumBytes = integer()</v>
+	<v>ChunkSize = integer()</v>
+	<v>BlockFactor = integer()</v>
+	<v>Data = term()</v>
+      </type>
+      <desc>
+	<marker id="Moduleextract_block"></marker>
+	<p>Calls to <seealso marker="#next_block/1">next_block/1,2</seealso>
+	  rely on <c>extract_block/5</c> to return the next block of the
+	  stream data if the block is not the last for this stream.
+	  The callback module is free to return data of any type that best
+	  represents the stream, however, if a transform function is used
+	  it must also accept the same data format returned by this
+	  function.</p>
+	<p>The <c>NumBytes</c> parameter indicates the size of the block
+	  to be returned.  It should be equal to <c>ChunkSize</c> times
+	  <c>BlockFactor</c>, providing a simpler method of determining
+	  how much data to return.</p>
+	<p>Note: although this function receives the current <c>State</c>
+	  of the behaviour module, it may not be modified because there is
+	  no mechanism to return a modified version of it. While the
+	  gen_stream maintains the current module state, each of the
+	  buffer processes have a copy of it and use them concurrently,
+	  thereby precluding the possibility of updating it.</p>
+      </desc>
+    </func>
+    <func>
+      <name>Module:extract_final_block(State, Pos, NumBytes, ChunkSize, BlockFactor) -> Data</name>
+      <fsummary>Get the next chunk of the data stream.</fsummary>
+      <type>
+	<v>State = term()</v>
+	<v>Pos = integer()</v>
+	<v>NumBytes = integer()</v>
+	<v>ChunkSize = integer()</v>
+	<v>BlockFactor = integer()</v>
+	<v>Data = term()</v>
+      </type>
+      <desc>
+	<marker id="Moduleextract_final_block"></marker>
+	<p>Calls to <seealso marker="#next_block/1">next_block/1,2</seealso>
+	  rely on <c>extract_final_block/5</c> to return the next block of the
+	  stream data if the next block is the final block of the stream.
+	  This segment may be a complete block or it may be smaller
+	  than the other blocks.  The callback module is free to return data
+	  of any type that best represents the stream, but must remain
+	  consistent with any transform function supplied.</p>
+	<p>The <c>NumBytes</c> parameter indicates the size of the block
+	  to be returned.  It is normally equal to <c>ChunkSize</c> times
+	  <c>BlockFactor</c>, however the final block may constitute less
+	  than a normal block.  In that case, <c>NumBytes</c> reflects the
+	  actual size to return and is less than the product of the other
+	  two parameters.</p>
+	<p>Note: although this function receives the current <c>State</c>
+	  of the behaviour module, it may not be modified because there is
+	  no mechanism to return a modified version of it. While the
+	  gen_stream maintains the current module state, each of the
+	  buffer processes have a copy of it and use them concurrently,
+	  thereby precluding the possibility of updating it.</p>
+      </desc>
+    </func>
+    <func>
+      <name>Module:inc_progress(BytesSeen, Chunk) -> BytesSeen</name>
+      <fsummary>Increment the number of bytes seen so far.</fsummary>
+      <type>
+	<v>BytesSeen = integer()</v>
+	<v>Chunk = term()</v>
+      </type>
+      <desc>
+	<marker id="Moduleinc_progress"></marker>
+	<p>The internal gen_stream state automatically keeps a running
+	  total of bytes delivered so that the percent complete can be
+	  reported.  This function is called by
+	  <seealso marker="#next_block/1">next_block/1,2</seealso> after
+	  the block of data is extracted from the stream, and should
+	  compute the proper amount to advance the stream position
+	  based on the data that is being delivered to the caller.</p>
+      </desc>
+    </func>
+    <func>
+      <name>Module:terminate(Reason, State)</name>
+      <fsummary>Clean up before termination.</fsummary>
+      <type>
+        <v>Reason = normal | shutdown | {shutdown,term()} | term()</v>
+        <v>State = term()</v>
+      </type>
+      <desc>
+	<marker id="Moduleterminate"></marker>
+        <p>This function is called by a gen_stream when it is about to
+          terminate. It should be the opposite of <c>Module:init/1</c>
+          and do any necessary cleaning up. When it returns,
+          the gen_stream terminates with <c>Reason</c>. The return
+          value is ignored.</p>
+        <p><c>Reason</c> is a term denoting the stop reason and
+          <c>State</c> is the internal state of the gen_stream.</p>
+        <p><c>Reason</c> depends on why the gen_stream is terminating.
+          If it is because another callback function has returned a
+          stop tuple <c>{stop,..}</c>, <c>Reason</c> will have
+          the value specified in that tuple. If it is due to a failure,
+          <c>Reason</c> is the error reason.</p>
+        <p>If the gen_stream is part of a supervision tree and is
+          ordered by its supervisor to terminate, this function will be
+          called with <c>Reason=shutdown</c> if the following
+          conditions apply:</p>
+        <list type="bulleted">
+          <item>the gen_stream has been set to trap exit signals, and</item>
+          <item>the shutdown strategy as defined in the supervisor's
+           child specification is an integer timeout value, not
+          <c>brutal_kill</c>.</item>
+        </list>
+        <p>Even if the gen_stream is <em>not</em> part of a supervision tree,
+	   this function will be called if it receives an <c>'EXIT'</c>
+	   message from its parent. <c>Reason</c> will be the same as in
+	   the <c>'EXIT'</c> message.</p>
+        <p>Otherwise, the gen_stream will be immediately terminated.</p>
+        <p>Note that for any other reason than <c>normal</c>,
+          <c>shutdown</c>, or <c>{shutdown,Term}</c> the gen_stream is
+	  assumed to terminate due to an error and
+	  an error report is issued using
+          <seealso marker="kernel:error_logger#format/2">error_logger:format/2</seealso>.</p>
+      </desc>
+    </func>
+    <func>
+      <name>Module:code_change(OldVsn, ModState, Extra) -> {ok, NewModState}</name>
+      <fsummary>Update the internal module state during upgrade/downgrade.</fsummary>
+      <type>
+        <v>OldVsn = Vsn | {down, Vsn}</v>
+        <v>&nbsp;&nbsp;Vsn = term()</v>
+        <v>State = NewState = term()</v>
+        <v>Extra = term()</v>
+      </type>
+      <desc>
+	<marker id="Modulecode_change"></marker>
+        <p>This function is called by a gen_stream when it should
+          update its internal state during a release upgrade/downgrade,
+          i.e. when the instruction <c>{update,Module,Change,...}</c>
+          where <c>Change={advanced,Extra}</c> is given in
+          the <c>appup</c> file. See
+          <seealso marker="doc/design_principles:release_handling#instr">OTP Design Principles</seealso>
+          for more information.</p>
+        <p>In the case of an upgrade, <c>OldVsn</c> is <c>Vsn</c>, and
+          in the case of a downgrade, <c>OldVsn</c> is
+          <c>{down,Vsn}</c>. <c>Vsn</c> is defined by the <c>vsn</c>
+          attribute(s) of the old version of the callback module
+          <c>Module</c>. If no such attribute is defined, the version
+          is the checksum of the BEAM file.</p>
+        <p><c>State</c> is the internal state of the gen_stream.</p>
+        <p><c>Extra</c> is passed as-is from the <c>{advanced,Extra}</c>
+          part of the update instruction.</p>
+        <p>The function should return the updated internal state.</p>
+      </desc>
+    </func>
+    <func>
+      <name>Module:format_status(normal, [PDict, State]) -> Status</name>
+      <fsummary>Optional function for providing a term describing the
+        current gen_stream status.</fsummary>
+      <type>
+        <v>PDict = [{Key, Value}]</v>
+        <v>State = term()</v>
+        <v>Status = [term()]</v>
+      </type>
+      <desc>
+	<marker id="Moduleformat_status"></marker>
+        <p><em>This callback is optional, so callback modules need not
+          export it. The gen_stream module provides a default
+          implementation of this function that returns the callback
+          module state.</em></p>
+        <p>This function is called by a gen_stream process when one
+          of <seealso marker="sys#get_status/1">sys:get_status/1,2</seealso>
+          is invoked to get the gen_stream status. A callback module
+          wishing to customise the <c>sys:get_status/1,2</c> return
+          value exports an instance of <c>format_status/2</c> that
+          returns a term describing the current status of the
+          gen_stream.</p>
+        <p><c>PDict</c> is the current value of the gen_stream's
+          process dictionary.</p>
+        <p><c>State</c> is the internal state of the gen_stream.</p>
+        <p>The function should return <c>Status</c>, a list of one or
+          more terms that customise the details of the current state
+          and status of the gen_stream.</p>
+      </desc>
+    </func>
+  </funcs>
+
+  <section>
+    <title>SEE ALSO</title>
+    <p><seealso marker="gen_event">gen_event(3)</seealso>,
+      <seealso marker="gen_fsm">gen_fsm(3)</seealso>,
+      <seealso marker="gen_server">gen_server(3)</seealso>,
+      <seealso marker="supervisor">supervisor(3)</seealso>,
+      <seealso marker="proc_lib">proc_lib(3)</seealso>,
+      <seealso marker="sys">sys(3)</seealso></p>
+  </section>
+</erlref>

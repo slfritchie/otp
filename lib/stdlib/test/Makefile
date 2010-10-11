@@ -44,6 +44,8 @@ MODULES= \
 	gen_event_SUITE \
 	gen_fsm_SUITE \
 	gen_server_SUITE \
+	gen_stream_odd_nums \
+	gen_stream_SUITE \
 	id_transform_SUITE \
 	io_SUITE \
 	io_proto_SUITE \

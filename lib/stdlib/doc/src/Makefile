@@ -66,6 +66,7 @@ XML_REF3_FILES = \
 	gen_event.xml \
 	gen_fsm.xml \
 	gen_server.xml \
+	gen_stream.xml \
 	io.xml \
 	io_lib.xml \
 	lib.xml \

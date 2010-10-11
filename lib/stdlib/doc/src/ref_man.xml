@@ -63,6 +63,7 @@
   <xi:include href="gen_event.xml"/>
   <xi:include href="gen_fsm.xml"/>
   <xi:include href="gen_server.xml"/>
+  <xi:include href="gen_stream.xml"/>
   <xi:include href="io.xml"/>
   <xi:include href="io_lib.xml"/>
   <xi:include href="lib.xml"/>
