@@ -738,26 +738,15 @@ efile_may_openfile(Efile_error* errInfo, char *name) {
     DWORD attr;
 
     if ((attr = GetFileAttributes(name)) == INVALID_FILE_ATTRIBUTES) {
-	return check_error(-1, errInfo);
+        return 0;
     }
 
     if (attr & FILE_ATTRIBUTE_DIRECTORY) {
 	errno = EISDIR;
 	return check_error(-1, errInfo);
+        return 0;
     }
     return 1;
-#if 0
-    struct stat statbuf;
-    
-    if (stat(name, &statbuf)) {
-	return check_error(-1, errInfo);
-    }
-    if (ISDIR(statbuf)) {
-	errno = EISDIR;
-	return check_error(-1, errInfo);
-    }
-    return 1;
-#endif
 }
 
 void

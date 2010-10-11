@@ -56,6 +56,7 @@
 #define FILE_FDATASYNC          30
 #define FILE_FADVISE            31
 #define FILE_SENDFILE           32
+#define FILE_EXISTS             33
 
 /* Return codes */
 
@@ -1539,6 +1540,22 @@ static void invoke_write_info(void *data)
     d->result_ok = efile_write_info(&d->errInfo, &d->info, d->b);
 }
 
+static void invoke_file_exists(void *data)
+{
+    struct t_data *d = (struct t_data *) data;
+    char *path = d->b;
+    int status;
+
+    d->again = 0;
+    d->errInfo.os_errno = d->errInfo.posix_errno = 0;
+    status = efile_may_openfile(&d->errInfo, path);
+    if (!status && d->errInfo.posix_errno != EISDIR) {
+        errno = ENOENT;
+        d->errInfo.os_errno = d->errInfo.posix_errno = errno;
+    }
+    d->result_ok = status;
+}
+
 static void invoke_lseek(void *data)
 {
     struct t_data *d = (struct t_data *) data;
@@ -2030,6 +2047,7 @@ file_async_ready(ErlDrvData e, ErlDrvThreadData data)
       case FILE_RENAME:
       case FILE_WRITE_INFO:
       case FILE_FADVISE:
+      case FILE_EXISTS:
 	reply(desc, d->result_ok, &d->errInfo);
 	free_data(data);
 	break;
@@ -2465,6 +2483,17 @@ file_output(ErlDrvData e, char* buf, int count)
         d->c.fadvise.offset = get_int64((uchar*) buf);
         d->c.fadvise.length = get_int64(((uchar*) buf) + sizeof(Sint64));
         d->c.fadvise.advise = get_int32(((uchar*) buf) + 2 * sizeof(Sint64));
+        goto done;
+    }
+    case FILE_EXISTS:
+    {
+        d = EF_SAFE_ALLOC(sizeof(struct t_data) - 1 + strlen(name) + 1);
+
+        strcpy(d->b, name);
+        d->command = command;
+        d->invoke = invoke_file_exists;
+        d->free = free_data;
+        d->level = 2;
         goto done;
     }
 
