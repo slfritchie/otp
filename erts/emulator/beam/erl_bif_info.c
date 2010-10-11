@@ -1997,6 +1997,14 @@ BIF_RETTYPE system_info_1(BIF_ALIST_1)
 #endif
     } else if (BIF_ARG_1 == am_trace_control_word) {
 	BIF_RET(db_get_trace_control_word_0(BIF_P));
+    } else if (BIF_ARG_1 == am_erts_de_busy_limit) {
+	extern int erts_de_busy_limit;
+	Uint hsz = 0;
+
+	(void) erts_bld_uint(NULL, &hsz, erts_de_busy_limit);
+	hp = hsz ? HAlloc(BIF_P, hsz) : NULL;
+	res = erts_bld_uint(&hp, NULL, erts_de_busy_limit);
+	return res;
     } else if (ERTS_IS_ATOM_STR("ets_realloc_moves", BIF_ARG_1)) {
  	BIF_RET((erts_ets_realloc_always_moves) ? am_true : am_false);
     } else if (ERTS_IS_ATOM_STR("snifs", BIF_ARG_1)) {

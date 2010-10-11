@@ -97,6 +97,9 @@ dist_msg_dbg(ErtsDistExternal *edep, char *what, byte *buf, int sz)
 #define PASS_THROUGH 'p'        /* This code should go */
 
 int erts_is_alive; /* System must be blocked on change */
+#define ERTS_DE_BUSY_LIMIT (128*1024)
+int erts_de_busy_limit = ERTS_DE_BUSY_LIMIT;
+
 
 /* distribution trap functions */
 Export* dsend2_trap = NULL;
@@ -1452,8 +1455,6 @@ int erts_net_message(Port *prt,
     ERTS_SMP_CHK_NO_PROC_LOCKS;
     return -1;
 }
-
-#define ERTS_DE_BUSY_LIMIT (128*1024)
 
 static int
 dsig_send(ErtsDSigData *dsdp, Eterm ctl, Eterm msg, int force_busy)
