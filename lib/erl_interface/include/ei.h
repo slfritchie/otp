@@ -467,6 +467,7 @@ int ei_get_type_internal(const char *buf, const int *index, int *type,
  * large to contain the decoded object.
  */
 int ei_decode_version(const char *buf, int *index, int *version);
+int ei_decode_header(const char *buf, int *index, erlang_msg *msg);
 int ei_decode_long(const char *buf, int *index, long *p);
 int ei_decode_ulong(const char *buf, int *index, unsigned long *p);
 int ei_decode_double(const char *buf, int *index, double *p);
