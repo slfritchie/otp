@@ -18,6 +18,8 @@
 %%
 -module(andor_SUITE).
 
+-compile(no_native).
+
 -export([all/1,
 	 t_case/1,t_and_or/1,t_andalso/1,t_orelse/1,inside/1,overlap/1,
 	 combined/1,in_case/1,before_and_inside_if/1]).

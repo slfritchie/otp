@@ -2429,7 +2429,7 @@ type(lists, keydelete, 3, Xs) ->
 	 end);
 type(lists, keyfind, 3, Xs) ->
   strict(arg_types(lists, keyfind, 3), Xs,
-	 fun ([X, Y, Z]) ->
+	 fun ([_X, _Y, Z]) ->
 	     ListEs = t_list_elements(Z),
 	     Tuple = t_inf(t_tuple(), ListEs),
 	     case t_is_none(Tuple) of
@@ -2437,22 +2437,7 @@ type(lists, keyfind, 3, Xs) ->
 	       false ->
 		 %% this BIF, contrary to lists:keysearch/3 does not
 		 %% wrap its result in a 'value'-tagged tuple
-		 Ret = t_sup(Tuple, t_atom('false')),
-		 case t_is_any(X) of
-		   true -> Ret;
-		   false ->
-		     case t_tuple_subtypes(Tuple) of
-		       unknown -> Ret;
-		       List ->
-			 Keys = [type(erlang, element, 2, [Y, S])
-				 || S <- List],
-			 Infs = [t_inf(Key, X) || Key <- Keys],
-			 case all_is_none(Infs) of
-			   true -> t_atom('false');
-			   false -> Ret
-			 end
-		     end
-		 end
+		 t_sup(Tuple, t_atom('false'))
 	     end
 	 end);
 type(lists, keymap, 3, Xs) ->
@@ -2465,27 +2450,8 @@ type(lists, keymap, 3, Xs) ->
 	 end);
 type(lists, keymember, 3, Xs) ->
   strict(arg_types(lists, keymember, 3), Xs,
-	 fun ([X, Y, Z]) ->
-	     ListEs = t_list_elements(Z),
-	     Tuple = t_inf(t_tuple(), ListEs),
-	     case t_is_none(Tuple) of
-	       true -> t_atom('false');
-	       false ->
-		 case t_is_any(X) of
-		   true -> t_boolean();
-		   false ->
-		     case t_tuple_subtypes(Tuple) of
-		       unknown -> t_boolean();
-		       List ->
-			 Keys = [type(erlang, element, 2, [Y,S]) || S <- List],
-			 Infs = [t_inf(Key, X) || Key <- Keys],
-			 case all_is_none(Infs) of
-			   true -> t_atom('false');
-			   false -> t_boolean()
-			 end
-		     end
-		 end
-	     end
+	 fun ([_X, _Y, _Z]) ->
+	     t_boolean()
 	 end);
 type(lists, keymerge, 3, Xs) ->
   strict(arg_types(lists, keymerge, 3), Xs,
@@ -2495,29 +2461,14 @@ type(lists, keyreplace, 4, Xs) ->
 	 fun ([_K, _I, L, T]) -> t_list(t_sup(t_list_elements(L), T)) end);
 type(lists, keysearch, 3, Xs) ->
   strict(arg_types(lists, keysearch, 3), Xs,
-	 fun ([X, Y, Z]) ->
+	 fun ([_X, _Y, Z]) ->
 	     ListEs = t_list_elements(Z),
 	     Tuple = t_inf(t_tuple(), ListEs),
 	     case t_is_none(Tuple) of
 	       true -> t_atom('false');
 	       false ->
-		 Ret = t_sup(t_tuple([t_atom('value'), Tuple]), 
-			     t_atom('false')),
-		 case t_is_any(X) of
-		   true -> Ret;
-		   false ->
-		     case t_tuple_subtypes(Tuple) of
-		       unknown -> Ret;
-		       List ->
-			 Keys = [type(erlang, element, 2, [Y, S])
-				 || S <- List],
-			 Infs = [t_inf(Key, X) || Key <- Keys],
-			 case all_is_none(Infs) of
-			   true -> t_atom('false');
-			   false -> Ret
-			 end
-		     end
-		 end
+		 t_sup(t_tuple([t_atom('value'), Tuple]),
+		       t_atom('false'))
 	     end
 	 end);
 type(lists, keysort, 2, Xs) ->
@@ -2939,9 +2890,6 @@ list_replace(1, E, [_X | Xs]) ->
 
 any_is_none_or_unit(Ts) ->
   lists:any(fun erl_types:t_is_none_or_unit/1, Ts).
-
-all_is_none(Ts) ->
-  lists:all(fun erl_types:t_is_none/1, Ts).
 
 check_guard([X], Test, Type) ->
   check_guard_single(X, Test, Type).

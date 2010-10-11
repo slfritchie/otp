@@ -32,6 +32,8 @@
 %-define(line_trace, 1).
 -include("test_server.hrl").
 
+-compile(no_native).
+
 -define(default_timeout, ?t:minutes(1)).
 
 all(suite) -> [token_set_get, tracer_set_get, print, 
