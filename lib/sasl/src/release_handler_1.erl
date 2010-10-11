@@ -23,23 +23,29 @@
 -export([get_vsn/1]). %% exported because used in a test case
 
 -record(eval_state, {bins = [], stopped = [], suspended = [], apps = [],
-		     libdirs, unpurged = [], vsns = [], newlibs = [],
+		     libdirs, unpurged = [], vsns = [], newlibs = [], loadedvsns = [],
 		     opts = []}).
 %%-----------------------------------------------------------------
-%% bins      = [{Mod, Binary, FileName}]
-%% stopped   = [{Mod, [pid()]}] - list of stopped pids for each module
-%% suspended = [{Mod, [pid()]}] - list of suspended pids for each module
-%% apps      = [app_spec()] - list of all apps in the new release
-%% libdirs   = [{Lib, LibVsn, LibDir}] - Maps Lib to Vsn and Directory
-%% unpurged  = [{Mod, soft_purge | brutal_purge}]
-%% vsns      = [{Mod, OldVsn, NewVsn}] - remember the old vsn of a mod
+%% bins       = [{Mod, Binary, FileName}]
+%% stopped    = [{Mod, [pid()]}] - list of stopped pids for each module
+%% suspended  = [{Mod, [pid()]}] - list of suspended pids for each module
+%% apps       = [app_spec()] - list of all apps in the new release
+%% libdirs    = [{Lib, LibVsn, LibDir}] - Maps Lib to Vsn and Directory
+%% unpurged   = [{Mod, soft_purge | brutal_purge}]
+%% vsns       = [{Mod, OldVsn, NewVsn}] - remember the old vsn of a mod
 %%                  before it is removed/a new vsn is loaded; the new vsn
 %%                  is kept in case of a downgrade, where the code_change
 %%                  function receives the vsn of the module to downgrade
 %%                  *to*.
-%% newlibs   = [{Lib, Dir}] - list of all new libs; used to change
-%%                            the code path
-%% opts      = [{Tag, Value}] - list of options
+%% loadedvsns = [{Mod, Vsn}] - stores the equivlient of
+%%                  beam_lib:version(code:which(Mod)) but the because
+%%                  vsns() may have a more up to date vsn that has not
+%%                  yet been loaded. i.e. {load_object_code, [Mod, ...]}
+%%                  has been done but not yet reached {load, {Mod, ...}}
+%%                  or {remove, {Mod, ...}}
+%% newlibs    = [{Lib, Dir}] - list of all new libs; used to change
+%%                             the code path
+%% opts       = [{Tag, Value}] - list of options
 %%-----------------------------------------------------------------
 
 
@@ -223,7 +229,7 @@ eval({load_object_code, {Lib, LibVsn, Modules}}, EvalState) ->
 				    FName = filename:join(Ebin, File),
 				    case erl_prim_loader:get_file(FName) of
 					{ok, Bin, FName2} ->
-					    NVsns = add_new_vsn(Mod, FName2, Vsns),
+					    NVsns = add_new_vsn(Mod, Bin, Vsns),
 					    {[{Mod, Bin, FName2} | Bins],NVsns};
 					error ->
 					    throw({error, {no_such_file,FName}})
@@ -259,19 +265,23 @@ eval({load, {Mod, _PrePurgeMethod, PostPurgeMethod}}, EvalState) ->
     % load_binary kills all procs running old code
     % if soft_purge, we know that there are no such procs now
     Vsns = EvalState#eval_state.vsns,
-    NewVsns = add_old_vsn(Mod, Vsns),
+	LoadedVsns = EvalState#eval_state.loadedvsns,
+    NewVsns = add_old_vsn(Mod, Vsns, LoadedVsns),
+    NewLoadedVsns = add_loaded_vsn(Mod, Bin, LoadedVsns),
     code:load_binary(Mod, File, Bin),
     % Now, the prev current is old.  There might be procs
     % running it.  Find them.
     Unpurged = do_soft_purge(Mod,PostPurgeMethod,EvalState#eval_state.unpurged),
     EvalState#eval_state{bins = lists:keydelete(Mod, 1, Bins),
 			 unpurged = Unpurged,
-			 vsns = NewVsns};
+			 vsns = NewVsns,
+			 loadedvsns = NewLoadedVsns};
 eval({remove, {Mod, _PrePurgeMethod, PostPurgeMethod}}, EvalState) ->
     % purge kills all procs running old code
     % if soft_purge, we know that there are no such procs now
     Vsns = EvalState#eval_state.vsns,
-    NewVsns = add_old_vsn(Mod, Vsns),
+	LoadedVsns = EvalState#eval_state.loadedvsns,
+    NewVsns = add_old_vsn(Mod, Vsns, LoadedVsns),
     code:purge(Mod),
     code:delete(Mod),
     % Now, the prev current is old.  There might be procs
@@ -281,9 +291,12 @@ eval({remove, {Mod, _PrePurgeMethod, PostPurgeMethod}}, EvalState) ->
 	    true -> EvalState#eval_state.unpurged;
 	    false -> [{Mod, PostPurgeMethod} | EvalState#eval_state.unpurged]
 	end,
+	NewLoadedVsns = lists:keydelete(Mod, 1, LoadedVsns),
 %%    Bins = EvalState#eval_state.bins,
 %%    EvalState#eval_state{bins = lists:keydelete(Mod, 1, Bins),
-    EvalState#eval_state{unpurged = Unpurged, vsns = NewVsns};
+    EvalState#eval_state{unpurged = Unpurged,
+			vsns = NewVsns,
+			loadedvsns = NewLoadedVsns};
 eval({purge, Modules}, EvalState) ->
     % Now, if there are any processes still executing old code, OR
     % if some new processes started after suspend but before load,
@@ -606,20 +619,20 @@ sync_nodes(Id, Nodes) ->
 		  end,
 		  NNodes).
 
-add_old_vsn(Mod, Vsns) ->
+add_old_vsn(Mod, Vsns, LoadedVsns) ->
     case lists:keysearch(Mod, 1, Vsns) of
 	{value, {Mod, undefined, NewVsn}} ->
-	    OldVsn = get_vsn(code:which(Mod)),
+	    OldVsn = get_current_vsn(Mod, LoadedVsns),
 	    lists:keyreplace(Mod, 1, Vsns, {Mod, OldVsn, NewVsn});
 	{value, {Mod, _OldVsn, _NewVsn}} ->
 	    Vsns;
 	false ->
-	    OldVsn = get_vsn(code:which(Mod)),
+	    OldVsn = get_current_vsn(Mod, LoadedVsns),
 	    [{Mod, OldVsn, undefined} | Vsns]
     end.
 
-add_new_vsn(Mod, File, Vsns) ->
-    NewVsn = get_vsn(File),
+add_new_vsn(Mod, Bin, Vsns) ->
+    NewVsn = get_vsn(Bin),
     case lists:keysearch(Mod, 1, Vsns) of
 	{value, {Mod, OldVsn, undefined}} ->
 	    lists:keyreplace(Mod, 1, Vsns, {Mod, OldVsn, NewVsn});
@@ -627,17 +640,52 @@ add_new_vsn(Mod, File, Vsns) ->
 	    [{Mod, undefined, NewVsn} | Vsns]
     end.
 
+add_loaded_vsn(Mod, Bin, LoadedVsns) ->
+	Vsn = get_vsn(Bin),
+    case lists:keysearch(Mod, 1, LoadedVsns) of
+	{value, {Mod, _OldVsn}} ->
+	    lists:keyreplace(Mod, 1, LoadedVsns, {Mod, Vsn});
+	false ->
+	    [{Mod, Vsn} | LoadedVsns]
+    end.
 
+get_current_vsn(Mod, LoadedVsns) ->
+	case lists:keysearch(Mod, 1, LoadedVsns) of
+	{value, {Mod, Vsn}} ->
+	    Vsn;
+	false ->
+	    load_vsn(Mod)
+    end.
 
 %%-----------------------------------------------------------------
 %% Func: get_vsn/1
-%% Args: File = string()
+%% Args: Mod = atom()
+%% Purpose: having to load the Bin is a bit of a pain, but we can't
+%%     rely on checking for File path in bins() because we might have
+%%     loaded a different version into there that isn't the same
+%%     as code:which(Mod), so we track that in LoadedVsns, and
+%%     this fun being called means it's not in there
+%% Returns: Vsn
+%%          Vsn = term()
+%%-----------------------------------------------------------------
+load_vsn(Mod) ->
+	File = code:which(Mod),
+	case erl_prim_loader:get_file(File) of
+	{ok, Bin, _File2} ->
+	    get_vsn(Bin);
+	error ->
+	    throw({error, {no_such_file, File}})
+    end.
+
+%%-----------------------------------------------------------------
+%% Func: get_vsn/1
+%% Args: Bin = binary()
 %% Purpose: Finds the version attribute of a module.
 %% Returns: Vsn
 %%          Vsn = term()
 %%-----------------------------------------------------------------
-get_vsn(File) ->
-    {ok, {_Mod, Vsn}} = beam_lib:version(File),
+get_vsn(Bin) ->
+    {ok, {_Mod, Vsn}} = beam_lib:version(Bin),
     case misc_supp:is_string(Vsn) of
 	true ->
 	    Vsn;
