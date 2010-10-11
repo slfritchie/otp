@@ -1497,6 +1497,8 @@ restore_expand_module([{attribute,Line,opaque,[Type]}|Fs]) ->
     [{attribute,Line,opaque,Type}|restore_expand_module(Fs)];
 restore_expand_module([{attribute,Line,spec,[Arg]}|Fs]) ->
     [{attribute,Line,spec,Arg}|restore_expand_module(Fs)];
+restore_expand_module([{attribute,Line,callback,[Arg]}|Fs]) ->
+    [{attribute,Line,callback,Arg}|restore_expand_module(Fs)];
 restore_expand_module([F|Fs]) ->
     [F|restore_expand_module(Fs)];
 restore_expand_module([]) -> [].
