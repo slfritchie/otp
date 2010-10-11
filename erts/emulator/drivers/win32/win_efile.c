@@ -1446,3 +1446,13 @@ efile_fadvise(Efile_error* errInfo, int fd, Sint64 offset,
     errno = ERROR_SUCCESS;
     return check_error(0, errInfo);
 }
+
+/* TODO: emulate sendfile() with win32 TransmitFile() API */
+/* It's not the same as sendfile() but close */
+int
+efile_sendfile(Efile_error* errInfo, int in_fd, int out_fd,
+	       off_t *offset, size_t *count)
+{
+    errno = ENOTSUP;
+    return check_error(-1, errInfo);
+}

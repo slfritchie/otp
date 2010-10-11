@@ -1727,6 +1727,21 @@ if test "X$host" = "Xwin32"; then
 fi
 AC_FUNC_SETVBUF_REVERSED	
 
+dnl TODO: not sure this is enough
+dnl TODO: maybe use AC_CHECK_FUNC instead of AC_CHECK_FUNS([])
+case $host_os in
+  solaris*)
+    AC_CHECK_FUNCS([sendfile])
+    AC_CHECK_LIB(sendfile, sendfile)
+    ;;
+  linux*|darwin*|freebsd*)
+    AC_CHECK_FUNCS([sendfile])
+  ;;
+  *)
+    AC_MSG_NOTICE([not checking for sendfile() on this platform])
+  ;;
+esac
+
 disable_vfork=false
 if test "x$EMU_THR_LIB_NAME" != "x"; then
 	AC_MSG_CHECKING([if vfork is known to hang multithreaded applications])

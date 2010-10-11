@@ -86,6 +86,8 @@
 
 -export([standard_io/1,mini_server/1]).
 
+-export([sendfile/1, sendfile_server/2]).
+
 %% Debug exports
 -export([create_file_slow/2, create_file/2, create_bin/2]).
 -export([verify_file/2, verify_bin/3]).
@@ -106,7 +108,7 @@ all(suite) ->
       delayed_write, read_ahead, segment_read, segment_write,
       ipread, pid2name, interleaved_read_write, 
       otp_5814, large_file, read_line_1, read_line_2, read_line_3, read_line_4,
-      standard_io],
+      standard_io, sendfile],
      fini}.
 
 init(Config) when is_list(Config) ->
@@ -3914,3 +3916,75 @@ flush(Msgs) ->
     after 0 ->
 	    lists:reverse(Msgs)
     end.
+
+
+%% sendfile/4, sendfile/2
+-define(SENDFILE_TIMEOUT, 5000).
+-define(SENDFILE_CHUNKSIZE, 10*1024).
+
+sendfile(Config) when is_list(Config) ->
+    ?line Data = ?config(data_dir, Config),
+    ?line Real = filename:join(Data, "realmen.html"),
+    Host = "localhost",
+    Port = 1998,
+    %% TODO: running both test fails with econnrefused for the chunked test
+    %% ?line ok = sendfile_send(Host, Port, Real),
+    ?line ok = sendfile_send_chunked(Host, Port+1, Real).
+
+sendfile_send_chunked(Host, Port, File) ->
+    FileInfo = sendfile_file_info(File),
+    spawn_link(?MODULE, sendfile_server, [self(), Port]),
+    ?line {ok, Sock} = gen_tcp:connect(Host, Port, [binary,{packet,0}]),
+    ?line {ok, _} = file:sendfile(File, Sock, ?SENDFILE_CHUNKSIZE),
+    ?line ok = gen_tcp:close(Sock),
+    Dog = test_server:timetrap(test_server:seconds(5)),
+    receive
+	{ok, Bin} ->
+	    %% TODO: is it right to override default 60s timetrap
+	    ?line ok = test_server:timetrap_cancel(Dog),
+	    FileInfo = sendfile_bin_info(Bin),
+	    ok
+    end.
+
+sendfile_send(Host, Port, File) ->
+    FileInfo = sendfile_file_info(File),
+    spawn_link(?MODULE, sendfile_server, [self(), Port]),
+    ?line {ok, Sock} = gen_tcp:connect(Host, Port, [binary,{packet,0}]),
+    ?line {ok, _} = file:sendfile(File, Sock),
+    ?line ok = gen_tcp:close(Sock),
+    Dog = test_server:timetrap(test_server:seconds(5)),
+    receive
+	{ok, Bin} ->
+	    %% TODO: is it right to override default 60s timetrap
+	    ?line ok = test_server:timetrap_cancel(Dog),
+	    FileInfo = sendfile_bin_info(Bin),
+	    ok
+    end.
+
+sendfile_server(ClientPid, Port) ->
+    ?line {ok, LSock} = gen_tcp:listen(Port, [binary, {packet, 0},
+					      {active, false},
+					      {reuseaddr, true}]),
+    ?line {ok, Sock} = gen_tcp:accept(LSock),
+    ?line {ok, Bin} = sendfile_do_recv(Sock, []),
+    ?line ok = gen_tcp:close(Sock),
+    ClientPid ! {ok, Bin}.
+
+sendfile_do_recv(Sock, Bs) ->
+    case gen_tcp:recv(Sock, 0, ?SENDFILE_TIMEOUT) of
+	{ok, B} ->
+	    sendfile_do_recv(Sock, [B|Bs]);
+	{error, closed} ->
+	    {ok, lists:reverse(Bs)}
+    end.
+
+sendfile_file_info(File) ->
+    {ok, #file_info{size = Size}} = file:read_file_info(File),
+    {ok, Data} = file:read_file(File),
+    Md5 = erlang:md5(Data),
+    {Size, Md5}.
+
+sendfile_bin_info(Data) ->
+    Size = lists:foldl(fun(E,Sum) -> size(E) + Sum end, 0, Data),
+    Md5 = erlang:md5(Data),
+    {Size, Md5}.
