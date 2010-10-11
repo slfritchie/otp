@@ -998,8 +998,6 @@ static Eterm call_breakpoint_handler(Process* p, BeamInstr* fi, Eterm* reg);
 static BeamInstr* fixed_apply(Process* p, Eterm* reg, Uint arity);
 static BeamInstr* apply(Process* p, Eterm module, Eterm function,
 		     Eterm args, Eterm* reg);
-static int hibernate(Process* c_p, Eterm module, Eterm function,
-		     Eterm args, Eterm* reg);
 static BeamInstr* call_fun(Process* p, int arity, Eterm* reg, Eterm args);
 static BeamInstr* apply_fun(Process* p, Eterm fun, Eterm args, Eterm* reg);
 static Eterm new_fun(Process* p, Eterm* reg, ErlFunEntry* fe, int num_free);
@@ -3201,6 +3199,9 @@ apply_bif_or_nif_epilogue:
 	    r(0) = c_p->def_arg_reg[0];
 	    x(1) = c_p->def_arg_reg[1];
 	    x(2) = c_p->def_arg_reg[2];
+	    if (c_p->status == P_WAITING) {
+		goto do_schedule;
+	    }
 	    Dispatch();
 	}
 	reg[0] = r(0);
@@ -4958,7 +4959,7 @@ apply_bif_or_nif_epilogue:
 
  OpCase(i_hibernate): {
      SWAPOUT;
-     if (hibernate(c_p, r(0), x(1), x(2), reg)) {
+     if (erts_hibernate(c_p, r(0), x(1), x(2), reg)) {
 	 goto do_schedule;
      } else {
 	 I = handle_error(c_p, I, reg, hibernate_3);
@@ -5997,8 +5998,8 @@ fixed_apply(Process* p, Eterm* reg, Uint arity)
     return ep->address;
 }
 
-static int
-hibernate(Process* c_p, Eterm module, Eterm function, Eterm args, Eterm* reg)
+int
+erts_hibernate(Process* c_p, Eterm module, Eterm function, Eterm args, Eterm* reg)
 {
     int arity;
     Eterm tmp;

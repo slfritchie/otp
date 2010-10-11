@@ -1091,10 +1091,21 @@ BIF_RETTYPE unlink_1(BIF_ALIST_1)
 BIF_RETTYPE hibernate_3(BIF_ALIST_3)
 {
     /*
-     * hibernate/3 is implemented as an instruction; therefore
-     * this function will never be called.
+     * hibernate/3 is usually translated to an instruction; therefore
+     * this function is only called from HiPE or when the call could not
+     * be translated.
      */
-    BIF_ERROR(BIF_P, BADARG);
+    Eterm reg[3];
+    
+    if (erts_hibernate(BIF_P, BIF_ARG_1, BIF_ARG_2, BIF_ARG_3, reg)) {
+        /*
+         * If hibernate succeeded, TRAP. The process will be suspended
+         * if status is P_WAITING or continue (if any message was in the queue).
+         */
+        BIF_P->def_arg_reg[3] = BIF_P->i;
+        BIF_P->freason = TRAP;
+    }
+    return THE_NON_VALUE;
 }
 
 /**********************************************************************/

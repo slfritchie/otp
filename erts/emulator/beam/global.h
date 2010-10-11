@@ -1729,6 +1729,8 @@ Uint erts_current_reductions(Process* current, Process *p);
 
 int erts_print_system_version(int to, void *arg, Process *c_p);
 
+int erts_hibernate(Process* c_p, Eterm module, Eterm function, Eterm args, Eterm* reg);
+
 /*
  * Interface to erl_init
  */
