@@ -1,0 +1,10 @@
+{release, {"release", "2"}, {erts, "%VSN%"},
+    [
+        {kernel, "%VSN%"},
+        {stdlib, "%VSN%"},
+        {mnesia, "%VSN%"},
+        {crypto, "%VSN%", transient},
+        {ssl, "%VSN%", temporary},
+        {snmp, "%VSN%", load},
+        {ssh, "%VSN%", none}
+    ]}.

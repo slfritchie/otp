@@ -1,0 +1,5 @@
+{release, {"release", "1"}, {erts, "%VSN%"},
+    [
+        {kernel, "%VSN%"},
+        {stdlib, "%VSN%"}
+    ]}.
