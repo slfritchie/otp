@@ -162,6 +162,9 @@ build_options([{OptionName, Value} = Term|Rest], Options) ->
     output_format ->
       assert_output_format(Value),
       build_options(Rest, Options#options{output_format = Value});
+    name_format ->
+      assert_name_format(Value),
+      build_options(Rest, Options#options{name_format = Value});
     output_plt ->
       assert_filename(Value),
       build_options(Rest, Options#options{output_plt = Value});
@@ -210,6 +213,13 @@ assert_output_format(formatted) ->
   ok;
 assert_output_format(Term) ->
   bad_option("Illegal value for output_format", Term).
+
+assert_name_format(basename) ->
+  ok;
+assert_name_format(full_path) ->
+  ok;
+assert_name_format(Term) ->
+  bad_option("Illegal value for name_format", Term).
 
 assert_plt_op(#options{analysis_type = OldVal}, 
 	      #options{analysis_type = NewVal}) ->

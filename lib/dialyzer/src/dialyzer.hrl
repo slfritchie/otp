@@ -138,6 +138,7 @@
 		  use_contracts   = true           :: boolean(),
 		  output_file     = none	   :: 'none' | file:filename(),
 		  output_format   = formatted      :: 'raw' | 'formatted',
+		  name_format     = basename       :: 'basename' | 'full_path',
 		  callgraph_file  = ""             :: file:filename(),
 		  check_plt       = true           :: boolean()
 		 }).

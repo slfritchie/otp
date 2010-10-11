@@ -38,7 +38,8 @@
 	 gui/0,
 	 gui/1,
 	 plt_info/1,
-	 format_warning/1]).
+	 format_warning/1,
+	 format_warning/2]).
 
 -include("dialyzer.hrl").
 
@@ -48,6 +49,7 @@
 %%  - run/1:            Erlang interface for a command line-like analysis
 %%  - gui/0/1:          Erlang interface for the gui.
 %%  - format_warning/1: Get the string representation of a warning.
+%%  - format_warning/2: Likewise, but specify whether to strip file path
 %%  - plt_info/1:       Get information of the specified plt.
 %%--------------------------------------------------------------------
 
@@ -267,11 +269,20 @@ cl_check_log(Output) ->
 
 -spec format_warning(dial_warning()) -> string().
 
-format_warning({_Tag, {File, Line}, Msg}) when is_list(File),
-					       is_integer(Line) ->
+format_warning(W) ->
+  format_warning(W, basename).
+
+-spec format_warning(dial_warning(), 'basename' | 'full_path') -> string().
+
+format_warning({_Tag, {File, Line}, Msg}, basename) when is_list(File),
+							 is_integer(Line) ->
   BaseName = filename:basename(File),
   String = lists:flatten(message_to_string(Msg)),
-  lists:flatten(io_lib:format("~s:~w: ~s", [BaseName, Line, String])).
+  lists:flatten(io_lib:format("~s:~w: ~s", [BaseName, Line, String]));
+format_warning({_Tag, {File, Line}, Msg}, full_path) when is_list(File),
+							  is_integer(Line) ->
+  String = lists:flatten(message_to_string(Msg)),
+  lists:flatten(io_lib:format("~s:~w: ~s", [File, Line, String])).
 
 
 %%-----------------------------------------------------------------------------
