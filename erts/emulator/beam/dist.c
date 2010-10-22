@@ -1542,10 +1542,7 @@ dsig_send(ErtsDSigData *dsdp, Eterm ctl, Eterm msg, int force_busy)
 	erts_smp_spin_lock(&dep->qlock);
 	dep->qsize += size_obuf(obuf);
 	if (dep->qsize >= dist_buf_busy_limit)
-{ /* SLF */
 	    dep->qflgs |= ERTS_DE_QFLG_BUSY;
-	    monitor_generic(c_p, make_small(42), cid);	    { int fd = open("/tmp/foo", O_WRONLY|O_APPEND) ; write(fd, "1547\n", 5); close(fd); }
-} /* SLF */
 	if (!force_busy && (dep->qflgs & ERTS_DE_QFLG_BUSY)) {
 	    erts_smp_spin_unlock(&dep->qlock);
 
@@ -1617,8 +1614,7 @@ dsig_send(ErtsDSigData *dsdp, Eterm ctl, Eterm msg, int force_busy)
 
     if (suspended) {
 	if (!resume && erts_system_monitor_flags.busy_dist_port)
-	    /* ORIG monitor_generic(c_p, am_busy_dist_port, cid); */
-	    monitor_generic(c_p, make_small(dep->qsize), cid);
+	    monitor_generic(c_p, am_busy_dist_port, cid);
 	return ERTS_DSIG_SEND_YIELD;
     }
     return ERTS_DSIG_SEND_OK;
@@ -1774,7 +1770,6 @@ erts_dist_command(Port *prt, int reds_limit)
 	if (!de_busy) {
 	    erts_smp_spin_lock(&dep->qlock);
 	    dep->qflgs |= ERTS_DE_QFLG_BUSY;
-	    { int fd = open("/tmp/foo", O_WRONLY|O_APPEND) ; write(fd, "1777\n", 5); close(fd); }
 	    erts_smp_spin_unlock(&dep->qlock);
 	    de_busy = 1;
 	}
@@ -1799,7 +1794,6 @@ erts_dist_command(Port *prt, int reds_limit)
 	    if (prt->status & ERTS_PORT_SFLG_PORT_BUSY) {
 		erts_smp_spin_lock(&dep->qlock);
 		dep->qflgs |= ERTS_DE_QFLG_BUSY;
-	    { int fd = open("/tmp/foo", O_WRONLY|O_APPEND) ; write(fd, "1802\n", 5); close(fd); }
 		erts_smp_spin_unlock(&dep->qlock);
 		de_busy = prt_busy = 1;
 		break;
@@ -1886,7 +1880,6 @@ erts_dist_command(Port *prt, int reds_limit)
 	    if (prt->status & ERTS_PORT_SFLG_PORT_BUSY) {
 		erts_smp_spin_lock(&dep->qlock);
 		dep->qflgs |= ERTS_DE_QFLG_BUSY;
-	    { int fd = open("/tmp/foo", O_WRONLY|O_APPEND) ; write(fd, "1889\n", 5); close(fd); }
 		erts_smp_spin_unlock(&dep->qlock);
 		de_busy = prt_busy = 1;
 		if (oq.first && !preempt)
