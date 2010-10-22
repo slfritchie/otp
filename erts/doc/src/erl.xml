@@ -910,14 +910,14 @@
       <item>
         <p>Miscellaneous flags.</p>
         <taglist>
-          <tag><marker id="+zdist_buf_busy_limit"><c>+zdist_buf_busy_limit size</c></marker></tag>
+          <tag><marker id="+zdbbl"><c>+zdbbl size</c></marker></tag>
           <item>
-            <p>Set the value of <c><![CDATA[dist_buf_busy_limit]]</c>.</p>
+            <p>Set the value of <c><![CDATA[dist_buf_busy_limit]]></c>.</p>
             <p>When large binaries are transmitted between nodes (or
             simply a lot of medium-sized binaries), it is very easy to
-            hit the old 128KB limit.  Processes that use the
+            hit the default 128KB limit.  Processes that use the
             erlang:system_monitor() BIF to monitor system events can
-            be spammed by <c><![CDATA[{monitor, busy_dist_port,...}]]</c>
+            be spammed by <c><![CDATA[{monitor, busy_dist_port,...}]]></c>
             message tuples at rates of tens to even hundreds of
             messages/second.</p>
             <p>A larger buffer limit will allow processes to buffer
