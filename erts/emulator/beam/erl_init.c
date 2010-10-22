@@ -537,6 +537,8 @@ void erts_usage(void)
     erts_fprintf(stderr, "            see error_logger documentation for details\n");
 
     erts_fprintf(stderr, "\n");
+    erts_fprintf(stderr, "-zdbbl size  set the dist_buf_busy_limit buffer size\n");
+    erts_fprintf(stderr, "\n");
     erts_fprintf(stderr, "Note that if the emulator is started with erlexec (typically\n");
     erts_fprintf(stderr, "from the erl script), these flags should be specified with +.\n");
     erts_fprintf(stderr, "\n\n");
@@ -852,6 +854,7 @@ erl_start(int argc, char **argv)
     char envbuf[21]; /* enough for any 64-bit integer */
     size_t envbufsz;
     int async_max_threads = erts_async_max_threads;
+    extern int dist_buf_busy_limit;
 
     early_init(&argc, argv);
 
@@ -1345,6 +1348,30 @@ erl_start(int argc, char **argv)
 		erts_usage();
 	    }
 	    break;
+
+	case 'z': {
+	    char *sub_param = argv[i]+2;
+	    int new_limit;
+
+	    if (has_prefix("dbbl", sub_param)) {
+		arg = get_arg(sub_param+4, argv[i+1], &i);
+		/*
+		 * The choice of 4*1024 (below) is slightly arbitrary.
+		 * Less than or equal to zero is obviously bad.
+		 * Between 0 and 4*1024 is probably not good, but I don't
+		 * know for certain.
+		 */
+		if ((new_limit = atoi(arg)) < 4*1024) {
+		    erts_fprintf(stderr, "Invalid dbbl limit: %d\n", new_limit);
+		} else {
+		    dist_buf_busy_limit = new_limit;
+		}
+	    } else {
+		erts_fprintf(stderr, "bad -z option %s\n", argv[i]);
+		erts_usage();
+	    }
+	    break;
+        }
 
 	default:
 	    erts_fprintf(stderr, "%s unknown flag %s\n", argv[0], argv[i]);

@@ -166,6 +166,7 @@ atom disable_trace
 atom disabled
 atom display_items
 atom dist
+atom dist_buf_busy_limit
 atom Div='/'
 atom div
 atom dlink
