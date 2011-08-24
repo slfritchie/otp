@@ -61,7 +61,7 @@ else
           cosTransactions cosEvent cosTime cosNotification \
           cosProperty cosFileTransfer cosEventDomain et megaco webtool \
 	  xmerl edoc eunit ssh inviso typer docbuilder erl_docgen \
-	  common_test percept dialyzer
+	  common_test percept dialyzer dtrace
 # dialyzer
         OTHER_SUB_DIRECTORIES += hipe $(TSP_APP)
       endif
