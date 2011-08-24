@@ -36,6 +36,9 @@
 #include "beam_bp.h"
 #include "erl_db_util.h"
 #include "register.h"
+#ifdef	HAS_DTRACE
+#include "dtrace-probes.h"
+#endif  /* HAS_DTRACE */
 
 static Export* flush_monitor_message_trap = NULL;
 static Export* set_cpu_topology_trap = NULL;
@@ -53,15 +56,44 @@ BIF_RETTYPE spawn_3(BIF_ALIST_3)
 {
     ErlSpawnOpts so;
     Eterm pid;
+#ifdef  HAS_DTRACE
+    static int foo = 0;
+#endif  /* HAS_DTRACE */
 
     so.flags = 0;
+    
+    ERLANG_VM_SPAWN_ENTRY("Hello, world!", foo++);
+
     pid = erl_create_process(BIF_P, BIF_ARG_1, BIF_ARG_2, BIF_ARG_3, &so);
     if (is_non_value(pid)) {
+        ERLANG_VM_SPAWN_RETURN("*error*TODO*");
 	BIF_ERROR(BIF_P, so.error_code);
     } else {
 	if (ERTS_USE_MODIFIED_TIMING()) {
 	    BIF_TRAP2(erts_delay_trap, BIF_P, pid, ERTS_MODIFIED_TIMING_DELAY);
 	}
+        if (ERLANG_VM_SPAWN_RETURN_ENABLED()) {
+            erts_dsprintf_buf_t *dsbufp = erts_create_tmp_dsbuf(64);       
+#ifdef  SLFCOMMENT_BROKEN_BUMMER_WOULD_RATHER_USE_THIS_METHOD_I_THINK
+            static char dbuf[64];
+            int yyy;
+
+            dbuf[0] = '\0';
+            /* results in partial string, e.g. "<0." instead of "<0.63.0>" */
+            if ((yyy = erts_snprintf(dbuf, sizeof(dbuf), "%T", pid)) < 0) {
+                ERLANG_VM_SPAWN_RETURN("*conversion*error*TODO*");
+            } else {
+                fprintf(stderr, "debug %d, ", yyy);
+                ERLANG_VM_SPAWN_RETURN(dbuf);
+            }
+#endif  /* SLFCOMMENT* */
+            if (erts_dsprintf(dsbufp, "%T", pid) < 0) {
+                ERLANG_VM_SPAWN_RETURN("*conversion*error*TODO*");
+            } else {
+                ERLANG_VM_SPAWN_RETURN(dsbufp->str);
+                erts_destroy_tmp_dsbuf(dsbufp);
+            }
+        }
 	BIF_RET(pid);
     }
 }
