@@ -37,7 +37,7 @@
 -export([ipread_s32bu_p32bu/3]).
 %% Generic file contents.
 -export([open/2, close/1, advise/4,
-	 read/2, write/2, 
+	 read/2, write/2,
 	 pread/2, pread/3, pwrite/2, pwrite/3,
 	 read_line/1,
 	 position/2, truncate/1, datasync/1, sync/1,
@@ -57,7 +57,7 @@
 
 %% Internal export to prim_file and ram_file until they implement
 %% an efficient copy themselves.
--export([copy_opened/3]).
+-export([copy_opened/4]).
 
 -export([ipread_s32bu_p32bu_int/3]).
 
@@ -157,7 +157,7 @@ pid2name(Pid) when is_pid(Pid) ->
       Reason :: posix().
 
 get_cwd() ->
-    call(get_cwd, []).
+    call(get_cwd, [no_drive, get_dtrace_utag()]).
 
 -spec get_cwd(Drive) -> {ok, Dir} | {error, Reason} when
       Drive :: string(),
@@ -165,21 +165,21 @@ get_cwd() ->
       Reason :: posix() | badarg.
 
 get_cwd(Drive) ->
-    check_and_call(get_cwd, [file_name(Drive)]).
+    check_and_call(get_cwd, [file_name(Drive), get_dtrace_utag()]).
 
 -spec set_cwd(Dir) -> ok | {error, Reason} when
       Dir :: name(),
       Reason :: posix() | badarg.
 
 set_cwd(Dirname) -> 
-    check_and_call(set_cwd, [file_name(Dirname)]).
+    check_and_call(set_cwd, [file_name(Dirname), get_dtrace_utag()]).
 
 -spec delete(Filename) -> ok | {error, Reason} when
       Filename :: name(),
       Reason :: posix() | badarg.
 
 delete(Name) ->
-    check_and_call(delete, [file_name(Name)]).
+    check_and_call(delete, [file_name(Name), get_dtrace_utag()]).
 
 -spec rename(Source, Destination) -> ok | {error, Reason} when
       Source :: name(),
@@ -187,21 +187,21 @@ delete(Name) ->
       Reason :: posix() | badarg.
 
 rename(From, To) ->
-    check_and_call(rename, [file_name(From), file_name(To)]).
+    check_and_call(rename, [file_name(From), file_name(To), get_dtrace_utag()]).
 
 -spec make_dir(Dir) -> ok | {error, Reason} when
       Dir :: name(),
       Reason :: posix() | badarg.
 
 make_dir(Name) ->
-    check_and_call(make_dir, [file_name(Name)]).
+    check_and_call(make_dir, [file_name(Name), get_dtrace_utag()]).
 
 -spec del_dir(Dir) -> ok | {error, Reason} when
       Dir :: name(),
       Reason :: posix() | badarg.
 
 del_dir(Name) ->
-    check_and_call(del_dir, [file_name(Name)]).
+    check_and_call(del_dir, [file_name(Name), get_dtrace_utag()]).
 
 -spec read_file_info(Filename) -> {ok, FileInfo} | {error, Reason} when
       Filename :: name(),
@@ -209,12 +209,12 @@ del_dir(Name) ->
       Reason :: posix() | badarg.
 
 read_file_info(Name) ->
-    check_and_call(read_file_info, [file_name(Name)]).
+    check_and_call(read_file_info, [file_name(Name), get_dtrace_utag()]).
 
 -spec altname(Name :: name()) -> any().
 
 altname(Name) ->
-    check_and_call(altname, [file_name(Name)]).
+    check_and_call(altname, [file_name(Name), get_dtrace_utag()]).
 
 -spec read_link_info(Name) -> {ok, FileInfo} | {error, Reason} when
       Name :: name(),
@@ -222,7 +222,7 @@ altname(Name) ->
       Reason :: posix() | badarg.
 
 read_link_info(Name) ->
-    check_and_call(read_link_info, [file_name(Name)]).
+    check_and_call(read_link_info, [file_name(Name), get_dtrace_utag()]).
 
 -spec read_link(Name) -> {ok, Filename} | {error, Reason} when
       Name :: name(),
@@ -230,7 +230,7 @@ read_link_info(Name) ->
       Reason :: posix() | badarg.
 
 read_link(Name) ->
-    check_and_call(read_link, [file_name(Name)]).
+    check_and_call(read_link, [file_name(Name), get_dtrace_utag()]).
 
 -spec write_file_info(Filename, FileInfo) -> ok | {error, Reason} when
       Filename :: name(),
@@ -238,7 +238,7 @@ read_link(Name) ->
       Reason :: posix() | badarg.
 
 write_file_info(Name, Info = #file_info{}) ->
-    check_and_call(write_file_info, [file_name(Name), Info]).
+    check_and_call(write_file_info, [file_name(Name), Info, get_dtrace_utag()]).
 
 -spec list_dir(Dir) -> {ok, Filenames} | {error, Reason} when
       Dir :: name(),
@@ -246,7 +246,7 @@ write_file_info(Name, Info = #file_info{}) ->
       Reason :: posix() | badarg.
 
 list_dir(Name) ->
-    check_and_call(list_dir, [file_name(Name)]).
+    check_and_call(list_dir, [file_name(Name), get_dtrace_utag()]).
 
 -spec read_file(Filename) -> {ok, Binary} | {error, Reason} when
       Filename :: name(),
@@ -254,7 +254,7 @@ list_dir(Name) ->
       Reason :: posix() | badarg | terminated | system_limit.
 
 read_file(Name) ->
-    check_and_call(read_file, [file_name(Name)]).
+    check_and_call(read_file, [file_name(Name), get_dtrace_utag()]).
 
 -spec make_link(Existing, New) -> ok | {error, Reason} when
       Existing :: name(),
@@ -262,7 +262,7 @@ read_file(Name) ->
       Reason :: posix() | badarg.
 
 make_link(Old, New) ->
-    check_and_call(make_link, [file_name(Old), file_name(New)]).
+    check_and_call(make_link, [file_name(Old), file_name(New), get_dtrace_utag()]).
 
 -spec make_symlink(Name1, Name2) -> ok | {error, Reason} when
       Name1 :: name(),
@@ -270,7 +270,7 @@ make_link(Old, New) ->
       Reason :: posix() | badarg.
 
 make_symlink(Old, New) ->
-    check_and_call(make_symlink, [file_name(Old), file_name(New)]).
+    check_and_call(make_symlink, [file_name(Old), file_name(New), get_dtrace_utag()]).
 
 -spec write_file(Filename, Bytes) -> ok | {error, Reason} when
       Filename :: name(),
@@ -278,7 +278,7 @@ make_symlink(Old, New) ->
       Reason :: posix() | badarg | terminated | system_limit.
 
 write_file(Name, Bin) ->
-    check_and_call(write_file, [file_name(Name), make_binary(Bin)]).
+    check_and_call(write_file, [file_name(Name), make_binary(Bin), get_dtrace_utag()]).
 
 %% This whole operation should be moved to the file_server and prim_file
 %% when it is time to change file server protocol again.
@@ -330,7 +330,7 @@ raw_write_file_info(Name, #file_info{} = Info) ->
     case check_args(Args) of
 	ok ->
 	    [FileName] = Args,
-	    ?PRIM_FILE:write_file_info(FileName, Info);
+	    ?PRIM_FILE:write_file_info(FileName, Info, get_dtrace_utag());
 	Error ->
 	    Error
     end.
@@ -363,7 +363,7 @@ open(Item, ModeList) when is_list(ModeList) ->
 			    [FileName | _] = Args,
 			    %% We rely on the returned Handle (in {ok, Handle})
 			    %% being a pid() or a #file_descriptor{}
-			    ?PRIM_FILE:open(FileName, ModeList);
+			    ?PRIM_FILE:open(FileName, ModeList, get_dtrace_utag());
 			Error ->
 			    Error
 		    end
@@ -384,7 +384,7 @@ open(Item, ModeList) when is_list(ModeList) ->
 		    case check_args(Args) of 
 			ok ->
 			    [FileName | _] = Args,
-			    call(open, [FileName, ModeList]);
+			    call(open, [FileName, ModeList, get_dtrace_utag()]);
 			Error ->
 			    Error
 		    end
@@ -430,7 +430,7 @@ advise(File, Offset, Length, Advise) when is_pid(File) ->
     R = file_request(File, {advise, Offset, Length, Advise}),
     wait_file_reply(File, R);
 advise(#file_descriptor{module = Module} = Handle, Offset, Length, Advise) ->
-    Module:advise(Handle, Offset, Length, Advise);
+    Module:advise(Handle, Offset, Length, Advise, get_dtrace_utag());
 advise(_, _, _, _) ->
     {error, badarg}.
 
@@ -440,17 +440,21 @@ advise(_, _, _, _) ->
       Data :: string() | binary(),
       Reason :: posix() | badarg | terminated.
 
-read(File, Sz) when (is_pid(File) orelse is_atom(File)), is_integer(Sz), Sz >= 0 ->
+read(File, Sz) ->
+    read(File, Sz, get_dtrace_utag()).
+
+read(File, Sz, _DTraceUtag)
+  when (is_pid(File) orelse is_atom(File)), is_integer(Sz), Sz >= 0 ->
     case io:request(File, {get_chars, '', Sz}) of
 	Data when is_list(Data); is_binary(Data) ->
 	    {ok, Data};
 	Other ->
 	    Other
     end;
-read(#file_descriptor{module = Module} = Handle, Sz) 
+read(#file_descriptor{module = Module} = Handle, Sz, DTraceUtag) 
   when is_integer(Sz), Sz >= 0 ->
-    Module:read(Handle, Sz);
-read(_, _) ->
+    Module:read(Handle, Sz, DTraceUtag);
+read(_, _, _) ->
     {error, badarg}.
 
 -spec read_line(IoDevice) -> {ok, Data} | eof | {error, Reason} when
@@ -466,7 +470,7 @@ read_line(File) when (is_pid(File) orelse is_atom(File)) ->
 	    Other
     end;
 read_line(#file_descriptor{module = Module} = Handle) ->
-    Module:read_line(Handle);
+    Module:read_line(Handle, get_dtrace_utag());
 read_line(_) ->
     {error, badarg}.
 
@@ -480,7 +484,7 @@ read_line(_) ->
 pread(File, L) when is_pid(File), is_list(L) ->
     pread_int(File, L, []);
 pread(#file_descriptor{module = Module} = Handle, L) when is_list(L) ->
-    Module:pread(Handle, L);
+    Module:pread(Handle, L, get_dtrace_utag());
 pread(_, _) ->
     {error, badarg}.
 
@@ -520,16 +524,19 @@ pread(_, _, _) ->
       Bytes :: iodata(),
       Reason :: posix() | badarg | terminated.
 
-write(File, Bytes) when (is_pid(File) orelse is_atom(File)) ->
+write(File, Bytes) ->
+    write(File, Bytes, get_dtrace_utag()).
+
+write(File, Bytes, _DTraceUtag) when (is_pid(File) orelse is_atom(File)) ->
     case make_binary(Bytes) of
 	Bin when is_binary(Bin) ->
 	    io:request(File, {put_chars,Bin});
 	Error ->
 	    Error
     end;
-write(#file_descriptor{module = Module} = Handle, Bytes) ->
-    Module:write(Handle, Bytes);
-write(_, _) ->
+write(#file_descriptor{module = Module} = Handle, Bytes, DTraceUtag) ->
+    Module:write(Handle, Bytes, DTraceUtag);
+write(_, _, _) ->
     {error, badarg}.
 
 -spec pwrite(IoDevice, LocBytes) -> ok | {error, {N, Reason}} when
@@ -541,7 +548,7 @@ write(_, _) ->
 pwrite(File, L) when is_pid(File), is_list(L) ->
     pwrite_int(File, L, 0);
 pwrite(#file_descriptor{module = Module} = Handle, L) when is_list(L) ->
-    Module:pwrite(Handle, L);
+    Module:pwrite(Handle, L, get_dtrace_utag());
 pwrite(_, _) ->
     {error, badarg}.
 
@@ -579,7 +586,7 @@ datasync(File) when is_pid(File) ->
     R = file_request(File, datasync),
     wait_file_reply(File, R);
 datasync(#file_descriptor{module = Module} = Handle) ->
-    Module:datasync(Handle);
+    Module:datasync(Handle, get_dtrace_utag());
 datasync(_) ->
     {error, badarg}.
 
@@ -591,7 +598,7 @@ sync(File) when is_pid(File) ->
     R = file_request(File, sync),
     wait_file_reply(File, R);
 sync(#file_descriptor{module = Module} = Handle) ->
-    Module:sync(Handle);
+    Module:sync(Handle, get_dtrace_utag());
 sync(_) ->
     {error, badarg}.
 
@@ -605,7 +612,7 @@ position(File, At) when is_pid(File) ->
     R = file_request(File, {position,At}),
     wait_file_reply(File, R);
 position(#file_descriptor{module = Module} = Handle, At) ->
-    Module:position(Handle, At);
+    Module:position(Handle, At, get_dtrace_utag());
 position(_, _) ->
     {error, badarg}.
 
@@ -617,7 +624,7 @@ truncate(File) when is_pid(File) ->
     R = file_request(File, truncate),
     wait_file_reply(File, R);
 truncate(#file_descriptor{module = Module} = Handle) ->
-    Module:truncate(Handle);
+    Module:truncate(Handle, get_dtrace_utag());
 truncate(_) ->
     {error, badarg}.
 
@@ -673,7 +680,7 @@ copy_int({SourceName, SourceOpts}, {DestName, DestOpts}, Length)
     check_and_call(copy, 
 		   [file_name(SourceName), SourceOpts,
 		    file_name(DestName), DestOpts,
-		    Length]);
+		    Length, get_dtrace_utag()]);
 %% Filename -> open file; must open Source and do client copy
 copy_int({SourceName, SourceOpts}, Dest, Length) 
   when is_list(SourceOpts), is_pid(Dest);
@@ -736,45 +743,46 @@ copy_int(Source, Dest, Length) ->
 
 
 
-copy_opened(Source, Dest, Length)
+copy_opened(Source, Dest, Length, DTraceUtag)
   when is_integer(Length), Length >= 0;
        is_atom(Length) ->
-    copy_opened_int(Source, Dest, Length);
-copy_opened(_, _, _) ->
+    copy_opened_int(Source, Dest, Length, DTraceUtag);
+copy_opened(_, _, _, _) ->
     {error, badarg}.
 
 %% Here we know that Length is either an atom or an integer >= 0
 %% (by the way, atoms > integers)
 
-copy_opened_int(Source, Dest, Length)
+copy_opened_int(Source, Dest, Length, DTraceUtag)
   when is_pid(Source), is_pid(Dest) ->
-    copy_opened_int(Source, Dest, Length, 0);
-copy_opened_int(Source, Dest, Length)
+    copy_opened_int(Source, Dest, Length, 0, DTraceUtag);
+copy_opened_int(Source, Dest, Length, DTraceUtag)
   when is_pid(Source), is_record(Dest, file_descriptor) ->
-    copy_opened_int(Source, Dest, Length, 0);
-copy_opened_int(Source, Dest, Length)
+    copy_opened_int(Source, Dest, Length, 0, DTraceUtag);
+copy_opened_int(Source, Dest, Length, DTraceUtag)
   when is_record(Source, file_descriptor), is_pid(Dest) ->
-    copy_opened_int(Source, Dest, Length, 0);
-copy_opened_int(Source, Dest, Length)
+    copy_opened_int(Source, Dest, Length, 0, DTraceUtag);
+copy_opened_int(Source, Dest, Length, DTraceUtag)
   when is_record(Source, file_descriptor), is_record(Dest, file_descriptor) ->
-    copy_opened_int(Source, Dest, Length, 0);
-copy_opened_int(_, _, _) ->
+    copy_opened_int(Source, Dest, Length, 0, DTraceUtag);
+copy_opened_int(_, _, _, _) ->
     {error, badarg}.
 
 %% Here we know that Source and Dest are handles to open files, Length is
 %% as above, and Copied is an integer >= 0
 
 %% Copy loop in client process
-copy_opened_int(_, _, Length, Copied) when Length =< 0 -> % atom() > integer()
+copy_opened_int(_, _, Length, Copied, _DTraceUtag)
+  when Length =< 0 -> % atom() > integer()
     {ok, Copied};
-copy_opened_int(Source, Dest, Length, Copied) ->
+copy_opened_int(Source, Dest, Length, Copied, DTraceUtag) ->
     N = if Length > 65536 -> 65536; true -> Length end, % atom() > integer() !
-    case read(Source, N) of
+    case read(Source, N, DTraceUtag) of
 	{ok, Data} ->
 	    M = if is_binary(Data) -> byte_size(Data);
 		   is_list(Data)   -> length(Data)
 		end,
-	    case write(Dest, Data) of
+	    case write(Dest, Data, DTraceUtag) of
 		ok ->
 		    if M < N ->
 			    %% Got less than asked for - must be end of file
@@ -784,7 +792,8 @@ copy_opened_int(Source, Dest, Length, Copied) ->
 			    NewLength = if is_atom(Length) -> Length;
 					   true         -> Length-M
 					end,
-			    copy_opened_int(Source, Dest, NewLength, Copied+M)
+			    copy_opened_int(Source, Dest, NewLength, Copied+M,
+                                            DTraceUtag)
 		    end;
 		{error, _} = Error ->
 		    Error
@@ -1278,3 +1287,6 @@ wait_file_reply(From, Ref) ->
 	    %% receive {'EXIT', From, _} -> ok after 0 -> ok end,
 	    {error, terminated}
     end.
+
+get_dtrace_utag() ->
+    prim_file:get_dtrace_utag().

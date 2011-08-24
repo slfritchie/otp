@@ -43,6 +43,8 @@
 #include "erl_thr_queue.h"
 #include "erl_async.h"
 
+#include "dtrace-wrapper.h"
+
 #define ERTS_RUNQ_CHECK_BALANCE_REDS_PER_SCHED (2000*CONTEXT_REDS)
 #define ERTS_RUNQ_CALL_CHECK_BALANCE_REDS \
   (ERTS_RUNQ_CHECK_BALANCE_REDS_PER_SCHED/2)
@@ -5990,6 +5992,12 @@ Process *schedule(Process *p, int calls)
     int actual_reds;
     int reds;
 
+    if (DTRACE_ENABLED(process_unscheduled)) {
+        char process_buf[DTRACE_TERM_BUF_SIZE];
+        dtrace_proc_str(p, process_buf);
+        DTRACE1(process_unscheduled, process_buf);
+    }
+
     if (ERTS_USE_MODIFIED_TIMING()) {
 	context_reds = ERTS_MODIFIED_TIMING_CONTEXT_REDS;
 	input_reductions = ERTS_MODIFIED_TIMING_INPUT_REDS;
@@ -7171,6 +7179,13 @@ erl_create_process(Process* parent, /* Parent of process (default group leader).
 
     VERBOSE(DEBUG_PROCESSES, ("Created a new process: %T\n",p->id));
 
+    if (DTRACE_ENABLED(process_spawn)) {
+        char process_name[DTRACE_TERM_BUF_SIZE];
+        char mfa[DTRACE_TERM_BUF_SIZE];
+        dtrace_fun_decode(p, mod, func, arity, process_name, mfa);
+        DTRACE2(process_spawn, process_name, mfa);
+    }
+
  error:
 
     erts_smp_proc_unlock(parent, ERTS_PROC_LOCKS_ALL_MINOR);
@@ -7739,6 +7754,17 @@ send_exit_signal(Process *c_p,		/* current process if and only
 
     ASSERT(reason != THE_NON_VALUE);
 
+    if(DTRACE_ENABLED(process_exit_signal) && is_pid(from)) {
+        char sender_str[DTRACE_TERM_BUF_SIZE];
+        char receiver_str[DTRACE_TERM_BUF_SIZE];
+        char reason_buf[DTRACE_TERM_BUF_SIZE];
+
+        dtrace_pid_str(from, sender_str);
+        dtrace_proc_str(rp, receiver_str);
+        erts_snprintf(reason_buf, sizeof(reason_buf) - 1, "%T", reason);
+        DTRACE3(process_exit_signal, sender_str, receiver_str, reason_buf);
+    }
+
     if (ERTS_PROC_IS_TRAPPING_EXITS(rp)
 	&& (reason != am_kill || (flags & ERTS_XSIG_FLG_IGN_KILL))) {
 	if (is_not_nil(token) && token_update)
@@ -8174,7 +8200,15 @@ erts_do_exit_process(Process* p, Eterm reason)
 
     p->arity = 0;		/* No live registers */
     p->fvalue = reason;
-    
+
+    if (DTRACE_ENABLED(process_exit)) {
+        char process_buf[DTRACE_TERM_BUF_SIZE];
+        char reason_buf[256];
+        dtrace_proc_str(p, process_buf);
+        erts_snprintf(reason_buf, sizeof(reason_buf) - 1, "%T", reason);
+        DTRACE2(process_exit, process_buf, reason_buf);
+    }
+
 #ifdef ERTS_SMP
     ERTS_SMP_CHK_HAVE_ONLY_MAIN_PROC_LOCK(p);
     /* By locking all locks (main lock is already locked) when going
