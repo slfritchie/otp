@@ -36,9 +36,9 @@
 #include "beam_bp.h"
 #include "erl_db_util.h"
 #include "register.h"
-#ifdef	HAS_DTRACE
+#ifdef	HAVE_DTRACE
 #include "dtrace-probes.h"
-#endif  /* HAS_DTRACE */
+#endif  /* HAVE_DTRACE */
 
 static Export* flush_monitor_message_trap = NULL;
 static Export* set_cpu_topology_trap = NULL;
@@ -56,9 +56,13 @@ BIF_RETTYPE spawn_3(BIF_ALIST_3)
 {
     ErlSpawnOpts so;
     Eterm pid;
-#ifdef  HAS_DTRACE
+#ifdef  HAVE_DTRACE
     static int foo = 0;
-#endif  /* HAS_DTRACE */
+    /*
+    ** TODO: Need to figure out some way of avoiding the ugliness of
+    **       adding #ifdef HAVE_DTRACE junk here....
+    */
+#endif  /* HAVE_DTRACE */
 
     so.flags = 0;
     

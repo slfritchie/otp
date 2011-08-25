@@ -618,16 +618,8 @@ $(OBJDIR)/beam_emu.o: beam/beam_emu.c
          $(INCLUDES) -c $< -o $@
 endif
 
-## SLF: This is brute force Makefile kludge until the autoconf stuff
-##      is all figured out.
-
-LIBS += -ldtrace
-$(OBJDIR)/bif.o: beam/dtrace-probes.h
-beam/dtrace-probes.h: beam/dtrace-probes.d
-	dtrace -h -s $< -o $@
-
 $(OBJDIR)/%.o: beam/%.c
-	$(CC) -DSLF_MAKE_KLUDGE -DHAS_DTRACE $(subst -O2, $(GEN_OPT_FLGS), $(CFLAGS)) $(INCLUDES) -c $< -o $@
+	$(CC) $(subst -O2, $(GEN_OPT_FLGS), $(CFLAGS)) $(INCLUDES) -c $< -o $@
 
 $(OBJDIR)/%.o: $(TARGET)/%.c
 	$(CC) $(CFLAGS) $(INCLUDES) -Idrivers/common -c $< -o $@

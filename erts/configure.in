@@ -3512,6 +3512,45 @@ dnl
 LM_FIND_EMU_CC
 
 dnl
+dnl DTrace
+dnl
+
+AC_MSG_CHECKING(if --enable-dtrace option specified)
+AC_ARG_ENABLE(dtrace,
+        [AC_HELP_STRING([--enable-dtrace],
+                        [Configure with dtrace static probes])],
+        [enable_dtrace="$enable_dtrace"]) dnl, [enable_dtrace="no"])
+AC_MSG_RESULT($enable_dtrace)
+
+if test "$enable_dtrace" = "yes"; then
+        AC_CHECK_TOOL(DTRACE, dtrace, none)
+        test "$DTRACE" = "none" && AC_MSG_ERROR([No dtrace utility found.])
+else
+	AC_MSG_RESULT([not specified])
+fi
+
+AC_SUBST(DTRACE)
+
+AC_SUBST(DTRACE_CPP)
+DTRACE_CPP=-C
+if test "$enable_dtrace" = "yes" ; then
+        if test "$DTRACE" = "dtrace" ; then
+                AC_CHECK_HEADERS(sys/sdt.h)
+                # The OS X version of dtrace prints a spurious line here.
+                if ! dtrace -h $DTRACE_CPP -Iemulator/beam -s emulator/beam/dtrace-probes.d; then
+                    AC_MSG_ERROR([Could not build dtrace-probes.d: dtrace -h failed])
+                fi
+                ls -l dtrace-probes.h
+                mv dtrace-probes.h emulator/beam
+                ## SLF: TODO: Solaris goop here
+                AC_DEFINE(HAVE_DTRACE, 1, [Define to enable DTrace probes])
+                LIBS="$LIBS -ldtrace"
+        else
+                AC_MSG_ERROR([Dtrace preprocessing test failed.])
+        fi
+fi
+
+dnl
 dnl SSL, SSH and CRYPTO need the OpenSSL libraries
 dnl
 dnl Check flags --with-ssl, --without-ssl --with-ssl=PATH.
