@@ -1,9 +1,9 @@
 provider erlang_vm {
         /* TODO: Create better definitions for these two */
-        probe spawn_entry(char *, int);
-        probe spawn_return(char *);
-        probe file_drv_open_entry(char *, int);
-        probe file_drv_open_return(char *, int, int); /* name, success?, fd/errno */
+        probe spawn__entry(char *, int);
+        probe spawn__return(char *);
+        probe file_drv__open_entry(char *, int);
+        probe file_drv__open_return(char *, int, int); /* name, success?, fd/errno */
         /* TODO: Add more */
 };
 
