@@ -72,19 +72,6 @@ BIF_RETTYPE spawn_3(BIF_ALIST_3)
 	}
         if (DTRACE_ENABLED(spawn, return)) {
             erts_dsprintf_buf_t *dsbufp = erts_create_tmp_dsbuf(64);       
-#ifdef  SLFCOMMENT_BROKEN_BUMMER_WOULD_RATHER_USE_THIS_METHOD_I_THINK
-            static char dbuf[64];
-            int yyy;
-
-            dbuf[0] = '\0';
-            /* results in partial string, e.g. "<0." instead of "<0.63.0>" */
-            if ((yyy = erts_snprintf(dbuf, sizeof(dbuf), "%T", pid)) < 0) {
-                DTRACE1(spawn, return, "*conversion*error*TODO*");
-            } else {
-                fprintf(stderr, "debug %d, ", yyy);
-                DTRACE1(spawn, return, dbuf);
-            }
-#endif  /* SLFCOMMENT* */
             if (erts_dsprintf(dsbufp, "%T", pid) < 0) {
                 DTRACE1(spawn, return, "*conversion*error*TODO*");
             } else {
