@@ -2013,12 +2013,12 @@ file_async_ready(ErlDrvData e, ErlDrvThreadData data)
 	}
       case FILE_OPEN:
 	if (!d->result_ok) {
-            DTRACE3(file_drv, open_return, d->b, 0, -(d->errInfo.posix_errno));
+            DTRACE3(file_drv, open_return, desc->key, 0, -(d->errInfo.posix_errno));
 	    reply_error(desc, &d->errInfo);
 	} else {
 	    desc->fd = d->fd;
 	    desc->flags = d->flags;
-            DTRACE3(file_drv, open_return, d->b, 1, d->fd);
+            DTRACE3(file_drv, open_return, desc->key, 1, d->fd);
 	    reply_Uint(desc, d->fd);
 	}
 	free_data(data);
@@ -2282,7 +2282,7 @@ file_output(ErlDrvData e, char* buf, int count)
 	    d->invoke = invoke_open;
 	    d->free = free_data;
 	    d->level = 2;
-            DTRACE2(file_drv, open_entry, name, d->flags);
+            DTRACE3(file_drv, open_entry, desc->key, name, d->flags);
 	    goto done;
 	}
 
