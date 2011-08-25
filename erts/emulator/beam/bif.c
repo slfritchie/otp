@@ -36,9 +36,7 @@
 #include "beam_bp.h"
 #include "erl_db_util.h"
 #include "register.h"
-#ifdef	HAVE_DTRACE
-#include "dtrace-probes.h"
-#endif  /* HAVE_DTRACE */
+#include "dtrace-wrapper.h"
 
 static Export* flush_monitor_message_trap = NULL;
 static Export* set_cpu_topology_trap = NULL;
@@ -58,25 +56,21 @@ BIF_RETTYPE spawn_3(BIF_ALIST_3)
     Eterm pid;
 #ifdef  HAVE_DTRACE
     static int foo = 0;
-    /*
-    ** TODO: Need to figure out some way of avoiding the ugliness of
-    **       adding #ifdef HAVE_DTRACE junk here....
-    */
 #endif  /* HAVE_DTRACE */
 
     so.flags = 0;
     
-    ERLANG_VM_SPAWN_ENTRY("Hello, world!", foo++);
+    DTRACE2(spawn, entry, "Hello, world!", foo++);
 
     pid = erl_create_process(BIF_P, BIF_ARG_1, BIF_ARG_2, BIF_ARG_3, &so);
     if (is_non_value(pid)) {
-        ERLANG_VM_SPAWN_RETURN("*error*TODO*");
+        DTRACE1(spawn, return, "*error*TODO*");
 	BIF_ERROR(BIF_P, so.error_code);
     } else {
 	if (ERTS_USE_MODIFIED_TIMING()) {
 	    BIF_TRAP2(erts_delay_trap, BIF_P, pid, ERTS_MODIFIED_TIMING_DELAY);
 	}
-        if (ERLANG_VM_SPAWN_RETURN_ENABLED()) {
+        if (DTRACE_ENABLED(spawn, return)) {
             erts_dsprintf_buf_t *dsbufp = erts_create_tmp_dsbuf(64);       
 #ifdef  SLFCOMMENT_BROKEN_BUMMER_WOULD_RATHER_USE_THIS_METHOD_I_THINK
             static char dbuf[64];
@@ -85,16 +79,16 @@ BIF_RETTYPE spawn_3(BIF_ALIST_3)
             dbuf[0] = '\0';
             /* results in partial string, e.g. "<0." instead of "<0.63.0>" */
             if ((yyy = erts_snprintf(dbuf, sizeof(dbuf), "%T", pid)) < 0) {
-                ERLANG_VM_SPAWN_RETURN("*conversion*error*TODO*");
+                DTRACE1(spawn, return, "*conversion*error*TODO*");
             } else {
                 fprintf(stderr, "debug %d, ", yyy);
-                ERLANG_VM_SPAWN_RETURN(dbuf);
+                DTRACE1(spawn, return, dbuf);
             }
 #endif  /* SLFCOMMENT* */
             if (erts_dsprintf(dsbufp, "%T", pid) < 0) {
-                ERLANG_VM_SPAWN_RETURN("*conversion*error*TODO*");
+                DTRACE1(spawn, return, "*conversion*error*TODO*");
             } else {
-                ERLANG_VM_SPAWN_RETURN(dsbufp->str);
+                DTRACE1(spawn, return, dsbufp->str);
                 erts_destroy_tmp_dsbuf(dsbufp);
             }
         }

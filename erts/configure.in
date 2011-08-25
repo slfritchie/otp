@@ -3538,11 +3538,16 @@ if test "$enable_dtrace" = "yes" ; then
                 AC_CHECK_HEADERS(sys/sdt.h)
                 # The OS X version of dtrace prints a spurious line here.
                 if ! dtrace -h $DTRACE_CPP -Iemulator/beam -s emulator/beam/dtrace-probes.d; then
-                    AC_MSG_ERROR([Could not build dtrace-probes.d: dtrace -h failed])
+                        AC_MSG_ERROR([Could not precompile dtrace-probes.d: dtrace -h failed])
                 fi
-                ls -l dtrace-probes.h
-                mv dtrace-probes.h emulator/beam
+                if ! sed -e '/^#define[ 	]*ERLANG_VM_[A-Z_]*(.*)/y/ABCDEFGHIJKLMNOPQRSTUVWXYZ/abcdefghijklmnopqrstuvwxyz/' dtrace-probes.h > emulator/beam/dtrace-probes.h ; then
+                        AC_MSG_ERROR([Could not precompile dtrace-probes.d: sed failed])
+                fi
+                rm dtrace-probes.h
+
                 ## SLF: TODO: Solaris goop here
+
+                AC_MSG_NOTICE([dtrace precompilation successful])
                 AC_DEFINE(HAVE_DTRACE, 1, [Define to enable DTrace probes])
                 LIBS="$LIBS -ldtrace"
         else
