@@ -3,7 +3,7 @@ provider erlang_vm {
         probe spawn_entry(char *, int);
         probe spawn_return(char *);
         probe file_drv_open_entry(int, char *, int); /* key, path, flags */
-        probe file_drv_open_return(int, int, int); /* key, success?, fd/errno */
+        probe file_drv_open_return(int, int, int); /* key , success?, fd/errno */
         /* TODO: Add more */
 };
 
