@@ -123,7 +123,7 @@ typedef struct {
     Uint64      tag;
 } dt_private;
 
-dt_private *get_dt_private(void);
+dt_private *get_dt_private(int);
 #endif  /* HAVE_DTRACE */
 
 /* #define TRACE 1 */
@@ -359,6 +359,10 @@ struct t_data
     Efile_error    errInfo;
     int            flags;
     SWord          fd;
+#ifdef  HAVE_DTRACE
+    int               sched_i1;
+    Uint64            sched_i2;
+#endif  /* HAVE_DTRACE */
     /**/
     Efile_info        info;
     EFILE_DIR_HANDLE  dir_handle; /* Handle to open directory. */
@@ -682,7 +686,7 @@ file_start(ErlDrvPort port, char* command)
     MUTEX_INIT(desc->q_mtx, port); /* Refc is one, referenced by emulator now */
     desc->write_buffered = 0;
 #ifdef  HAVE_DTRACE
-    get_dt_private();           /* throw away return value */
+    get_dt_private(0);           /* throw away return value */
 #endif  /* HAVE_DTRACE */
     return (ErlDrvData) desc;
 }
@@ -717,6 +721,7 @@ file_stop(ErlDrvData e)
 
     TRACE_C('p');
 
+    /* DTRACE10(file_drv_entry, 6666, 66, 0, 4242, "x1", NULL, 0, 0, 0, 0); */
     if (desc->fd != FILE_FD_INVALID) {
 	do_close(desc->flags, desc->fd);
 	desc->fd = FILE_FD_INVALID;
@@ -1574,10 +1579,15 @@ static void invoke_rename(void *data)
     struct t_data *d = (struct t_data *) data;
     char *name = d->b;
     char *new_name;
+#ifdef  HAVE_DTRACE
+    dt_private *dt_priv = get_dt_private(dt_driver_io_worker_base);
+#endif  /* HAVE_DTRACE */
 
+    DTRACE4(file_drv_int_entry, d->sched_i1, d->sched_i2, dt_priv->thread_num, FILE_RENAME);
     d->again = 0;
     new_name = name+FILENAME_BYTELEN(name)+FILENAME_CHARSIZE;
     d->result_ok = efile_rename(&d->errInfo, name, new_name);
+    DTRACE4(file_drv_int_return, d->sched_i1, d->sched_i2, dt_priv->thread_num, FILE_RENAME);
 }
 
 static void invoke_write_info(void *data)
@@ -2169,7 +2179,7 @@ file_output(ErlDrvData e, char* buf, int count)
     char *dt_s1 = NULL, *dt_s2 = NULL;
     int dt_i1 = 0, dt_i2 = 0, dt_i3 = 0, dt_i4 = 0;
 #ifdef  HAVE_DTRACE
-    dt_private *dt_priv = get_dt_private();
+    dt_private *dt_priv = get_dt_private(0);
 
 #endif  /* HAVE_DTRACE */
     TRACE_C('o');
@@ -2300,6 +2310,8 @@ file_output(ErlDrvData e, char* buf, int count)
 		reply_error(desc, &errInfo);
 		return;
 	    }
+            d->sched_i1 = dt_priv->thread_num;
+            d->sched_i2 = dt_priv->tag;
             DTRACE10(file_drv_entry, dt_priv->thread_num, dt_priv->tag++, 0,
                      command, name, dt_s2, dt_i1, dt_i2, dt_i3, dt_i4);
 	    TRACE_C('R');
@@ -2509,6 +2521,8 @@ file_output(ErlDrvData e, char* buf, int count)
     return;
 
  done:
+    d->sched_i1 = dt_priv->thread_num;
+    d->sched_i2 = dt_priv->tag;
     DTRACE10(file_drv_entry, dt_priv->thread_num, dt_priv->tag++, 0,
              command, dt_s1, dt_s2, dt_i1, dt_i2, dt_i3, dt_i4);
     if (d) {
@@ -2597,7 +2611,7 @@ file_outputv(ErlDrvData e, ErlIOVec *ev) {
     int p, q;
     int err;
 #ifdef  HAVE_DTRACE
-    dt_private *dt_priv = get_dt_private();
+    dt_private *dt_priv = get_dt_private(0);
     char *dt_s1 = NULL, *dt_s2 = NULL;
     int dt_i1 = 0, dt_i2 = 0, dt_i3 = 0, dt_i4 = 0;
 
@@ -2620,6 +2634,7 @@ file_outputv(ErlDrvData e, ErlIOVec *ev) {
     switch (command) {
 
     case FILE_CLOSE: {
+        DTRACE10(file_drv_entry, 67, 67, 0, command, "x2 TODO FIXME", NULL, 0, 0, 0, 0);
 	flush_read(desc);
 	if (flush_write_check_error(desc, &err) < 0) {
 	    reply_posix_error(desc, err);
@@ -2753,6 +2768,7 @@ file_outputv(ErlDrvData e, ErlIOVec *ev) {
 	d->c.read.size = size;
 	driver_binary_inc_refc(d->c.read.binp);
 	d->invoke = invoke_read;
+        d->sched_i1 = 778899;
 	d->free = free_read;
 	d->level = 1;
 	cq_enq(desc, d);
@@ -3315,14 +3331,14 @@ file_outputv(ErlDrvData e, ErlIOVec *ev) {
 
 #ifdef  HAVE_DTRACE
 dt_private *
-get_dt_private(void)
+get_dt_private(int base)
 {
     dt_private *dt_priv = (dt_private *) pthread_getspecific(dt_driver_key);
 
     if (dt_priv == NULL) {
         dt_priv = EF_SAFE_ALLOC(sizeof(dt_private));
         erts_mtx_lock(&dt_driver_mutex);
-        dt_priv->thread_num = dt_driver_idnum++;
+        dt_priv->thread_num = (base + dt_driver_idnum++);
         erts_mtx_unlock(&dt_driver_mutex);
         dt_priv->tag = 0;
         pthread_setspecific(dt_driver_key, dt_priv);
