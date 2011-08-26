@@ -644,7 +644,6 @@ file_init(void)
 #ifdef  HAVE_DTRACE
     erts_mtx_init(&dt_driver_mutex, "efile_drv dtrace mutex");
     pthread_key_create(&dt_driver_key, NULL);
-    fprintf(stderr, "file_init DONE, ");
 #endif  /* HAVE_DTRACE */
     return 0;
 }
@@ -684,7 +683,6 @@ file_start(ErlDrvPort port, char* command)
     desc->write_buffered = 0;
 #ifdef  HAVE_DTRACE
     get_dt_private();           /* throw away return value */
-    fprintf(stderr, "file_start DONE, ");
 #endif  /* HAVE_DTRACE */
     return (ErlDrvData) desc;
 }
@@ -2168,10 +2166,10 @@ file_output(ErlDrvData e, char* buf, int count)
     char* name;			/* Points to the filename in buf. */
     int command;
     struct t_data *d = NULL;
+    char *dt_s1 = NULL, *dt_s2 = NULL;
+    int dt_i1 = 0, dt_i2 = 0, dt_i3 = 0, dt_i4 = 0;
 #ifdef  HAVE_DTRACE
     dt_private *dt_priv = get_dt_private();
-    int dt_i1 = 0, dt_i2 = 0, dt_i3 = 0;
-    char *dt_s1 = NULL, *dt_s2 = NULL, *dt_s3 = NULL;
 
 #endif  /* HAVE_DTRACE */
     TRACE_C('o');
@@ -2187,6 +2185,7 @@ file_output(ErlDrvData e, char* buf, int count)
 	d = EF_SAFE_ALLOC(sizeof(struct t_data) - 1 + FILENAME_BYTELEN(name) + FILENAME_CHARSIZE);
 	
 	FILENAME_COPY(d->b, name);
+        dt_s1 = d->b;
 	d->command = command;
 	d->invoke = invoke_mkdir;
 	d->free = free_data;
@@ -2198,6 +2197,7 @@ file_output(ErlDrvData e, char* buf, int count)
 	d = EF_SAFE_ALLOC(sizeof(struct t_data) - 1 + FILENAME_BYTELEN(name) + FILENAME_CHARSIZE);
 	
 	FILENAME_COPY(d->b, name);
+        dt_s1 = d->b;
 	d->command = command;
 	d->invoke = invoke_rmdir;
 	d->free = free_data;
@@ -2209,6 +2209,7 @@ file_output(ErlDrvData e, char* buf, int count)
 	d = EF_SAFE_ALLOC(sizeof(struct t_data) - 1 + FILENAME_BYTELEN(name) + FILENAME_CHARSIZE);
 	
 	FILENAME_COPY(d->b, name);
+        dt_s1 = d->b;
 	d->command = command;
 	d->invoke = invoke_delete_file;
 	d->free = free_data;
@@ -2225,7 +2226,9 @@ file_output(ErlDrvData e, char* buf, int count)
 			      + FILENAME_BYTELEN(new_name) + FILENAME_CHARSIZE);
 	
 	    FILENAME_COPY(d->b, name);
+            dt_s1 = d->b;
 	    FILENAME_COPY(d->b + namelen, new_name);
+            dt_s2 = d->b + namelen;
 	    d->flags = desc->flags;
 	    d->fd = fd;
 	    d->command = command;
@@ -2239,6 +2242,7 @@ file_output(ErlDrvData e, char* buf, int count)
 	d = EF_SAFE_ALLOC(sizeof(struct t_data) - 1 + FILENAME_BYTELEN(name) + FILENAME_CHARSIZE);
 	
 	FILENAME_COPY(d->b, name);
+        dt_s1 = d->b;
 	d->command = command;
 	d->invoke = invoke_chdir;
 	d->free = free_data;
@@ -2265,6 +2269,7 @@ file_output(ErlDrvData e, char* buf, int count)
 			      FILENAME_CHARSIZE);
 	
 	    FILENAME_COPY(d->b, name);
+            dt_s1 = d->b;
 	    d->dir_handle = NULL;
 	    d->command = command;
 	    d->invoke = invoke_readdir;
@@ -2295,6 +2300,8 @@ file_output(ErlDrvData e, char* buf, int count)
 		reply_error(desc, &errInfo);
 		return;
 	    }
+            DTRACE10(file_drv_entry, dt_priv->thread_num, dt_priv->tag++, 0,
+                     command, name, dt_s2, dt_i1, dt_i2, dt_i3, dt_i4);
 	    TRACE_C('R');
 	    driver_output2(desc->port, resbuf, 1, NULL, 0);
 	    return;
@@ -2305,8 +2312,10 @@ file_output(ErlDrvData e, char* buf, int count)
 			      FILENAME_CHARSIZE);
 	
 	    d->flags = get_int32((uchar*)buf);
+            dt_i1 = d->flags;
 	    name = buf+4;
 	    FILENAME_COPY(d->b, name);
+            dt_s1 = d->b;
 	    d->command = command;
 	    d->invoke = invoke_open;
 	    d->free = free_data;
@@ -2320,6 +2329,7 @@ file_output(ErlDrvData e, char* buf, int count)
 	    d = EF_SAFE_ALLOC(sizeof(struct t_data));
 	    
 	    d->fd = fd;
+            dt_i1 = fd;
 	    d->command = command;
 	    d->invoke = invoke_fdatasync;
 	    d->free = free_data;
@@ -2332,6 +2342,7 @@ file_output(ErlDrvData e, char* buf, int count)
 	    d = EF_SAFE_ALLOC(sizeof(struct t_data));
 	    
 	    d->fd = fd;
+            dt_i1 = fd;
 	    d->command = command;
 	    d->invoke = invoke_fsync;
 	    d->free = free_data;
@@ -2347,7 +2358,9 @@ file_output(ErlDrvData e, char* buf, int count)
 			      FILENAME_CHARSIZE);
 	    
 	    FILENAME_COPY(d->b, name);
+            dt_s1 = d->b;
 	    d->fd = fd;
+            dt_i1 = fd;
 	    d->command = command;
 	    d->invoke = invoke_flstat;
 	    d->free = free_data;
@@ -2361,6 +2374,8 @@ file_output(ErlDrvData e, char* buf, int count)
 	    
 	    d->flags = desc->flags;
 	    d->fd = fd;
+            dt_i1 = fd;
+            dt_i2 = d->flags;
 	    d->command = command;
 	    d->invoke = invoke_truncate;
 	    d->free = free_data;
@@ -2374,12 +2389,16 @@ file_output(ErlDrvData e, char* buf, int count)
 			      + FILENAME_BYTELEN(buf+21*4) + FILENAME_CHARSIZE);
 	    
 	    d->info.mode = get_int32(buf + 0 * 4);
+            dt_i1 = d->info.mode;
 	    d->info.uid = get_int32(buf + 1 * 4);
+            dt_i2 = d->info.uid;
 	    d->info.gid = get_int32(buf + 2 * 4);
+            dt_i3 = d->info.gid;
 	    GET_TIME(d->info.accessTime, buf + 3 * 4);
 	    GET_TIME(d->info.modifyTime, buf + 9 * 4);
 	    GET_TIME(d->info.cTime, buf + 15 * 4);
 	    FILENAME_COPY(d->b, buf+21*4);
+            dt_s1 = d->b;
 	    d->command = command;
 	    d->invoke = invoke_write_info;
 	    d->free = free_data;
@@ -2392,6 +2411,7 @@ file_output(ErlDrvData e, char* buf, int count)
 	    d = EF_SAFE_ALLOC(sizeof(struct t_data) - 1 + RESBUFSIZE + 1);
 	
 	    FILENAME_COPY(d->b, name);
+            dt_s1 = d->b;
 	    d->command = command;
 	    d->invoke = invoke_readlink;
 	    d->free = free_data;
@@ -2403,6 +2423,7 @@ file_output(ErlDrvData e, char* buf, int count)
 	{
 	    d = EF_SAFE_ALLOC(sizeof(struct t_data) - 1 + RESBUFSIZE + 1);
 	    FILENAME_COPY(d->b, name);
+            dt_s1 = d->b;
 	    d->command = command;
 	    d->invoke = invoke_altname;
 	    d->free = free_data;
@@ -2422,9 +2443,13 @@ file_output(ErlDrvData e, char* buf, int count)
 			      + FILENAME_BYTELEN(new_name) + FILENAME_CHARSIZE);
 	
 	    FILENAME_COPY(d->b, name);
+            dt_s1 = d->b;
 	    FILENAME_COPY(d->b + namelen, new_name);
+            dt_s2 = d->b + namelen;
 	    d->flags = desc->flags;
 	    d->fd = fd;
+            dt_i1 = fd;
+            dt_i1 = d->flags;
 	    d->command = command;
 	    d->invoke = invoke_link;
 	    d->free = free_data;
@@ -2443,9 +2468,12 @@ file_output(ErlDrvData e, char* buf, int count)
 			      + FILENAME_BYTELEN(new_name) + FILENAME_CHARSIZE);
 	
 	    FILENAME_COPY(d->b, name);
+            dt_s1 = d->b;
 	    FILENAME_COPY(d->b + namelen, new_name);
+            dt_s2 = d->b + namelen;
 	    d->flags = desc->flags;
 	    d->fd = fd;
+            dt_i1 = d->fd;
 	    d->command = command;
 	    d->invoke = invoke_symlink;
 	    d->free = free_data;
@@ -2458,13 +2486,17 @@ file_output(ErlDrvData e, char* buf, int count)
         d = EF_SAFE_ALLOC(sizeof(struct t_data));
 
         d->fd = fd;
+        dt_i1 = d->fd;
         d->command = command;
         d->invoke = invoke_fadvise;
         d->free = free_data;
         d->level = 2;
         d->c.fadvise.offset = get_int64((uchar*) buf);
+        dt_i1 = d->c.fadvise.offset;
         d->c.fadvise.length = get_int64(((uchar*) buf) + sizeof(Sint64));
+        dt_i1 = d->c.fadvise.length;
         d->c.fadvise.advise = get_int32(((uchar*) buf) + 2 * sizeof(Sint64));
+        dt_i1 = d->c.fadvise.advise;
         goto done;
     }
 
@@ -2477,6 +2509,8 @@ file_output(ErlDrvData e, char* buf, int count)
     return;
 
  done:
+    DTRACE10(file_drv_entry, dt_priv->thread_num, dt_priv->tag++, 0,
+             command, dt_s1, dt_s2, dt_i1, dt_i2, dt_i3, dt_i4);
     if (d) {
 	cq_enq(desc, d);
     }
@@ -2564,8 +2598,8 @@ file_outputv(ErlDrvData e, ErlIOVec *ev) {
     int err;
 #ifdef  HAVE_DTRACE
     dt_private *dt_priv = get_dt_private();
-    int dt_i1 = 0, dt_i2 = 0, dt_i3 = 0;
-    char *dt_s1 = NULL, *dt_s2 = NULL, *dt_s3 = NULL;
+    char *dt_s1 = NULL, *dt_s2 = NULL;
+    int dt_i1 = 0, dt_i2 = 0, dt_i3 = 0, dt_i4 = 0;
 
 #endif  /* HAVE_DTRACE */
     TRACE_C('v');

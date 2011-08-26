@@ -22,6 +22,8 @@
     erlang_vm_##name((a0), (a1), (a2), (a3), (a4))
 #define DTRACE6(name, a0, a1, a2, a3, a4, a5)        \
     erlang_vm_##name((a0), (a1), (a2), (a3), (a4), (a5))
+#define DTRACE10(name, a0, a1, a2, a3, a4, a5, a6, a7, a8, a9) \
+    erlang_vm_##name((a0), (a1), (a2), (a3), (a4), (a5), (a6), (a7), (a8), (a9))
 
 #else   /* HAVE_DTRACE */
 
@@ -34,7 +36,8 @@
 #define DTRACE4(name, a0, a1, a2, a3)                do {} while (0)
 #define DTRACE5(name, a0, a1, a2, a3, a4)            do {} while (0)
 #define DTRACE6(name, a0, a1, a2, a3, a4, a5)        do {} while (0)
-
+#define DTRACE10(name, a0, a1, a2, a3, a4, a5, a6, a7, a8, a9) \
+                                                     do {} while (0)
 #endif  /* HAVE_DTRACE */
 
 #endif  /* __DTRACE_WRAPPER_H */
