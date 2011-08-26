@@ -60,22 +60,22 @@ BIF_RETTYPE spawn_3(BIF_ALIST_3)
 
     so.flags = 0;
     
-    DTRACE2(spawn, entry, "Hello, world!", foo++);
+    DTRACE2(spawn_entry, "Hello, world!", foo++);
 
     pid = erl_create_process(BIF_P, BIF_ARG_1, BIF_ARG_2, BIF_ARG_3, &so);
     if (is_non_value(pid)) {
-        DTRACE1(spawn, return, "*error*TODO*");
+        DTRACE1(spawn_return, "*error*TODO*");
 	BIF_ERROR(BIF_P, so.error_code);
     } else {
 	if (ERTS_USE_MODIFIED_TIMING()) {
 	    BIF_TRAP2(erts_delay_trap, BIF_P, pid, ERTS_MODIFIED_TIMING_DELAY);
 	}
-        if (DTRACE_ENABLED(spawn, return)) {
+        if (DTRACE_ENABLED(spawn_return)) {
             erts_dsprintf_buf_t *dsbufp = erts_create_tmp_dsbuf(64);       
             if (erts_dsprintf(dsbufp, "%T", pid) < 0) {
-                DTRACE1(spawn, return, "*conversion*error*TODO*");
+                DTRACE1(spawn_return, "*conversion*error*TODO*");
             } else {
-                DTRACE1(spawn, return, dsbufp->str);
+                DTRACE1(spawn_return, dsbufp->str);
                 erts_destroy_tmp_dsbuf(dsbufp);
             }
         }

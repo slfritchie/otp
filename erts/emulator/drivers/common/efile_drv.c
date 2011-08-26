@@ -1679,7 +1679,7 @@ static void invoke_open(void *data)
     
     int status = 1;		/* Status of open call. */
 
-    DTRACE1(file_drv, open_i_entry, pthread_self());
+    DTRACE1(file_drv_open_i_entry, pthread_self());
     d->again = 0;
     if ((d->flags & EFILE_COMPRESSED) == 0) {
 	int fd;
@@ -2038,12 +2038,12 @@ file_async_ready(ErlDrvData e, ErlDrvThreadData data)
 	}
       case FILE_OPEN:
 	if (!d->result_ok) {
-            DTRACE4(file_drv, open_return, desc->key, 0, -(d->errInfo.posix_errno), pthread_self());
+            DTRACE4(file_drv_open_return, desc->key, 0, -(d->errInfo.posix_errno), pthread_self());
 	    reply_error(desc, &d->errInfo);
 	} else {
 	    desc->fd = d->fd;
 	    desc->flags = d->flags;
-            DTRACE4(file_drv, open_return, desc->key, 1, d->fd, pthread_self());
+            DTRACE4(file_drv_open_return, desc->key, 1, d->fd, pthread_self());
 	    reply_Uint(desc, d->fd);
 	}
 	free_data(data);
@@ -2311,7 +2311,7 @@ file_output(ErlDrvData e, char* buf, int count)
 	    d->invoke = invoke_open;
 	    d->free = free_data;
 	    d->level = 2;
-            DTRACE4(file_drv, open_entry, desc->key, name, d->flags, pthread_self());
+            DTRACE4(file_drv_open_entry, desc->key, name, d->flags, pthread_self());
 	    goto done;
 	}
 
