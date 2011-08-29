@@ -24,6 +24,11 @@ provider erlang_vm {
 
         /* TODO: Add more */
 
+        /* Async driver pool */
+
+        probe async_io_pool_add(int, int);  /* Pool member #, post-op queue length */
+        probe async_io_pool_get(int, int);  /* Pool member #, post-op queue length */
+
         /* First real attempt to instrument efile_drv.c */
 
         /*     0       1              2       3       4,5            6,7,8,9  */          

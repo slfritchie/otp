@@ -24,6 +24,7 @@
 #include "erl_sys_driver.h"
 #include "global.h"
 #include "erl_threads.h"
+#include "dtrace-wrapper.h"
 
 typedef struct _erl_async {
     struct _erl_async* next;
@@ -50,6 +51,9 @@ typedef struct {
 #ifdef ERTS_ENABLE_LOCK_CHECK
     int no;
 #endif
+#ifdef HAVE_DTRACE
+    int pool_member;
+#endif /* HAVE_DTRACE */
 } AsyncQueue;
 
 static erts_smp_spinlock_t async_id_lock;
@@ -79,7 +83,7 @@ static void async_detach(DE_Handle* dh)
 static AsyncQueue* async_q;
 
 static void* async_main(void*);
-static void async_add(ErlAsync*, AsyncQueue*);
+static void async_add(ErlAsync*, AsyncQueue*, int);
 
 #ifndef ERTS_SMP
 typedef struct ErtsAsyncReadyCallback_ ErtsAsyncReadyCallback;
@@ -138,6 +142,9 @@ int init_async(int hndl)
 #ifdef ERTS_ENABLE_LOCK_CHECK
 	q->no = i;
 #endif
+#ifdef HAVE_DTRACE
+	q->pool_member = i;
+#endif
 	erts_mtx_init(&q->mtx, "asyncq");
 	erts_cnd_init(&q->cv);
 	erts_thr_create(&q->thr, async_main, (void*)q, &thr_opts);
@@ -156,7 +163,7 @@ int exit_async()
 	ErlAsync* a = (ErlAsync*) erts_alloc(ERTS_ALC_T_ASYNC,
 					     sizeof(ErlAsync));
 	a->port = NIL;
-	async_add(a, &async_q[i]);
+	async_add(a, &async_q[i], i);
     }
 
     for (i = 0; i < erts_async_max_threads; i++) {
@@ -173,8 +180,12 @@ int exit_async()
 }
 
 
-static void async_add(ErlAsync* a, AsyncQueue* q)
+static void async_add(ErlAsync* a, AsyncQueue* q, int pool_member)
 {
+#ifdef	HAVE_DTRACE
+    int len = 0;
+#endif	/* HAVE_DTRACE */
+
     if (is_internal_port(a->port)) {
 	ERTS_LC_ASSERT(erts_drvportid2port(a->port));
 	/* make sure the driver will stay around */
@@ -182,6 +193,9 @@ static void async_add(ErlAsync* a, AsyncQueue* q)
     }
 
     erts_mtx_lock(&q->mtx);
+#ifdef	HAVE_DTRACE
+    len = q->len;
+#endif	/* HAVE_DTRACE */
 
     if (q->len == 0) {
 	q->head = a;
@@ -196,11 +210,13 @@ static void async_add(ErlAsync* a, AsyncQueue* q)
 	q->len++;
     }
     erts_mtx_unlock(&q->mtx);
+    DTRACE2(async_io_pool_add, pool_member+11000, len + 1);
 }
 
 static ErlAsync* async_get(AsyncQueue* q)
 {
     ErlAsync* a;
+    int pool_member, len;
 
     erts_mtx_lock(&q->mtx);
     while((a = q->tail) == NULL) {
@@ -218,7 +234,10 @@ static ErlAsync* async_get(AsyncQueue* q)
 	q->tail = q->tail->prev;
 	q->len--;
     }
+    len = q->len;
+    pool_member = q->pool_member;
     erts_mtx_unlock(&q->mtx);
+    DTRACE2(async_io_pool_get, pool_member+11000, len);
     return a;
 }
 
@@ -437,7 +456,7 @@ long driver_async(ErlDrvPort ix, unsigned int* key,
 	    driver_pdl_inc_refc(prt->port_data_lock);
 	    a->pdl = prt->port_data_lock;
 	}
-	async_add(a, &async_q[qix]);
+	async_add(a, &async_q[qix], qix);
 	return id;
     }
 #endif
