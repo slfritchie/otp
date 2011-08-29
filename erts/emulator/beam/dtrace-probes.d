@@ -21,9 +21,7 @@ provider erlang_vm {
         /* TODO: Create better definitions for these two */
         probe spawn_entry(char *, int);
         probe spawn_return(char *);
-        probe file_drv_open_entry(int, char *, int, int); /* key, path, flags, pthread */
-        probe file_drv_open_return(int, int, int, int); /* key , success?, fd/errno, pthread */
-        probe file_drv_open_i_entry(int); /* pthread */
+
         /* TODO: Add more */
 
         /* First real attempt to instrument efile_drv.c */

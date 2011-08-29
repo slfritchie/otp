@@ -355,14 +355,15 @@ struct t_data
     void         (*free)(void *);
     int            again;
     int            reply;
+#ifdef  HAVE_DTRACE
+    int               sched_i1;
+    /* Uint64            sched_i2; */
+    int             sched_i2;
+#endif  /* HAVE_DTRACE */
     int            result_ok;
     Efile_error    errInfo;
     int            flags;
     SWord          fd;
-#ifdef  HAVE_DTRACE
-    int               sched_i1;
-    Uint64            sched_i2;
-#endif  /* HAVE_DTRACE */
     /**/
     Efile_info        info;
     EFILE_DIR_HANDLE  dir_handle; /* Handle to open directory. */
@@ -721,7 +722,6 @@ file_stop(ErlDrvData e)
 
     TRACE_C('p');
 
-    /* DTRACE10(file_drv_entry, 6666, 66, 0, 4242, "x1", NULL, 0, 0, 0, 0); */
     if (desc->fd != FILE_FD_INVALID) {
 	do_close(desc->flags, desc->fd);
 	desc->fd = FILE_FD_INVALID;
@@ -1687,7 +1687,6 @@ static void invoke_open(void *data)
     
     int status = 1;		/* Status of open call. */
 
-    DTRACE1(file_drv_open_i_entry, pthread_self());
     d->again = 0;
     if ((d->flags & EFILE_COMPRESSED) == 0) {
 	int fd;
@@ -1914,11 +1913,19 @@ file_async_ready(ErlDrvData e, ErlDrvThreadData data)
     struct t_data *d = (struct t_data *) data;
     char header[5];		/* result code + count */
     char resbuf[RESBUFSIZE];	/* Result buffer. */
-    
+#ifdef  HAVE_DTRACE
+    dt_private *dt_priv = get_dt_private(0);
+    int sched_i1 = d->sched_i1, sched_i2 = d->sched_i2, command = d->command,
+        result_ok = d->result_ok,
+        posix_errno = d->result_ok ? 0 : d->errInfo.posix_errno;
+
+    /* fprintf(stderr, "(%d -> %d %d %d), ", d->command, d->result_ok, d->sched_i1, d->sched_i2); */
+#endif  /* HAVE_DTRACE */
 
     TRACE_C('r');
 
     if (try_again(desc, d)) {
+        /* SLF TODO: what to do here? */
 	return;
     }
 
@@ -2046,12 +2053,10 @@ file_async_ready(ErlDrvData e, ErlDrvThreadData data)
 	}
       case FILE_OPEN:
 	if (!d->result_ok) {
-            DTRACE4(file_drv_open_return, desc->key, 0, -(d->errInfo.posix_errno), pthread_self());
 	    reply_error(desc, &d->errInfo);
 	} else {
 	    desc->fd = d->fd;
 	    desc->flags = d->flags;
-            DTRACE4(file_drv_open_return, desc->key, 1, d->fd, pthread_self());
 	    reply_Uint(desc, d->fd);
 	}
 	free_data(data);
@@ -2155,6 +2160,8 @@ file_async_ready(ErlDrvData e, ErlDrvThreadData data)
       default:
 	abort();
     }
+    DTRACE6(file_drv_return, sched_i1, sched_i2, dt_priv->thread_num,
+            command, result_ok, posix_errno);
     if (desc->write_buffered != 0 && desc->timer_state == timer_idle) {
 	desc->timer_state = timer_write;
 	driver_set_timer(desc->port, desc->write_delay);
@@ -2332,7 +2339,6 @@ file_output(ErlDrvData e, char* buf, int count)
 	    d->invoke = invoke_open;
 	    d->free = free_data;
 	    d->level = 2;
-            DTRACE4(file_drv_open_entry, desc->key, name, d->flags, pthread_self());
 	    goto done;
 	}
 
@@ -2525,6 +2531,7 @@ file_output(ErlDrvData e, char* buf, int count)
     d->sched_i2 = dt_priv->tag;
     DTRACE10(file_drv_entry, dt_priv->thread_num, dt_priv->tag++, 0,
              command, dt_s1, dt_s2, dt_i1, dt_i2, dt_i3, dt_i4);
+    /* fprintf(stderr, "<%d %d> ", dt_i1, dt_i2); */
     if (d) {
 	cq_enq(desc, d);
     }
@@ -2612,8 +2619,8 @@ file_outputv(ErlDrvData e, ErlIOVec *ev) {
     int err;
 #ifdef  HAVE_DTRACE
     dt_private *dt_priv = get_dt_private(0);
-    char *dt_s1 = NULL, *dt_s2 = NULL;
-    int dt_i1 = 0, dt_i2 = 0, dt_i3 = 0, dt_i4 = 0;
+    /* char *dt_s1 = NULL, *dt_s2 = NULL; */
+    /* int dt_i1 = 0, dt_i2 = 0, dt_i3 = 0, dt_i4 = 0; */
 
 #endif  /* HAVE_DTRACE */
     TRACE_C('v');
@@ -2768,7 +2775,6 @@ file_outputv(ErlDrvData e, ErlIOVec *ev) {
 	d->c.read.size = size;
 	driver_binary_inc_refc(d->c.read.binp);
 	d->invoke = invoke_read;
-        d->sched_i1 = 778899;
 	d->free = free_read;
 	d->level = 1;
 	cq_enq(desc, d);
