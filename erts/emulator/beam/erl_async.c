@@ -235,7 +235,9 @@ static ErlAsync* async_get(AsyncQueue* q)
 	q->len--;
     }
     len = q->len;
+#ifdef HAVE_DTRACE
     pool_member = q->pool_member;
+#endif
     erts_mtx_unlock(&q->mtx);
     DTRACE2(async_io_pool_get, pool_member+11000, len);
     return a;

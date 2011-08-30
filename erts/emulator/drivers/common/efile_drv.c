@@ -117,6 +117,9 @@ static ErlDrvSysInfo sys_info;
     dt_private *dt_priv = get_dt_private(dt_driver_io_worker_base) ; \
     do { DTRACE4(file_drv_int_entry, d->sched_i1, d->sched_i2, \
                  dt_priv->thread_num, op); } while (0)
+#define DTRACE_INVOKE_SETUP_BY_NAME(op) \
+    struct t_data *d = (struct t_data *) data ; \
+    DTRACE_INVOKE_SETUP(op)
 #define DTRACE_INVOKE_RETURN(op) \
     do { DTRACE4(file_drv_int_return, d->sched_i1, d->sched_i2, \
                  dt_priv->thread_num, op); } while (0)
@@ -132,6 +135,10 @@ typedef struct {
 } dt_private;
 
 dt_private *get_dt_private(int);
+#else  /* HAVE_DTRACE */
+#define DTRACE_INVOKE_SETUP(op)            do {} while (0)
+#define DTRACE_INVOKE_SETUP_BY_NAME(op)    do {} while (0)
+#define DTRACE_INVOKE_RETURN(op)           do {} while (0)
 #endif  /* HAVE_DTRACE */
 
 /* #define TRACE 1 */
@@ -942,32 +949,28 @@ static void invoke_name(void *data, int (*f)(Efile_error *, char *))
 
 static void invoke_mkdir(void *data)
 {
-    struct t_data *d = (struct t_data *) data;
-    DTRACE_INVOKE_SETUP(FILE_MKDIR);
+    DTRACE_INVOKE_SETUP_BY_NAME(FILE_MKDIR);
     invoke_name(data, efile_mkdir);
     DTRACE_INVOKE_RETURN(FILE_MKDIR);
 }
 
 static void invoke_rmdir(void *data)
 {
-    struct t_data *d = (struct t_data *) data;
-    DTRACE_INVOKE_SETUP(FILE_RMDIR);
+    DTRACE_INVOKE_SETUP_BY_NAME(FILE_RMDIR);
     invoke_name(data, efile_rmdir);
     DTRACE_INVOKE_RETURN(FILE_RMDIR);
 }
 
 static void invoke_delete_file(void *data)
 {
-    struct t_data *d = (struct t_data *) data;
-    DTRACE_INVOKE_SETUP(FILE_DELETE);
+    DTRACE_INVOKE_SETUP_BY_NAME(FILE_DELETE);
     invoke_name(data, efile_delete_file);
     DTRACE_INVOKE_RETURN(FILE_DELETE);
 }
 
 static void invoke_chdir(void *data)
 {
-    struct t_data *d = (struct t_data *) data;
-    DTRACE_INVOKE_SETUP(FILE_CHDIR);
+    DTRACE_INVOKE_SETUP_BY_NAME(FILE_CHDIR);
     invoke_name(data, efile_chdir);
     DTRACE_INVOKE_RETURN(FILE_CHDIR);
 }
@@ -2268,8 +2271,9 @@ file_output(ErlDrvData e, char* buf, int count)
     int command;
     struct t_data *d = NULL;
     char *dt_s1 = NULL, *dt_s2 = NULL;
-    int dt_i1 = 0, dt_i2 = 0, dt_i3 = 0, dt_i4 = 0;
+    int dt_i1 = 0, dt_i2 = 0, dt_i3 = 0;
 #ifdef  HAVE_DTRACE
+    int dt_i4 = 0;              /* put here to avoid unused var warning */
     dt_private *dt_priv = get_dt_private(0);
 
 #endif  /* HAVE_DTRACE */
@@ -2401,10 +2405,12 @@ file_output(ErlDrvData e, char* buf, int count)
 		reply_error(desc, &errInfo);
 		return;
 	    }
+#ifdef HAVE_DTRACE
             d->sched_i1 = dt_priv->thread_num;
             d->sched_i2 = dt_priv->tag;
             DTRACE10(file_drv_entry, dt_priv->thread_num, dt_priv->tag++, 0,
                      command, name, dt_s2, dt_i1, dt_i2, dt_i3, dt_i4);
+#endif
 	    TRACE_C('R');
 	    driver_output2(desc->port, resbuf, 1, NULL, 0);
 	    return;
@@ -2611,12 +2617,13 @@ file_output(ErlDrvData e, char* buf, int count)
     return;
 
  done:
-    d->sched_i1 = dt_priv->thread_num;
-    d->sched_i2 = dt_priv->tag;
-    DTRACE10(file_drv_entry, dt_priv->thread_num, dt_priv->tag++, 0,
-             command, dt_s1, dt_s2, dt_i1, dt_i2, dt_i3, dt_i4);
-    /* fprintf(stderr, "<%d %d> ", dt_i1, dt_i2); */
     if (d) {
+#ifdef HAVE_DTRACE
+        d->sched_i1 = dt_priv->thread_num;
+        d->sched_i2 = dt_priv->tag;
+        DTRACE10(file_drv_entry, dt_priv->thread_num, dt_priv->tag++, 0,
+                 command, dt_s1, dt_s2, dt_i1, dt_i2, dt_i3, dt_i4);
+#endif
 	cq_enq(desc, d);
     }
 }
@@ -2702,11 +2709,10 @@ file_outputv(ErlDrvData e, ErlIOVec *ev) {
     int p, q;
     int err;
     struct t_data *d = NULL;
+    int dt_i1 = 0, dt_i2 = 0, dt_i3 = 0, dt_i4 = 0;
+    char *dt_s1 = NULL;
 #ifdef  HAVE_DTRACE
     dt_private *dt_priv = get_dt_private(0);
-    char *dt_s1 = NULL, *dt_s2 = NULL;
-    int dt_i1 = 0, dt_i2 = 0, dt_i3 = 0, dt_i4 = 0;
-
 #endif  /* HAVE_DTRACE */
     TRACE_C('v');
 
@@ -3434,11 +3440,13 @@ file_outputv(ErlDrvData e, ErlIOVec *ev) {
 
  done:
     if (d != NULL) {
+#ifdef HAVE_DTRACE
         d->sched_i1 = dt_priv->thread_num;
         d->sched_i2 = dt_priv->tag;
+#endif
     }
     DTRACE10(file_drv_entry, dt_priv->thread_num, dt_priv->tag++, 0,
-             command, dt_s1, dt_s2, dt_i1, dt_i2, dt_i3, dt_i4);
+             command, dt_s1, NULL, dt_i1, dt_i2, dt_i3, dt_i4);
     cq_execute(desc);
 }
 
