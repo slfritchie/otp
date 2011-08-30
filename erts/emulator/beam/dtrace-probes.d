@@ -52,6 +52,16 @@ provider erlang_vm {
         /*     0       1              2       3       4             5         .??. */
         /* thread-id, tag, sched-thread-id, command, int success?, int errno, .??. */
         probe file_drv_return(int, int, int, int, int, int);
+
+/*
+ * NOTE: For file_drv_return + SMP + R14B03 (and perhaps other
+ *       releases), the sched-thread-id will be the same as the
+ *       work-thread-id: erl_async.c's async_main() function
+ *       will call the asynchronous invoke function and then
+ *       immediately call the drivers ready_async function while
+ *       inside the same I/O worker pool thread.
+ *       For R14B03's source, see erl_async.c lines 302-317.
+ */
 };
 
 #pragma D attributes Evolving/Evolving/Common provider erlang_vm provider
