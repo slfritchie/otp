@@ -3441,12 +3441,21 @@ file_outputv(ErlDrvData e, ErlIOVec *ev) {
  done:
     if (d != NULL) {
 #ifdef HAVE_DTRACE
+        /*
+        ** If d == NULL, then either:
+        **    1). There was an error of some sort, or
+        **    2). The command given to us is actually implemented
+        **        by file_output() instead.
+        **
+        ** Case #1 is probably a TODO item, perhaps?
+        ** Case #2 we definitely don't want to activate a probe.
+        */
         d->sched_i1 = dt_priv->thread_num;
         d->sched_i2 = dt_priv->tag;
+        DTRACE10(file_drv_entry, dt_priv->thread_num, dt_priv->tag++, 0,
+                 command, dt_s1, NULL, dt_i1, dt_i2, dt_i3, dt_i4);
 #endif
     }
-    DTRACE10(file_drv_entry, dt_priv->thread_num, dt_priv->tag++, 0,
-             command, dt_s1, NULL, dt_i1, dt_i2, dt_i3, dt_i4);
     cq_execute(desc);
 }
 
