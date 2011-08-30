@@ -1877,7 +1877,7 @@ static void cq_execute(file_descriptor *desc) {
 
 static struct t_data *async_write(file_descriptor *desc, int *errp,
 		       int reply, Uint32 reply_size,
-                       int *dt_i1, int *dt_i2, int *dt_i3) {
+                       Sint64 *dt_i1, Sint64 *dt_i2, Sint64 *dt_i3) {
     struct t_data *d;
     if (! (d = EF_ALLOC(sizeof(struct t_data) - 1))) {
 	if (errp) *errp = ENOMEM;
@@ -1939,7 +1939,7 @@ static int flush_write_check_error(file_descriptor *desc, int *errp) {
 
 static struct t_data *async_lseek(file_descriptor *desc, int *errp, int reply, 
 		       Sint64 offset, int origin,
-                       int *dt_i1, int *dt_i2, int *dt_i3) {
+                       Sint64 *dt_i1, Sint64 *dt_i2, Sint64 *dt_i3) {
     struct t_data *d;
     if (! (d = EF_ALLOC(sizeof(struct t_data)))) {
 	*errp = ENOMEM;
@@ -2271,9 +2271,9 @@ file_output(ErlDrvData e, char* buf, int count)
     int command;
     struct t_data *d = NULL;
     char *dt_s1 = NULL, *dt_s2 = NULL;
-    int dt_i1 = 0, dt_i2 = 0, dt_i3 = 0;
+    Sint64 dt_i1 = 0, dt_i2 = 0, dt_i3 = 0;
 #ifdef  HAVE_DTRACE
-    int dt_i4 = 0;              /* put here to avoid unused var warning */
+    Sint64 dt_i4 = 0;              /* put here to avoid unused var warning */
     dt_private *dt_priv = get_dt_private(0);
 
 #endif  /* HAVE_DTRACE */
@@ -2709,7 +2709,7 @@ file_outputv(ErlDrvData e, ErlIOVec *ev) {
     int p, q;
     int err;
     struct t_data *d = NULL;
-    int dt_i1 = 0, dt_i2 = 0, dt_i3 = 0, dt_i4 = 0;
+    Sint64 dt_i1 = 0, dt_i2 = 0, dt_i3 = 0, dt_i4 = 0;
     char *dt_s1 = NULL;
 #ifdef  HAVE_DTRACE
     dt_private *dt_priv = get_dt_private(0);

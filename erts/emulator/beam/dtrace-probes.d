@@ -33,7 +33,16 @@ provider erlang_vm {
 
         /*     0       1              2       3       4,5            6,7,8,9  */          
         /* thread-id, tag,           zero,  command, 2 char* args, 4 int args */
-        probe file_drv_entry(int, int, int, int, char *, char *, int, int, int, int);
+        probe file_drv_entry(int, int, int, int, char *, char *, int64_t, int64_t, int64_t, int64_t);
+/*
+ * NOTE:
+ * For formatting the last N int64_t arguments to the
+ * file_drv_entry probe, see:
+ *
+ *   http://mail.opensolaris.org/pipermail/dtrace-discuss/2006-November/002830.html
+ *
+ *   "1) you don't need the 'l' printf() modifiers with DTrace ever"
+ */
 
         /*     0       1              2       3     */
         /* thread-id, tag, work-thread-id,  command */
