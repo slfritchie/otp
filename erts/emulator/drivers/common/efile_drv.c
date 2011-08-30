@@ -1872,12 +1872,13 @@ static void cq_execute(file_descriptor *desc) {
     DRIVER_ASYNC(d->level, desc, d->invoke, void_ptr=d, d->free);
 }
 
-static int async_write(file_descriptor *desc, int *errp,
-		       int reply, Uint32 reply_size) {
+static struct t_data *async_write(file_descriptor *desc, int *errp,
+		       int reply, Uint32 reply_size,
+                       int *dt_i1, int *dt_i2, int *dt_i3) {
     struct t_data *d;
     if (! (d = EF_ALLOC(sizeof(struct t_data) - 1))) {
 	if (errp) *errp = ENOMEM;
-	return -1;
+	return NULL;
     }
     TRACE_F(("w%lu", (unsigned long)desc->write_buffered));
     d->command = FILE_WRITE;
@@ -1886,6 +1887,11 @@ static int async_write(file_descriptor *desc, int *errp,
     d->c.writev.port = desc->port;
     d->c.writev.q_mtx = desc->q_mtx;
     d->c.writev.size = desc->write_buffered;
+    if (dt_i1 != NULL) {
+        *dt_i1 = d->fd;
+        *dt_i2 = d->flags;
+        *dt_i3 = d->c.writev.size;
+    }
     d->reply = reply;
     d->c.writev.free_size = 0;
     d->c.writev.reply_size = reply_size;
@@ -1894,14 +1900,14 @@ static int async_write(file_descriptor *desc, int *errp,
     d->level = 1;
     cq_enq(desc, d);
     desc->write_buffered = 0;
-    return 0;
+    return d;
 }
 
 static int flush_write(file_descriptor *desc, int *errp) {
     int    result;
     MUTEX_LOCK(desc->q_mtx);
     if (desc->write_buffered > 0) {
-	result = async_write(desc, errp, 0, 0);
+	result = async_write(desc, errp, 0, 0, NULL, NULL, NULL) == NULL ? -1 : 0;
     } else {
 	result = 0;
     }
@@ -1928,12 +1934,13 @@ static int flush_write_check_error(file_descriptor *desc, int *errp) {
     }
 }
 
-static int async_lseek(file_descriptor *desc, int *errp, int reply, 
-		       Sint64 offset, int origin) {
+static struct t_data *async_lseek(file_descriptor *desc, int *errp, int reply, 
+		       Sint64 offset, int origin,
+                       int *dt_i1, int *dt_i2, int *dt_i3) {
     struct t_data *d;
     if (! (d = EF_ALLOC(sizeof(struct t_data)))) {
 	*errp = ENOMEM;
-	return -1;
+	return NULL;
     }
     d->flags = desc->flags;
     d->fd = desc->fd;
@@ -1941,11 +1948,16 @@ static int async_lseek(file_descriptor *desc, int *errp, int reply,
     d->reply = reply;
     d->c.lseek.offset = offset;
     d->c.lseek.origin = origin;
+    if (dt_i1 != NULL) {
+        *dt_i1 = d->fd;
+        *dt_i2 = d->c.lseek.offset;
+        *dt_i3 = d->c.lseek.origin;
+    }
     d->invoke = invoke_lseek;
     d->free = free_data;
     d->level = 1;
     cq_enq(desc, d);
-    return 0;
+    return d;
 }
 
 static void flush_read(file_descriptor *desc) {
@@ -1962,10 +1974,10 @@ static int lseek_flush_read(file_descriptor *desc, int *errp) {
     size_t read_size = desc->read_size;
     if (read_size != 0) {
 	flush_read(desc);
-	if ((r = async_lseek(desc, errp, 0, 
-			     -((ssize_t)read_size), EFILE_SEEK_CUR)) 
-	    < 0) {
-	    return r;
+	if (async_lseek(desc, errp, 0, 
+                        -((ssize_t)read_size), EFILE_SEEK_CUR,
+                        NULL, NULL, NULL) == NULL) {
+            return -1;
 	}
     } else {
 	flush_read(desc);
@@ -2689,10 +2701,11 @@ file_outputv(ErlDrvData e, ErlIOVec *ev) {
     char command;
     int p, q;
     int err;
+    struct t_data *d = NULL;
 #ifdef  HAVE_DTRACE
     dt_private *dt_priv = get_dt_private(0);
-    /* char *dt_s1 = NULL, *dt_s2 = NULL; */
-    /* int dt_i1 = 0, dt_i2 = 0, dt_i3 = 0, dt_i4 = 0; */
+    char *dt_s1 = NULL, *dt_s2 = NULL;
+    int dt_i1 = 0, dt_i2 = 0, dt_i3 = 0, dt_i4 = 0;
 
 #endif  /* HAVE_DTRACE */
     TRACE_C('v');
@@ -2713,7 +2726,6 @@ file_outputv(ErlDrvData e, ErlIOVec *ev) {
     switch (command) {
 
     case FILE_CLOSE: {
-        DTRACE10(file_drv_entry, 67, 67, 0, command, "x2 TODO FIXME", NULL, 0, 0, 0, 0);
 	flush_read(desc);
 	if (flush_write_check_error(desc, &err) < 0) {
 	    reply_posix_error(desc, err);
@@ -2725,14 +2737,15 @@ file_outputv(ErlDrvData e, ErlIOVec *ev) {
 	    goto done;
 	}
 	if (desc->fd != FILE_FD_INVALID) {
-	    struct t_data *d;
 	    if (! (d = EF_ALLOC(sizeof(struct t_data)))) {
 		reply_posix_error(desc, ENOMEM);
 	    } else {
 		d->command = command;
 		d->reply = !0;
 		d->fd = desc->fd;
+                dt_i1 = d->fd;
 		d->flags = desc->flags;
+                dt_i2 = d->flags;
 		d->invoke = invoke_close;
 		d->free = free_data;
 		d->level = 2;
@@ -2748,7 +2761,6 @@ file_outputv(ErlDrvData e, ErlIOVec *ev) {
     case FILE_READ: {
 	Uint32 sizeH, sizeL;
 	size_t size, alloc_size;
-	struct t_data *d;
 	if (flush_write_check_error(desc, &err) < 0) {
 	    reply_posix_error(desc, err);
 	    goto done;
@@ -2840,11 +2852,14 @@ file_outputv(ErlDrvData e, ErlIOVec *ev) {
 	d->command = command;
 	d->reply = !0;
 	d->fd = desc->fd;
+        dt_i1 = d->fd;
 	d->flags = desc->flags;
+        dt_i2 = d->flags;
 	d->c.read.binp = desc->read_binp;
 	d->c.read.bin_offset = desc->read_offset + desc->read_size;
 	d->c.read.bin_size = desc->read_binp->orig_size - d->c.read.bin_offset;
 	d->c.read.size = size;
+        dt_i3 = d->c.read.size;
 	driver_binary_inc_refc(d->c.read.binp);
 	d->invoke = invoke_read;
 	d->free = free_read;
@@ -2862,7 +2877,6 @@ file_outputv(ErlDrvData e, ErlIOVec *ev) {
 	 *    allocated binary + dealing with offsets and lengts are done in file_async ready
 	 *    for this OP.
 	 */
-	struct t_data *d;
 	if (flush_write_check_error(desc, &err) < 0) {
 	    reply_posix_error(desc, err);
 	    goto done;
@@ -2919,10 +2933,13 @@ file_outputv(ErlDrvData e, ErlIOVec *ev) {
 	d->command = command;
 	d->reply = !0;
 	d->fd = desc->fd;
+        dt_i1 = d->fd;
 	d->flags = desc->flags;
+        dt_i2 = d->flags;
 	d->c.read_line.binp = desc->read_binp;
 	d->c.read_line.read_offset = desc->read_offset;
 	d->c.read_line.read_size = desc->read_size;
+        dt_i3 = d->c.read_line.read_offset;
 #if !ALWAYS_READ_LINE_AHEAD
 	d->c.read_line.read_ahead = (desc->read_bufsize > 0);
 #endif 
@@ -2962,7 +2979,8 @@ file_outputv(ErlDrvData e, ErlIOVec *ev) {
 		driver_set_timer(desc->port, desc->write_delay);
 	    }
 	} else {
-	    if (async_write(desc, &err, !0, size) != 0) {
+	    if ((d = async_write(desc, &err, !0, size,
+                                 &dt_i1, &dt_i2, &dt_i3)) == NULL) {
 		MUTEX_UNLOCK(desc->q_mtx);
 		reply_posix_error(desc, err);
 		goto done;
@@ -2975,7 +2993,6 @@ file_outputv(ErlDrvData e, ErlIOVec *ev) {
     case FILE_PWRITEV: {
 	Uint32 i, j, n; 
 	size_t total;
-	struct t_data *d;
 	if (lseek_flush_read(desc, &err) < 0) {
 	    reply_Uint_posix_error(desc, 0, err);
 	    goto done;
@@ -3013,7 +3030,9 @@ file_outputv(ErlDrvData e, ErlIOVec *ev) {
 	d->command = command;
 	d->reply = !0;
 	d->fd = desc->fd;
+        dt_i1 = d->fd;
 	d->flags = desc->flags;
+        dt_i2 = d->flags;
 	d->c.pwritev.port = desc->port;
 	d->c.pwritev.q_mtx = desc->q_mtx;
 	d->c.pwritev.n = n;
@@ -3051,6 +3070,7 @@ file_outputv(ErlDrvData e, ErlIOVec *ev) {
 	    }
 	}
 	d->c.pwritev.size = total;
+        dt_i3 = d->c.pwritev.size;
 	d->c.pwritev.free_size = 0;
 	if (j == 0) {
 	    /* Trivial case - nothing to write */
@@ -3081,7 +3101,6 @@ file_outputv(ErlDrvData e, ErlIOVec *ev) {
     case FILE_PREADV: {
 	register void * void_ptr;
 	Uint32 i, n;
-	struct t_data *d;
 	ErlIOVec *res_ev;
 	if (lseek_flush_read(desc, &err) < 0) {
 	    reply_posix_error(desc, err);
@@ -3117,7 +3136,9 @@ file_outputv(ErlDrvData e, ErlIOVec *ev) {
 	d->command = command;
 	d->reply = !0;
 	d->fd = desc->fd;
+        dt_i1 = d->fd;
 	d->flags = desc->flags;
+        dt_i2 = d->flags;
 	d->c.preadv.n = n;
 	d->c.preadv.cnt = 0;
 	d->c.preadv.size = 0;
@@ -3145,6 +3166,7 @@ file_outputv(ErlDrvData e, ErlIOVec *ev) {
 #else
 	    size = ((size_t)sizeH<<32) | sizeL;
 #endif
+            dt_i3 = size;
 	    if (! (res_ev->binv[i] = driver_alloc_binary(size))) {
 		reply_posix_error(desc, ENOMEM);
 		break;
@@ -3208,14 +3230,14 @@ file_outputv(ErlDrvData e, ErlIOVec *ev) {
 	    reply_posix_error(desc, EINVAL);
 	    goto done;
 	}
-	if (async_lseek(desc, &err, !0, offset, origin) < 0) {
+	if ((d = async_lseek(desc, &err, !0, offset, origin,
+                             &dt_i1, &dt_i2, &dt_i3)) == NULL) {
 	    reply_posix_error(desc, err);
 	    goto done;
 	}
     } goto done;
 
     case FILE_READ_FILE: {
-	struct t_data *d;
 	char *filename;
 	if (ev->size < 1+1) {
 	    /* Buffer contains empty name */
@@ -3237,6 +3259,7 @@ file_outputv(ErlDrvData e, ErlIOVec *ev) {
 	d->reply = !0;
 	/* Copy name */
 	FILENAME_COPY(d->b, filename);
+        dt_s1 = d->b;
 	d->c.read_file.binp = NULL;
 	d->invoke = invoke_read_file;
 	d->free = free_read_file;
@@ -3256,7 +3279,6 @@ file_outputv(ErlDrvData e, ErlIOVec *ev) {
 	char mode;
 	Sint64 hdr_offset;
 	Uint32 max_size;
-	struct t_data *d;
 	ErlIOVec *res_ev;
 	int vsize;
 	if (! EV_GET_CHAR(ev, &mode, &p, &q)) {
@@ -3297,9 +3319,13 @@ file_outputv(ErlDrvData e, ErlIOVec *ev) {
 	d->command = command;
 	d->reply = !0;
 	d->fd = desc->fd;
+        dt_i1 = d->fd;
 	d->flags = desc->flags;
+        dt_i2 = d->flags;
 	d->c.preadv.offsets[0] = hdr_offset;
+        dt_i3 = d->c.preadv.offsets[0];
 	d->c.preadv.size = max_size;
+        dt_i4 = d->c.preadv.size;
 	res_ev = &d->c.preadv.eiov;
 	/* XXX possible alignment problems here for weird machines */
 	res_ev->iov = void_ptr = d + 1;
@@ -3320,6 +3346,7 @@ file_outputv(ErlDrvData e, ErlIOVec *ev) {
 	    reply_posix_error(desc, EINVAL);
 	    goto done;
 	}
+        dt_i1 = opt;
 	switch (opt) {
 	case FILE_OPT_DELAYED_WRITE: {
 	    Uint32 sizeH, sizeL, delayH, delayL;
@@ -3350,6 +3377,7 @@ file_outputv(ErlDrvData e, ErlIOVec *ev) {
 #else
 	    desc->write_delay = ((unsigned long)delayH << 32) | delayL;
 #endif
+            dt_i2 = desc->write_delay;
 	    TRACE_C('K');
 	    reply_ok(desc);
 	} goto done;
@@ -3371,6 +3399,7 @@ file_outputv(ErlDrvData e, ErlIOVec *ev) {
 #else
 	    desc->read_bufsize = ((size_t)sizeH << 32) | sizeL;
 #endif
+            dt_i2 = desc->read_bufsize;
 	    TRACE_C('K');
 	    reply_ok(desc);
 	} goto done;
@@ -3404,6 +3433,12 @@ file_outputv(ErlDrvData e, ErlIOVec *ev) {
     }
 
  done:
+    if (d != NULL) {
+        d->sched_i1 = dt_priv->thread_num;
+        d->sched_i2 = dt_priv->tag;
+    }
+    DTRACE10(file_drv_entry, dt_priv->thread_num, dt_priv->tag++, 0,
+             command, dt_s1, dt_s2, dt_i1, dt_i2, dt_i3, dt_i4);
     cq_execute(desc);
 }
 
