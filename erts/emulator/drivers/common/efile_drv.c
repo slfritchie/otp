@@ -113,6 +113,14 @@ static ErlDrvSysInfo sys_info;
 
 #ifdef  HAVE_DTRACE
 
+#define DTRACE_INVOKE_SETUP(op) \
+    dt_private *dt_priv = get_dt_private(dt_driver_io_worker_base) ; \
+    do { DTRACE4(file_drv_int_entry, d->sched_i1, d->sched_i2, \
+                 dt_priv->thread_num, op); } while (0)
+#define DTRACE_INVOKE_RETURN(op) \
+    do { DTRACE4(file_drv_int_return, d->sched_i1, d->sched_i2, \
+                 dt_priv->thread_num, op); } while (0)
+
 int             dt_driver_idnum = 0;
 int             dt_driver_io_worker_base = 5000;
 erts_mtx_t      dt_driver_mutex;
@@ -708,8 +716,10 @@ static void do_close(int flags, SWord fd) {
 static void invoke_close(void *data)
 {
     struct t_data *d = (struct t_data *) data;
+    DTRACE_INVOKE_SETUP(FILE_CLOSE);
     d->again = 0;
     do_close(d->flags, d->fd);
+    DTRACE_INVOKE_RETURN(FILE_CLOSE);
 }
 
 /*********************************************************************
@@ -932,49 +942,67 @@ static void invoke_name(void *data, int (*f)(Efile_error *, char *))
 
 static void invoke_mkdir(void *data)
 {
+    struct t_data *d = (struct t_data *) data;
+    DTRACE_INVOKE_SETUP(FILE_MKDIR);
     invoke_name(data, efile_mkdir);
+    DTRACE_INVOKE_RETURN(FILE_MKDIR);
 }
 
 static void invoke_rmdir(void *data)
 {
+    struct t_data *d = (struct t_data *) data;
+    DTRACE_INVOKE_SETUP(FILE_RMDIR);
     invoke_name(data, efile_rmdir);
+    DTRACE_INVOKE_RETURN(FILE_RMDIR);
 }
 
 static void invoke_delete_file(void *data)
 {
+    struct t_data *d = (struct t_data *) data;
+    DTRACE_INVOKE_SETUP(FILE_DELETE);
     invoke_name(data, efile_delete_file);
+    DTRACE_INVOKE_RETURN(FILE_DELETE);
 }
 
 static void invoke_chdir(void *data)
 {
+    struct t_data *d = (struct t_data *) data;
+    DTRACE_INVOKE_SETUP(FILE_CHDIR);
     invoke_name(data, efile_chdir);
+    DTRACE_INVOKE_RETURN(FILE_CHDIR);
 }
 
 static void invoke_fdatasync(void *data)
 {
     struct t_data *d = (struct t_data *) data;
     int fd = (int) d->fd;
+    DTRACE_INVOKE_SETUP(FILE_FDATASYNC);
 
     d->again = 0;
     d->result_ok = efile_fdatasync(&d->errInfo, fd);
+    DTRACE_INVOKE_RETURN(FILE_FDATASYNC);
 }
 
 static void invoke_fsync(void *data)
 {
     struct t_data *d = (struct t_data *) data;
     int fd = (int) d->fd;
+    DTRACE_INVOKE_SETUP(FILE_FSYNC);
 
     d->again = 0;
     d->result_ok = efile_fsync(&d->errInfo, fd);
+    DTRACE_INVOKE_RETURN(FILE_FSYNC);
 }
 
 static void invoke_truncate(void *data)
 {
     struct t_data *d = (struct t_data *) data;
     int fd = (int) d->fd;
+    DTRACE_INVOKE_SETUP(FILE_TRUNCATE);
 
     d->again = 0;
     d->result_ok = efile_truncate_file(&d->errInfo, &fd, d->flags);
+    DTRACE_INVOKE_RETURN(FILE_TRUNCATE);
 }
 
 static void invoke_read(void *data)
@@ -982,6 +1010,7 @@ static void invoke_read(void *data)
     struct t_data *d = (struct t_data *) data;
     int status, segment;
     size_t size, read_size;
+    DTRACE_INVOKE_SETUP(FILE_READ);
 
     segment = d->again && d->c.read.bin_size >= 2*FILE_SEGMENT_READ;
     if (segment) {
@@ -1016,6 +1045,7 @@ static void invoke_read(void *data)
     } else {
 	d->again = 0;
     }
+    DTRACE_INVOKE_RETURN(FILE_READ);
 }
 
 static void free_read(void *data)
@@ -1032,6 +1062,7 @@ static void invoke_read_line(void *data)
     int status;
     size_t read_size;
     int local_loop = (d->again == 0);
+    DTRACE_INVOKE_SETUP(FILE_READ_LINE);
 
     do {
 	size_t size = (d->c.read_line.binp)->orig_size - 
@@ -1123,6 +1154,7 @@ static void invoke_read_line(void *data)
 	    break;
 	}
     } while (local_loop);
+    DTRACE_INVOKE_RETURN(FILE_READ_LINE);
 }
 
 static void free_read_line(void *data)
@@ -1138,6 +1170,7 @@ static void invoke_read_file(void *data)
     struct t_data *d = (struct t_data *) data;
     size_t read_size;
     int chop;
+    DTRACE_INVOKE_SETUP(FILE_READ_FILE);
     
     if (! d->c.read_file.binp) { /* First invocation only */
 	int fd;
@@ -1174,12 +1207,14 @@ static void invoke_read_file(void *data)
 		   &read_size);
     if (d->result_ok) {
 	d->c.read_file.offset += read_size;
-	if (chop) return; /* again */
+	if (chop) goto chop_done; /* again */
     }
  close:
     efile_closefile((int) d->fd);
  done:
     d->again = 0;
+ chop_done:
+    DTRACE_INVOKE_RETURN(FILE_READ_FILE);
 }
 
 static void free_read_file(void *data)
@@ -1199,6 +1234,7 @@ static void invoke_preadv(void *data)
     ErlIOVec        *ev = &c->eiov;
     size_t           bytes_read_so_far = 0;
     unsigned char   *p = (unsigned char *)ev->iov[0].iov_base + 4+4+8*c->cnt;
+    DTRACE_INVOKE_SETUP(FILE_PREADV);
 
     while (c->cnt < c->n) {
 	size_t read_size = ev->iov[1 + c->cnt].iov_len - c->size;
@@ -1220,7 +1256,7 @@ static void invoke_preadv(void *data)
 	    bytes_read_so_far += bytes_read;
 	    if (chop && bytes_read == read_size) {
 		c->size += bytes_read;
-		return;
+		goto done;
 	    }
 	    ASSERT(bytes_read <= read_size);
 	    ev->iov[1 + c->cnt].iov_len = bytes_read + c->size;
@@ -1231,7 +1267,7 @@ static void invoke_preadv(void *data)
 	    if (d->again 
 		&& bytes_read_so_far >= FILE_SEGMENT_READ
 		&& c->cnt < c->n) {
-		return;
+		goto done;
 	    }
 	} else {
 	    /* In case of a read error, ev->size will not be correct,
@@ -1242,6 +1278,8 @@ static void invoke_preadv(void *data)
 	}
     }					
     d->again = 0;
+ done:
+    DTRACE_INVOKE_RETURN(FILE_PREADV);
 }
 
 static void free_preadv(void *data) {
@@ -1263,6 +1301,7 @@ static void invoke_ipread(void *data)
     size_t bytes_read = 0;
     char buf[2*sizeof(Uint32)];
     Uint32 offset, size;
+    DTRACE_INVOKE_SETUP(FILE_IPREAD);
     
     /* Read indirection header */
     if (! efile_pread(&d->errInfo, (int) d->fd, c->offsets[0], 
@@ -1301,14 +1340,17 @@ static void invoke_ipread(void *data)
     /* Read data block */
     d->invoke = invoke_preadv;
     invoke_preadv(data);
+    DTRACE_INVOKE_RETURN(FILE_IPREAD);
     return;
  error:
     d->result_ok = 0;
     d->again = 0;
+    DTRACE_INVOKE_RETURN(FILE_IPREAD);
     return;
  done:
     d->result_ok = !0;
     d->again = 0;
+    DTRACE_INVOKE_RETURN(FILE_IPREAD);
 }
 
 /* invoke_writev and invoke_pwritev are the only thread functions that
@@ -1331,6 +1373,7 @@ static void invoke_writev(void *data) {
     size_t         size;
     size_t         p;
     int            segment;
+    DTRACE_INVOKE_SETUP(FILE_WRITE);
 
     segment = d->again && d->c.writev.size >= 2*FILE_SEGMENT_WRITE;
     if (segment) {
@@ -1400,6 +1443,7 @@ static void invoke_writev(void *data) {
 	TRACE_F(("w%lu", (unsigned long)size));
 
     }
+    DTRACE_INVOKE_RETURN(FILE_WRITE);
 }
 
 static void free_writev(void *data) {
@@ -1413,34 +1457,40 @@ static void free_writev(void *data) {
 static void invoke_pwd(void *data)
 {
     struct t_data *d = (struct t_data *) data;
+    DTRACE_INVOKE_SETUP(FILE_PWD);
 
     d->again = 0;
     d->result_ok = efile_getdcwd(&d->errInfo,d->drive, d->b+1,
 				 RESBUFSIZE-1);
+    DTRACE_INVOKE_RETURN(FILE_PWD);
 }
 
 static void invoke_readlink(void *data)
 {
     struct t_data *d = (struct t_data *) data;
     char resbuf[RESBUFSIZE];	/* Result buffer. */
+    DTRACE_INVOKE_SETUP(FILE_READLINK);
 
     d->again = 0;
     d->result_ok = efile_readlink(&d->errInfo, d->b, resbuf+1,
 				  RESBUFSIZE-1);
     if (d->result_ok != 0)
 	FILENAME_COPY((char *) d->b + 1, resbuf+1);
+    DTRACE_INVOKE_RETURN(FILE_READLINK);
 }
 
 static void invoke_altname(void *data)
 {
     struct t_data *d = (struct t_data *) data;
     char resbuf[RESBUFSIZE];	/* Result buffer. */
+    DTRACE_INVOKE_SETUP(FILE_ALTNAME);
 
     d->again = 0;
     d->result_ok = efile_altname(&d->errInfo, d->b, resbuf+1,
 				  RESBUFSIZE-1);
     if (d->result_ok != 0)
 	FILENAME_COPY((char *) d->b + 1, resbuf+1);
+    DTRACE_INVOKE_RETURN(FILE_ALTNAME);
 }
 
 static void invoke_pwritev(void *data) {
@@ -1453,6 +1503,7 @@ static void invoke_pwritev(void *data) {
     size_t            p;
     int               segment;
     size_t            size, write_size;
+    DTRACE_INVOKE_SETUP(FILE_PWRITEV);
 
     segment = d->again && c->size >= 2*FILE_SEGMENT_WRITE;
     if (segment) {
@@ -1532,6 +1583,7 @@ static void invoke_pwritev(void *data) {
     }
  done:
     EF_FREE(iov); /* Free our copy of the vector, nothing to restore */
+    DTRACE_INVOKE_RETURN(FILE_PWRITEV);
 }
 
 static void free_pwritev(void *data) {
@@ -1546,10 +1598,19 @@ static void free_pwritev(void *data) {
 static void invoke_flstat(void *data)
 {
     struct t_data *d = (struct t_data *) data;
+#ifdef  HAVE_DTRACE
+    dt_private *dt_priv = get_dt_private(dt_driver_io_worker_base);
+#endif
 
+    DTRACE4(file_drv_int_entry, d->sched_i1, d->sched_i2,
+            dt_priv->thread_num, d->command == FILE_LSTAT ? FILE_LSTAT :
+                                                            FILE_FSTAT);
     d->again = 0;
     d->result_ok = efile_fileinfo(&d->errInfo, &d->info,
 				  d->b, d->command == FILE_LSTAT);
+    DTRACE4(file_drv_int_entry, d->sched_i1, d->sched_i2,
+            dt_priv->thread_num, d->command == FILE_LSTAT ? FILE_LSTAT :
+                                                            FILE_FSTAT);
 }
 
 static void invoke_link(void *data)
@@ -1557,10 +1618,12 @@ static void invoke_link(void *data)
     struct t_data *d = (struct t_data *) data;
     char *name = d->b;
     char *new_name;
+    DTRACE_INVOKE_SETUP(FILE_LINK);
 
     d->again = 0;
     new_name = name+FILENAME_BYTELEN(name)+FILENAME_CHARSIZE;
     d->result_ok = efile_link(&d->errInfo, name, new_name);
+    DTRACE_INVOKE_RETURN(FILE_LINK);
 }
 
 static void invoke_symlink(void *data)
@@ -1568,10 +1631,12 @@ static void invoke_symlink(void *data)
     struct t_data *d = (struct t_data *) data;
     char *name = d->b;
     char *new_name;
+    DTRACE_INVOKE_SETUP(FILE_SYMLINK);
 
     d->again = 0;
     new_name = name+FILENAME_BYTELEN(name)+FILENAME_CHARSIZE;
     d->result_ok = efile_symlink(&d->errInfo, name, new_name);
+    DTRACE_INVOKE_RETURN(FILE_SYMLINK);
 }
 
 static void invoke_rename(void *data)
@@ -1579,29 +1644,29 @@ static void invoke_rename(void *data)
     struct t_data *d = (struct t_data *) data;
     char *name = d->b;
     char *new_name;
-#ifdef  HAVE_DTRACE
-    dt_private *dt_priv = get_dt_private(dt_driver_io_worker_base);
-#endif  /* HAVE_DTRACE */
+    DTRACE_INVOKE_SETUP(FILE_RENAME);
 
-    DTRACE4(file_drv_int_entry, d->sched_i1, d->sched_i2, dt_priv->thread_num, FILE_RENAME);
     d->again = 0;
     new_name = name+FILENAME_BYTELEN(name)+FILENAME_CHARSIZE;
     d->result_ok = efile_rename(&d->errInfo, name, new_name);
-    DTRACE4(file_drv_int_return, d->sched_i1, d->sched_i2, dt_priv->thread_num, FILE_RENAME);
+    DTRACE_INVOKE_RETURN(FILE_RENAME);
 }
 
 static void invoke_write_info(void *data)
 {
     struct t_data *d = (struct t_data *) data;
+    DTRACE_INVOKE_SETUP(FILE_WRITE_INFO);
 
     d->again = 0;
     d->result_ok = efile_write_info(&d->errInfo, &d->info, d->b);
+    DTRACE_INVOKE_RETURN(FILE_WRITE_INFO);
 }
 
 static void invoke_lseek(void *data)
 {
     struct t_data *d = (struct t_data *) data;
     int status;
+    DTRACE_INVOKE_SETUP(FILE_LSEEK);
 
     d->again = 0;
     if (d->flags & EFILE_COMPRESSED) {
@@ -1626,6 +1691,7 @@ static void invoke_lseek(void *data)
 			    &d->c.lseek.location);
     }
     d->result_ok = status;
+    DTRACE_INVOKE_RETURN(FILE_LSEEK);
 }
 
 static void invoke_readdir(void *data)
@@ -1635,6 +1701,7 @@ static void invoke_readdir(void *data)
     char *p = NULL;
     int buf_sz = 0;
     size_t tmp_bs;
+    DTRACE_INVOKE_SETUP(FILE_READDIR);
 
     d->again = 0;
     d->errInfo.posix_errno = 0;
@@ -1679,13 +1746,14 @@ static void invoke_readdir(void *data)
 	    break;
 	}
     }
+    DTRACE_INVOKE_RETURN(FILE_READDIR);
 }
 
 static void invoke_open(void *data)
 {
     struct t_data *d = (struct t_data *) data;
-    
     int status = 1;		/* Status of open call. */
+    DTRACE_INVOKE_SETUP(FILE_OPEN);
 
     d->again = 0;
     if ((d->flags & EFILE_COMPRESSED) == 0) {
@@ -1718,6 +1786,7 @@ static void invoke_open(void *data)
     }
 
     d->result_ok = status;
+    DTRACE_INVOKE_RETURN(FILE_OPEN);
 }
 
 static void invoke_fadvise(void *data)
@@ -1727,15 +1796,18 @@ static void invoke_fadvise(void *data)
     off_t offset = (off_t) d->c.fadvise.offset;
     off_t length = (off_t) d->c.fadvise.length;
     int advise = (int) d->c.fadvise.advise;
+    DTRACE_INVOKE_SETUP(FILE_FADVISE);
 
     d->again = 0;
     d->result_ok = efile_fadvise(&d->errInfo, fd, offset, length, advise);
+    DTRACE_INVOKE_RETURN(FILE_FADVISE);
 }
 
 static void free_readdir(void *data)
 {
     struct t_data *d = (struct t_data *) data;
     struct t_readdir_buf *b1 = d->c.read_dir.first_buf;
+
     while (b1) {
 	struct t_readdir_buf *b2 = b1;
 	b1 = b1->next;
