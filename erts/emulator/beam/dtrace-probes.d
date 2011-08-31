@@ -17,6 +17,28 @@
  * %CopyrightEnd%
  */
 
+/**************************************************************
+SLF TODO: annotation challenges:
+
+    1. Some calls have port owned directly by user proc, e.g.
+       file:open() with 'raw' option.
+    2. Some calls have intermediate owner proc, e.g. file:open()
+       without 'raw' options.
+    3. Some calls are performed by 'file_server_2' process, e.g.
+       make_link() and rename().  (usually pid <0.18.0>)
+    4. Some are done by 'erl_prim_loader'. (usually pid <0.3.0>)
+
+"Best" official way to annotate efile_drv I/O is to add extra
+NUL-terminated string to all calls?
+    * But how to get that string from user Erlang code to driver?
+    * port_open option isn't flexible enough: if owner is a proxy
+      like file_server_2 or non-raw-read/write, proxy isn't good
+      enough.
+    * file.erl API is cast in stone.
+    * abuse proc dict??
+        - what about proxies, e.g. non-raw-read/write??
+**************************************************************/
+
 provider erlang_vm {
         /* TODO: Create better definitions for these two */
         probe spawn_entry(char *, int);
@@ -29,11 +51,12 @@ provider erlang_vm {
         probe async_io_pool_add(int, int);  /* Pool member #, post-op queue length */
         probe async_io_pool_get(int, int);  /* Pool member #, post-op queue length */
 
-        /* First real attempt to instrument efile_drv.c */
+        /* Probes for efile_drv.c */
 
-        /*     0       1              2       3       4,5            6,7,8,9  */          
-        /* thread-id, tag,           zero,  command, 2 char* args, 4 int args */
-        probe file_drv_entry(int, int, int, int, char *, char *, int64_t, int64_t, int64_t, int64_t);
+        /*     0       1         2       3       4,5            6,7,8,9  */
+        /* thread-id, tag,  user-tag,  command, 2 char* args, 4 int args */
+        probe file_drv_entry(int, int, char *, int, char *, char *, int64_t, int64_t, int64_t, int64_t);
+
 /*
  * NOTE:
  * For formatting the last N int64_t arguments to the
@@ -49,9 +72,9 @@ provider erlang_vm {
         probe file_drv_int_entry(int, int, int, int);
         probe file_drv_int_return(int, int, int, int);
 
-        /*     0       1              2       3       4             5         .??. */
-        /* thread-id, tag, sched-thread-id, command, int success?, int errno, .??. */
-        probe file_drv_return(int, int, int, int, int, int);
+        /*     0       1       2       3          4             5           6           .??. */
+        /* thread-id, tag, user-tag, command, int success?, int errno, sched-thread-id, .??. */
+        probe file_drv_return(int, int, char *, int, int, int, int);
 
 /*
  * NOTE: For file_drv_return + SMP + R14B03 (and perhaps other

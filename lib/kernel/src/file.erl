@@ -187,7 +187,7 @@ delete(Name) ->
       Reason :: posix() | badarg.
 
 rename(From, To) ->
-    check_and_call(rename, [file_name(From), file_name(To)]).
+    check_and_call(rename, [file_name(From), file_name(To), get_dtrace_utag()]).
 
 -spec make_dir(Dir) -> ok | {error, Reason} when
       Dir :: name(),
@@ -1272,4 +1272,12 @@ wait_file_reply(From, Ref) ->
 	{'DOWN', Ref, _, _, _} ->
 	    %% receive {'EXIT', From, _} -> ok after 0 -> ok end,
 	    {error, terminated}
+    end.
+
+get_dtrace_utag() ->
+    case get(dtrace_utag) of
+        X when is_list(X) ->
+            X;
+        _ ->
+            ""
     end.

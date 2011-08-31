@@ -41,7 +41,7 @@
 -export([get_cwd/0, get_cwd/1, get_cwd/2, 
 	 set_cwd/1, set_cwd/2,
 	 delete/1, delete/2, 
-	 rename/2, rename/3, 
+	 rename/2, rename/3, rename/4,
 	 make_dir/1, make_dir/2,
 	 del_dir/1, del_dir/2,
 	 read_file_info/1, read_file_info/2,
@@ -659,16 +659,20 @@ delete_int(Port, File) ->
 
 
 
-%% rename/{2,3}
+%% rename/{2,3,4}
 
 rename(From, To) ->
-    rename_int({?DRV, [binary]}, From, To).
+    rename_int({?DRV, [binary]}, From, To, get_dtrace_utag()).
 
 rename(Port, From, To) when is_port(Port) ->
-    rename_int(Port, From, To).
+    rename_int(Port, From, To, get_dtrace_utag()).
 
-rename_int(Port, From, To) ->
-    drv_command(Port, [?FILE_RENAME, pathname(From), pathname(To)]).
+rename(Port, From, To, DTraceUtag) when is_port(Port) ->
+    rename_int(Port, From, To, DTraceUtag).
+
+rename_int(Port, From, To, DTraceUtag) ->
+    drv_command(Port, [?FILE_RENAME, pathname(From), pathname(To),
+                       pathname(DTraceUtag)]).
 
 
 
@@ -1230,3 +1234,12 @@ reverse(L, T) -> lists:reverse(L, T).
 % in list_to_binary, which is caught and generates the {error,badarg} return
 pathname(File) ->
     (catch prim_file:internal_name2native(File)).
+
+%% TODO: Duplicate code!
+get_dtrace_utag() ->
+    case get(dtrace_utag) of
+        X when is_list(X) ->
+            X;
+        _ ->
+            ""
+    end.

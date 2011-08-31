@@ -372,8 +372,8 @@ struct t_data
     int            reply;
 #ifdef  HAVE_DTRACE
     int               sched_i1;
-    /* Uint64            sched_i2; */
-    int             sched_i2;
+    Uint64            sched_i2;
+    char              sched_utag[128+1];
 #endif  /* HAVE_DTRACE */
     int            result_ok;
     Efile_error    errInfo;
@@ -2005,8 +2005,13 @@ file_async_ready(ErlDrvData e, ErlDrvThreadData data)
     int sched_i1 = d->sched_i1, sched_i2 = d->sched_i2, command = d->command,
         result_ok = d->result_ok,
         posix_errno = d->result_ok ? 0 : d->errInfo.posix_errno;
+    char sched_utag[128+1];
 
-    /* fprintf(stderr, "(%d -> %d %d %d), ", d->command, d->result_ok, d->sched_i1, d->sched_i2); */
+    sched_utag[0] = '\0';
+    if (DTRACE_ENABLED(file_drv_return)) {
+        strncpy(sched_utag, d->sched_utag, sizeof(sched_utag) - 1);
+        sched_utag[sizeof(sched_utag) - 1] = '\0';
+    }
 #endif  /* HAVE_DTRACE */
 
     TRACE_C('r');
@@ -2247,8 +2252,8 @@ file_async_ready(ErlDrvData e, ErlDrvThreadData data)
       default:
 	abort();
     }
-    DTRACE6(file_drv_return, sched_i1, sched_i2, dt_priv->thread_num,
-            command, result_ok, posix_errno);
+    DTRACE7(file_drv_return, sched_i1, sched_i2, sched_utag,
+            command, result_ok, posix_errno, dt_priv->thread_num);
     if (desc->write_buffered != 0 && desc->timer_state == timer_idle) {
 	desc->timer_state = timer_write;
 	driver_set_timer(desc->port, desc->write_delay);
@@ -2270,7 +2275,7 @@ file_output(ErlDrvData e, char* buf, int count)
     char* name;			/* Points to the filename in buf. */
     int command;
     struct t_data *d = NULL;
-    char *dt_s1 = NULL, *dt_s2 = NULL;
+    char *dt_utag = NULL, *dt_s1 = NULL, *dt_s2 = NULL;
     Sint64 dt_i1 = 0, dt_i2 = 0, dt_i3 = 0;
 #ifdef  HAVE_DTRACE
     Sint64 dt_i4 = 0;              /* put here to avoid unused var warning */
@@ -2334,6 +2339,7 @@ file_output(ErlDrvData e, char* buf, int count)
             dt_s1 = d->b;
 	    FILENAME_COPY(d->b + namelen, new_name);
             dt_s2 = d->b + namelen;
+            dt_utag = buf + namelen + strlen(dt_s2) + 1;
 	    d->flags = desc->flags;
 	    d->fd = fd;
 	    d->command = command;
@@ -2406,8 +2412,8 @@ file_output(ErlDrvData e, char* buf, int count)
 		return;
 	    }
 #ifdef HAVE_DTRACE
-            DTRACE10(file_drv_entry, dt_priv->thread_num, dt_priv->tag++, 0,
-                     command, name, dt_s2, dt_i1, dt_i2, dt_i3, dt_i4);
+            DTRACE10(file_drv_entry, dt_priv->thread_num, dt_priv->tag++,
+                     dt_utag, command, name, dt_s2, dt_i1, dt_i2, dt_i3, dt_i4);
 #endif
 	    TRACE_C('R');
 	    driver_output2(desc->port, resbuf, 1, NULL, 0);
@@ -2619,8 +2625,13 @@ file_output(ErlDrvData e, char* buf, int count)
 #ifdef HAVE_DTRACE
         d->sched_i1 = dt_priv->thread_num;
         d->sched_i2 = dt_priv->tag;
-        DTRACE10(file_drv_entry, dt_priv->thread_num, dt_priv->tag++, 0,
-                 command, dt_s1, dt_s2, dt_i1, dt_i2, dt_i3, dt_i4);
+        d->sched_utag[0] = '\0';
+        if (dt_utag != NULL) {
+            strncpy(d->sched_utag, dt_utag, sizeof(d->sched_utag) - 1);
+            d->sched_utag[sizeof(d->sched_utag) - 1] = '\0';
+        }
+        DTRACE10(file_drv_entry, dt_priv->thread_num, dt_priv->tag++,
+                 dt_utag, command, dt_s1, dt_s2, dt_i1, dt_i2, dt_i3, dt_i4);
 #endif
 	cq_enq(desc, d);
     }
@@ -2708,7 +2719,7 @@ file_outputv(ErlDrvData e, ErlIOVec *ev) {
     int err;
     struct t_data *d = NULL;
     Sint64 dt_i1 = 0, dt_i2 = 0, dt_i3 = 0, dt_i4 = 0;
-    char *dt_s1 = NULL;
+    char *dt_utag = NULL, *dt_s1 = NULL;
 #ifdef  HAVE_DTRACE
     dt_private *dt_priv = get_dt_private(0);
 #endif  /* HAVE_DTRACE */
@@ -3450,8 +3461,13 @@ file_outputv(ErlDrvData e, ErlIOVec *ev) {
         */
         d->sched_i1 = dt_priv->thread_num;
         d->sched_i2 = dt_priv->tag;
-        DTRACE10(file_drv_entry, dt_priv->thread_num, dt_priv->tag++, 0,
-                 command, dt_s1, NULL, dt_i1, dt_i2, dt_i3, dt_i4);
+        d->sched_utag[0] = '\0';
+        if (dt_utag != NULL) {
+            strncpy(d->sched_utag, dt_utag, sizeof(d->sched_utag) - 1);
+            d->sched_utag[sizeof(d->sched_utag) - 1] = '\0';
+        }
+        DTRACE10(file_drv_entry, dt_priv->thread_num, dt_priv->tag++,
+                 dt_utag, command, dt_s1, NULL, dt_i1, dt_i2, dt_i3, dt_i4);
 #endif
     }
     cq_execute(desc);

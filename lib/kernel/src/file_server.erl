@@ -76,6 +76,7 @@ stop() ->
 
 init([]) ->
     process_flag(trap_exit, true),
+    put(dtrace_utag, "file_server constant kludge"),
     case ?PRIM_FILE:start() of
 	{ok, Handle} ->
 	    ets:new(?FILE_IO_SERVER_TABLE, [named_table]),
@@ -125,8 +126,8 @@ handle_call({set_cwd, Name}, _From, Handle) ->
 handle_call({delete, Name}, _From, Handle) ->
     {reply, ?PRIM_FILE:delete(Handle, Name), Handle};
 
-handle_call({rename, Fr, To}, _From, Handle) ->
-    {reply, ?PRIM_FILE:rename(Handle, Fr, To), Handle};
+handle_call({rename, Fr, To, DTraceUtag}, _From, Handle) ->
+    {reply, ?PRIM_FILE:rename(Handle, Fr, To, DTraceUtag), Handle};
 
 handle_call({make_dir, Name}, _From, Handle) ->
     {reply, ?PRIM_FILE:make_dir(Handle, Name), Handle};
