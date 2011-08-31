@@ -2406,8 +2406,6 @@ file_output(ErlDrvData e, char* buf, int count)
 		return;
 	    }
 #ifdef HAVE_DTRACE
-            d->sched_i1 = dt_priv->thread_num;
-            d->sched_i2 = dt_priv->tag;
             DTRACE10(file_drv_entry, dt_priv->thread_num, dt_priv->tag++, 0,
                      command, name, dt_s2, dt_i1, dt_i2, dt_i3, dt_i4);
 #endif
