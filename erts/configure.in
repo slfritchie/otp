@@ -3532,7 +3532,11 @@ fi
 AC_SUBST(DTRACE)
 
 AC_SUBST(DTRACE_CPP)
+AC_SUBST(DTRACE_ENABLED)
+AC_SUBST(DTRACE_ENABLED_SOLARIS)
 DTRACE_CPP=-C
+DTRACE_ENABLED=
+DTRACE_ENABLED_SOLARIS=
 if test "$enable_dtrace" = "yes" ; then
         if test "$DTRACE" = "dtrace" ; then
                 AC_CHECK_HEADERS(sys/sdt.h)
@@ -3545,9 +3549,16 @@ if test "$enable_dtrace" = "yes" ; then
                 fi
                 rm dtrace-probes.h
 
-                ## SLF: TODO: Solaris goop here
-
-                AC_MSG_NOTICE([dtrace precompilation successful])
+                $RM -f ./dtrace-probes.o
+                if dtrace -G $DTRACE_CPP -Iemulator/beam -s emulator/beam/dtrace-probes.d 2> /dev/null && \
+                   test -f ./dtrace-probes.o ; then
+                        rm ./dtrace-probes.o
+                        DTRACE_ENABLED_SOLARIS=yes
+                        AC_MSG_NOTICE([dtrace precompilation for Solaris successful])
+                else
+                        AC_MSG_NOTICE([dtrace precompilation successful])
+                fi
+                DTRACE_ENABLED=yes
                 AC_DEFINE(HAVE_DTRACE, 1, [Define to enable DTrace probes])
                 LIBS="$LIBS -ldtrace"
         else

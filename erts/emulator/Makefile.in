@@ -23,6 +23,8 @@ include $(ERL_TOP)/make/$(TARGET)/otp.mk
 
 ENABLE_ALLOC_TYPE_VARS = @ENABLE_ALLOC_TYPE_VARS@
 HIPE_ENABLED=@HIPE_ENABLED@
+DTRACE_ENABLED=@DTRACE_ENABLED@
+DTRACE_ENABLED_SOLARIS=@DTRACE_ENABLED_SOLARIS@
 LIBS = @LIBS@
 Z_LIB=@Z_LIB@
 NO_INLINE_FUNCTIONS=false
@@ -832,6 +834,27 @@ endif
 BASE_OBJS = $(RUN_OBJS) $(EMU_OBJS) $(OS_OBJS) $(EXTRA_BASE_OBJS)
 
 OBJS =	$(BASE_OBJS) $(DRV_OBJS)
+
+ifdef DTRACE_ENABLED
+$(ERL_TOP)/erts/emulator/beam/dtrace-probes.h: $(ERL_TOP)/erts/emulator/beam/dtrace-probes.d
+	dtrace -h -C -I$(ERL_TOP)/erts/emulator/beam \
+	  -s $(ERL_TOP)/erts/emulator/beam/dtrace-probes.d \
+	  -o ./dtrace-probes.h
+	sed -e '/^#define[ 	]*ERLANG_VM_[A-Z_]*(.*)/y/ABCDEFGHIJKLMNOPQRSTUVWXYZ/abcdefghijklmnopqrstuvwxyz/' ./dtrace-probes.h > $(ERL_TOP)/erts/emulator/beam/dtrace-probes.h
+	rm ./dtrace-probes.h
+endif
+
+ifdef DTRACE_ENABLED_SOLARIS
+OBJS += $(OBJDIR)/dtrace-probes.o
+$(OBJDIR)/dtrace-probes.o: $(OBJS) $(ERL_TOP)/erts/emulator/beam/dtrace-probes.h
+	touch $(OBJDIR)/dtrace-probes.c
+	gcc -c $(CFLAGS) -o $@ $(OBJDIR)/dtrace-probes.c
+	# The object file created above is immediately clobbered below.
+	# But creating it above avoids chicken-and-egg problem with $(OBJS)
+	dtrace -G -C -I$(ERL_TOP)/erts/emulator/beam \
+	  -s $(ERL_TOP)/erts/emulator/beam/dtrace-probes.d \
+	  -o $(OBJDIR)/dtrace-probes.o $(OBJS)
+endif
 
 ########################################
 # HiPE section
