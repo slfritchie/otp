@@ -10,9 +10,10 @@ source distribution.
 History
 -------
 
-The first implementation of DTrace was presented at the [2008 Erlang
-User Conference] [4].  Most of the source from that effort has been
-lost.  If you have a copy of that work, please contact **slfritchie**.
+The first implementation of DTrace probes for the Erlang virtual
+machine was presented at the [2008 Erlang User Conference] [4].  Most
+of the source from that effort has been lost.  If you have a copy of
+that work, please contact **slfritchie**.
 
 Several users have created Erlang port drivers, linked-in drivers, or
 NIFs that allow Erlang code to try to activate a probe,
