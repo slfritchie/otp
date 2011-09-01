@@ -114,57 +114,57 @@ handle_call({open, Name, ModeList}, {Pid, _Tag} = _From, Handle)
 handle_call({open, _Name, _Mode}, _From, Handle) ->
     {reply, {error, einval}, Handle};
 
-handle_call({read_file, Name}, _From, Handle) ->
-    {reply, ?PRIM_FILE:read_file(Name), Handle};
+handle_call({read_file, Name, DTraceUtag}, _From, Handle) ->
+    {reply, ?PRIM_FILE:read_file(Name, DTraceUtag), Handle};
 
-handle_call({write_file, Name, Bin}, _From, Handle) ->
-    {reply, ?PRIM_FILE:write_file(Name, Bin), Handle};
+handle_call({write_file, Name, Bin, DTraceUtag}, _From, Handle) ->
+    {reply, ?PRIM_FILE:write_file(Name, Bin, DTraceUtag), Handle};
 
-handle_call({set_cwd, Name}, _From, Handle) ->
-    {reply, ?PRIM_FILE:set_cwd(Handle, Name), Handle};
+handle_call({set_cwd, Name, DTraceUtag}, _From, Handle) ->
+    {reply, ?PRIM_FILE:set_cwd(Handle, Name, DTraceUtag), Handle};
 
-handle_call({delete, Name}, _From, Handle) ->
-    {reply, ?PRIM_FILE:delete(Handle, Name), Handle};
+handle_call({delete, Name, DTraceUtag}, _From, Handle) ->
+    {reply, ?PRIM_FILE:delete(Handle, Name, DTraceUtag), Handle};
 
 handle_call({rename, Fr, To, DTraceUtag}, _From, Handle) ->
     {reply, ?PRIM_FILE:rename(Handle, Fr, To, DTraceUtag), Handle};
 
-handle_call({make_dir, Name}, _From, Handle) ->
-    {reply, ?PRIM_FILE:make_dir(Handle, Name), Handle};
+handle_call({make_dir, Name, DTraceUtag}, _From, Handle) ->
+    {reply, ?PRIM_FILE:make_dir(Handle, Name, DTraceUtag), Handle};
 
-handle_call({del_dir, Name}, _From, Handle) ->
-    {reply, ?PRIM_FILE:del_dir(Handle, Name), Handle};
+handle_call({del_dir, Name, DTraceUtag}, _From, Handle) ->
+    {reply, ?PRIM_FILE:del_dir(Handle, Name, DTraceUtag), Handle};
 
-handle_call({list_dir, Name}, _From, Handle) ->
-    {reply, ?PRIM_FILE:list_dir(Handle, Name), Handle};
+handle_call({list_dir, Name, DTraceUtag}, _From, Handle) ->
+    {reply, ?PRIM_FILE:list_dir(Handle, Name, DTraceUtag), Handle};
 
 handle_call(get_cwd, _From, Handle) ->
-    {reply, ?PRIM_FILE:get_cwd(Handle), Handle};
-handle_call({get_cwd}, _From, Handle) ->
-    {reply, ?PRIM_FILE:get_cwd(Handle), Handle};
-handle_call({get_cwd, Name}, _From, Handle) ->
-    {reply, ?PRIM_FILE:get_cwd(Handle, Name), Handle};
+    {reply, ?PRIM_FILE:get_cwd(Handle, no_drive, "TODO-fixme"), Handle};
+handle_call({get_cwd, no_drive, DTraceUtag}, _From, Handle) ->
+    {reply, ?PRIM_FILE:get_cwd(Handle, no_drive, DTraceUtag), Handle};
+handle_call({get_cwd, Name, DTraceUtag}, _From, Handle) ->
+    {reply, ?PRIM_FILE:get_cwd(Handle, Name, DTraceUtag), Handle};
 
-handle_call({read_file_info, Name}, _From, Handle) ->
-    {reply, ?PRIM_FILE:read_file_info(Handle, Name), Handle};
+handle_call({read_file_info, Name, DTraceUtag}, _From, Handle) ->
+    {reply, ?PRIM_FILE:read_file_info(Handle, Name, DTraceUtag), Handle};
 
-handle_call({altname, Name}, _From, Handle) ->
-    {reply, ?PRIM_FILE:altname(Handle, Name), Handle};
+handle_call({altname, Name, DTraceUtag}, _From, Handle) ->
+    {reply, ?PRIM_FILE:altname(Handle, Name, DTraceUtag), Handle};
 
-handle_call({write_file_info, Name, Info}, _From, Handle) ->
-    {reply, ?PRIM_FILE:write_file_info(Handle, Name, Info), Handle};
+handle_call({write_file_info, Name, Info, DTraceUtag}, _From, Handle) ->
+    {reply, ?PRIM_FILE:write_file_info(Handle, Name, Info, DTraceUtag), Handle};
 
-handle_call({read_link_info, Name}, _From, Handle) ->
-    {reply, ?PRIM_FILE:read_link_info(Handle, Name), Handle};
+handle_call({read_link_info, Name, DTraceUtag}, _From, Handle) ->
+    {reply, ?PRIM_FILE:read_link_info(Handle, Name, DTraceUtag), Handle};
 
-handle_call({read_link, Name}, _From, Handle) ->
-    {reply, ?PRIM_FILE:read_link(Handle, Name), Handle};
+handle_call({read_link, Name, DTraceUtag}, _From, Handle) ->
+    {reply, ?PRIM_FILE:read_link(Handle, Name, DTraceUtag), Handle};
 
-handle_call({make_link, Old, New}, _From, Handle) ->
-    {reply, ?PRIM_FILE:make_link(Handle, Old, New), Handle};
+handle_call({make_link, Old, New, DTraceUtag}, _From, Handle) ->
+    {reply, ?PRIM_FILE:make_link(Handle, Old, New, DTraceUtag), Handle};
 
-handle_call({make_symlink, Old, New}, _From, Handle) ->
-    {reply, ?PRIM_FILE:make_symlink(Handle, Old, New), Handle};
+handle_call({make_symlink, Old, New, DTraceUtag}, _From, Handle) ->
+    {reply, ?PRIM_FILE:make_symlink(Handle, Old, New, DTraceUtag), Handle};
 
 handle_call({copy, SourceName, SourceOpts, DestName, DestOpts, Length},
 	    _From, Handle) ->

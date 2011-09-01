@@ -30,7 +30,7 @@
 
 %% Specialized file operations
 -export([open/1, open/3]).
--export([read_file/1, read_file/2, write_file/2]).
+-export([read_file/1, read_file/2, read_file/3, write_file/2, write_file/3]).
 -export([ipread_s32bu_p32bu/3]).
 
 
@@ -38,20 +38,20 @@
 %%% Interface towards file system and metadata. Uses ?DRV.
 
 %% Takes an optional port (opens a ?DRV port per default) as first argument.
--export([get_cwd/0, get_cwd/1, get_cwd/2, 
-	 set_cwd/1, set_cwd/2,
-	 delete/1, delete/2, 
+-export([get_cwd/0, get_cwd/1, get_cwd/3,
+	 set_cwd/1, set_cwd/3,
+	 delete/1, delete/2, delete/3,
 	 rename/2, rename/3, rename/4,
-	 make_dir/1, make_dir/2,
-	 del_dir/1, del_dir/2,
-	 read_file_info/1, read_file_info/2,
-	 altname/1, altname/2,
-	 write_file_info/2, write_file_info/3,
-	 make_link/2, make_link/3,
-	 make_symlink/2, make_symlink/3,
-	 read_link/1, read_link/2,
-	 read_link_info/1, read_link_info/2,
-	 list_dir/1, list_dir/2]).
+	 make_dir/1, make_dir/3,
+	 del_dir/1, del_dir/3,
+	 read_file_info/1, read_file_info/2, read_file_info/3,
+	 altname/1, altname/3,
+	 write_file_info/2, write_file_info/4,
+	 make_link/2, make_link/3, make_link/4,
+	 make_symlink/2, make_symlink/3, make_symlink/4,
+	 read_link/1, read_link/3,
+	 read_link_info/1, read_link_info/3,
+	 list_dir/1, list_dir/3]).
 %% How to start and stop the ?DRV port.
 -export([start/0, stop/1]).
 
@@ -154,16 +154,20 @@
 
 %% Opens a file using the driver port Port. Returns {error, Reason}
 %% | {ok, FileDescriptor}
-open(Port, File, ModeList) when is_port(Port), 
-                                (is_list(File) orelse is_binary(File)), 
-                                is_list(ModeList) ->
+open(Port, File, ModeList) ->
+    open(Port, File, ModeList, "TODO-fixme").
+
+open(Port, File, ModeList, _DTraceUtag) when is_port(Port),
+                           (is_list(File) orelse is_binary(File)),
+                           is_list(ModeList),
+                           (is_list(_DTraceUtag) orelse is_binary(_DTraceUtag)) ->
     case open_mode(ModeList) of
 	{Mode, _Portopts, _Setopts} ->
 	    open_int(Port, File, Mode, []);
 	Reason ->
 	    {error, Reason}
     end;
-open(_,_,_) ->
+open(_,_,_,_) ->
     {error, badarg}.
 
 %% Opens a file. Returns {error, Reason} | {ok, FileDescriptor}.
@@ -493,21 +497,27 @@ ipread_s32bu_p32bu(#file_descriptor{module = ?MODULE, data = {_, _}},
 
 %% Returns {ok, Contents} | {error, Reason}
 read_file(File) when (is_list(File) orelse is_binary(File)) ->
+    read_file(File, get_dtrace_utag());
+read_file(_) ->
+    {error, badarg}.
+
+read_file(File, DTraceUtag) when (is_list(File) orelse is_binary(File)) ->
     case drv_open(?FD_DRV, [binary]) of
 	{ok, Port} ->
-	    Result = read_file(Port, File),
+	    Result = read_file(Port, File, DTraceUtag),
 	    close(Port),
 	    Result;
 	{error, _} = Error ->
 	    Error
     end;
-read_file(_) ->
+read_file(_, _) ->
     {error, badarg}.
 
 %% Takes a Port opened with open/1.
-read_file(Port, File) when is_port(Port),
+read_file(Port, File, DTraceUtag) when is_port(Port),
 			   (is_list(File) orelse is_binary(File)) ->
-    Cmd = [?FILE_READ_FILE | pathname(File)],
+    %% Cmd = [?FILE_READ_FILE | pathname(File)],
+    Cmd = [?FILE_READ_FILE | list_to_binary([pathname(File), pathname(DTraceUtag)])],
     case drv_command(Port, Cmd) of
 	{error, enomem} ->
 	    %% It could possibly help to do a 
@@ -519,13 +529,16 @@ read_file(Port, File) when is_port(Port),
 	Result ->
 	    Result
     end;
-read_file(_,_) ->
+read_file(_,_,_) ->
     {error, badarg}.
 
     
 
 %% Returns {error, Reason} | ok.
-write_file(File, Bin) when (is_list(File) orelse is_binary(File)) ->
+write_file(File, Bin) ->
+    write_file(File, Bin, "TODO-fixme").
+write_file(File, Bin, _DTraceUtag) when (is_list(File) orelse is_binary(File)) ->
+    %% TODO: FIX ME!  Add DTraceUtag to open's args.
     case open(File, [binary, write]) of
 	{ok, Handle} ->
 	    Result = write(Handle, Bin),
@@ -534,7 +547,7 @@ write_file(File, Bin) when (is_list(File) orelse is_binary(File)) ->
 	Error ->
 	    Error
     end;
-write_file(_, _) -> 
+write_file(_, _, _) ->
     {error, badarg}.
     
 
@@ -574,54 +587,56 @@ stop(Port) when is_port(Port) ->
 
 
 
-%% get_cwd/{0,1,2}
+%% get_cwd/{0,1,3}
 
 get_cwd() ->
-    get_cwd_int(0).
+    get_cwd_int(0, get_dtrace_utag()).
 
 get_cwd(Port) when is_port(Port) ->
-    get_cwd_int(Port, 0);
+    get_cwd_int(Port, 0, get_dtrace_utag());
 get_cwd([]) ->
-    get_cwd_int(0);
+    get_cwd_int(0, get_dtrace_utag());
 get_cwd([Letter, $: | _]) when $a =< Letter, Letter =< $z ->
-    get_cwd_int(Letter - $a + 1);
+    get_cwd_int(Letter - $a + 1, get_dtrace_utag());
 get_cwd([Letter, $: | _]) when $A =< Letter, Letter =< $Z ->
-    get_cwd_int(Letter - $A + 1);
+    get_cwd_int(Letter - $A + 1, get_dtrace_utag());
 get_cwd([_|_]) ->
     {error, einval};
 get_cwd(_) ->
     {error, badarg}.
 
-get_cwd(Port, []) when is_port(Port) ->
-    get_cwd_int(Port, 0);
-get_cwd(Port, [Letter, $: | _])
+get_cwd(Port, [], DTraceUtag) when is_port(Port) ->
+    get_cwd_int(Port, 0, DTraceUtag);
+get_cwd(Port, no_drive, DTraceUtag) when is_port(Port) ->
+    get_cwd_int(Port, 0, DTraceUtag);
+get_cwd(Port, [Letter, $: | _], DTraceUtag)
   when is_port(Port), $a =< Letter, Letter =< $z ->
-    get_cwd_int(Port, Letter - $a + 1);
-get_cwd(Port, [Letter, $: | _])
+    get_cwd_int(Port, Letter - $a + 1, DTraceUtag);
+get_cwd(Port, [Letter, $: | _], DTraceUtag)
   when is_port(Port), $A =< Letter, Letter =< $Z ->
-    get_cwd_int(Port, Letter - $A + 1);
-get_cwd(Port, [_|_]) when is_port(Port) ->
+    get_cwd_int(Port, Letter - $A + 1, DTraceUtag);
+get_cwd(Port, [_|_], _DTraceUtag) when is_port(Port) ->
     {error, einval};
-get_cwd(_, _) ->
+get_cwd(_, _, _DTraceUtag) ->
     {error, badarg}.
 
-get_cwd_int(Drive) ->
-    get_cwd_int({?DRV, [binary]}, Drive).
+get_cwd_int(Drive, DTraceUtag) ->
+    get_cwd_int({?DRV, [binary]}, Drive, DTraceUtag).
 
-get_cwd_int(Port, Drive) ->
-    drv_command(Port, <<?FILE_PWD, Drive>>).
+get_cwd_int(Port, Drive, DTraceUtag) ->
+    drv_command(Port, list_to_binary([?FILE_PWD, Drive, pathname(DTraceUtag)])).
 
 
 
-%% set_cwd/{1,2}
+%% set_cwd/{1,3}
 
 set_cwd(Dir) ->
-    set_cwd_int({?DRV, [binary]}, Dir).
+    set_cwd_int({?DRV, [binary]}, Dir, get_dtrace_utag()).
 
-set_cwd(Port, Dir) when is_port(Port) ->
-    set_cwd_int(Port, Dir).
+set_cwd(Port, Dir, DTraceUtag) when is_port(Port) ->
+    set_cwd_int(Port, Dir, DTraceUtag).
 
-set_cwd_int(Port, Dir0) ->
+set_cwd_int(Port, Dir0, DTraceUtag) ->
     Dir = 
 	(catch
 	 case os:type() of
@@ -631,7 +646,7 @@ set_cwd_int(Port, Dir0) ->
 		 %% must call get_cwd from here and use
 		 %% absname/2, since
 		 %% absname/1 uses file:get_cwd ...
-		 case get_cwd_int(Port, 0) of
+		 case get_cwd_int(Port, 0, "") of
 		     {ok, AbsPath} ->
 			 filename:absname(Dir0, AbsPath);
 		     _Badcwd ->
@@ -642,20 +657,23 @@ set_cwd_int(Port, Dir0) ->
 	 end),
     %% Dir is now either a string or an EXIT tuple.
     %% An EXIT tuple will fail in the following catch.
-    drv_command(Port, [?FILE_CHDIR, pathname(Dir)]).
+    drv_command(Port, [?FILE_CHDIR, pathname(Dir), pathname(DTraceUtag)]).
 
 
 
-%% delete/{1,2}
+%% delete/{1,2,3}
 
 delete(File) ->
-    delete_int({?DRV, [binary]}, File).
+    delete_int({?DRV, [binary]}, File, get_dtrace_utag()).
 
 delete(Port, File) when is_port(Port) ->
-    delete_int(Port, File).
+    delete_int(Port, File, get_dtrace_utag()).
 
-delete_int(Port, File) ->
-    drv_command(Port, [?FILE_DELETE, pathname(File)]).
+delete(Port, File, DTraceUtag) when is_port(Port) ->
+    delete_int(Port, File, DTraceUtag).
+
+delete_int(Port, File, DTraceUtag) ->
+    drv_command(Port, [?FILE_DELETE, pathname(File), pathname(DTraceUtag)]).
 
 
 
@@ -676,61 +694,62 @@ rename_int(Port, From, To, DTraceUtag) ->
 
 
 
-%% make_dir/{1,2}
+%% make_dir/{1,3}
 
 make_dir(Dir) ->
-    make_dir_int({?DRV, [binary]}, Dir).
+    make_dir_int({?DRV, [binary]}, Dir, get_dtrace_utag()).
 
-make_dir(Port, Dir) when is_port(Port) ->
-    make_dir_int(Port, Dir).
+make_dir(Port, Dir, DTraceUtag) when is_port(Port) ->
+    make_dir_int(Port, Dir, DTraceUtag).
 
-make_dir_int(Port, Dir) ->
-    drv_command(Port, [?FILE_MKDIR, pathname(Dir)]).
+make_dir_int(Port, Dir, DTraceUtag) ->
+    drv_command(Port, [?FILE_MKDIR, pathname(Dir), pathname(DTraceUtag)]).
 
 
 
-%% del_dir/{1,2}
+%% del_dir/{1,3}
 
 del_dir(Dir) ->
-    del_dir_int({?DRV, [binary]}, Dir).
+    del_dir_int({?DRV, [binary]}, Dir, get_dtrace_utag()).
 
-del_dir(Port, Dir) when is_port(Port) ->
-    del_dir_int(Port, Dir).
+del_dir(Port, Dir, DTraceUtag) when is_port(Port) ->
+    del_dir_int(Port, Dir, DTraceUtag).
 
-del_dir_int(Port, Dir) ->
-    drv_command(Port, [?FILE_RMDIR, pathname(Dir)]).
+del_dir_int(Port, Dir, DTraceUtag) ->
+    drv_command(Port, [?FILE_RMDIR, pathname(Dir), pathname(DTraceUtag)]).
 
-
-
-%% read_file_info/{1,2}
+%% read_file_info/{1,2,3}
 
 read_file_info(File) ->
-    read_file_info_int({?DRV, [binary]}, File).
+    read_file_info_int({?DRV, [binary]}, File, get_dtrace_utag()).
 
 read_file_info(Port, File) when is_port(Port) ->
-    read_file_info_int(Port, File).
+    read_file_info_int(Port, File, get_dtrace_utag()).
 
-read_file_info_int(Port, File) ->
-    drv_command(Port, [?FILE_FSTAT, pathname(File)]).
+read_file_info(Port, File, DTraceUtag) when is_port(Port) ->
+    read_file_info_int(Port, File, DTraceUtag).
 
-%% altname/{1,2}
+read_file_info_int(Port, File, DTraceUtag) ->
+    drv_command(Port, [?FILE_FSTAT, pathname(File), pathname(DTraceUtag)]).
+
+%% altname/{1,3}
 
 altname(File) ->
-    altname_int({?DRV, [binary]}, File).
+    altname_int({?DRV, [binary]}, File, get_dtrace_utag()).
 
-altname(Port, File) when is_port(Port) ->
-    altname_int(Port, File).
+altname(Port, File, DTraceUtag) when is_port(Port) ->
+    altname_int(Port, File, DTraceUtag).
 
-altname_int(Port, File) ->
-    drv_command(Port, [?FILE_ALTNAME, pathname(File)]).
+altname_int(Port, File, DTraceUtag) ->
+    drv_command(Port, [?FILE_ALTNAME, pathname(File), pathname(DTraceUtag)]).
 
-%% write_file_info/{2,3}
+%% write_file_info/{2,4}
 
 write_file_info(File, Info) ->
-    write_file_info_int({?DRV, [binary]}, File, Info).
+    write_file_info_int({?DRV, [binary]}, File, Info, get_dtrace_utag()).
 
-write_file_info(Port, File, Info) when is_port(Port) ->
-    write_file_info_int(Port, File, Info).
+write_file_info(Port, File, Info, DTraceUtag) when is_port(Port) ->
+    write_file_info_int(Port, File, Info, DTraceUtag).
 
 write_file_info_int(Port, 
 		    File, 
@@ -739,7 +758,8 @@ write_file_info_int(Port,
 			       gid=Gid,
 			       atime=Atime0, 
 			       mtime=Mtime0, 
-			       ctime=Ctime}) ->
+			       ctime=Ctime},
+                    DTraceUtag) ->
     {Atime, Mtime} =
 	case {Atime0, Mtime0} of
 	    {undefined, Mtime0} -> {erlang:localtime(), Mtime0};
@@ -753,72 +773,81 @@ write_file_info_int(Port,
 			date_to_bytes(Atime), 
 			date_to_bytes(Mtime), 
 			date_to_bytes(Ctime),
-			pathname(File)]).
+			pathname(File),
+                        pathname(DTraceUtag)]).
 
 
 
-%% make_link/{2,3}
+%% make_link/{2,3,4}
 
 make_link(Old, New) ->
-    make_link_int({?DRV, [binary]}, Old, New).
+    make_link_int({?DRV, [binary]}, Old, New, get_dtrace_utag()).
 
 make_link(Port, Old, New) when is_port(Port) ->
-    make_link_int(Port, Old, New).
+    make_link_int(Port, Old, New, get_dtrace_utag()).
 
-make_link_int(Port, Old, New) ->
-    drv_command(Port, [?FILE_LINK, pathname(Old), pathname(New)]).
+make_link(Port, Old, New, DTraceUtag) when is_port(Port) ->
+    make_link_int(Port, Old, New, DTraceUtag).
+
+make_link_int(Port, Old, New, DTraceUtag) ->
+    drv_command(Port, [?FILE_LINK, pathname(Old), pathname(New),
+                       pathname(DTraceUtag)]).
 
 
 
-%% make_symlink/{2,3}
+%% make_symlink/{2,3,4}
 
 make_symlink(Old, New) ->
-    make_symlink_int({?DRV, [binary]}, Old, New).
+    make_symlink_int({?DRV, [binary]}, Old, New, get_dtrace_utag()).
 
 make_symlink(Port, Old, New) when is_port(Port) ->
-    make_symlink_int(Port, Old, New).
+    make_symlink_int(Port, Old, New, get_dtrace_utag()).
 
-make_symlink_int(Port, Old, New) ->
-    drv_command(Port, [?FILE_SYMLINK, pathname(Old), pathname(New)]).
+make_symlink(Port, Old, New, DTraceUtag) when is_port(Port) ->
+    make_symlink_int(Port, Old, New, DTraceUtag).
+
+make_symlink_int(Port, Old, New, DTraceUtag) ->
+    drv_command(Port, [?FILE_SYMLINK, pathname(Old), pathname(New),
+                       pathname(DTraceUtag)]).
 
 
 
-%% read_link/{2,3}
+%% read_link/{1,3}
 
 read_link(Link) ->
-    read_link_int({?DRV, [binary]}, Link).
+    read_link_int({?DRV, [binary]}, Link, get_dtrace_utag()).
 
-read_link(Port, Link) when is_port(Port) ->
-    read_link_int(Port, Link).
+read_link(Port, Link, DTraceUtag) when is_port(Port) ->
+    read_link_int(Port, Link, DTraceUtag).
 
-read_link_int(Port, Link) ->
-    drv_command(Port, [?FILE_READLINK, pathname(Link)]).
+read_link_int(Port, Link, DTraceUtag) ->
+    drv_command(Port, [?FILE_READLINK, pathname(Link), pathname(DTraceUtag)]).
 
 
 
-%% read_link_info/{2,3}
+%% read_link_info/{1,3}
 
 read_link_info(Link) ->
-    read_link_info_int({?DRV, [binary]}, Link).
+    read_link_info_int({?DRV, [binary]}, Link, get_dtrace_utag()).
 
-read_link_info(Port, Link) when is_port(Port) ->
-    read_link_info_int(Port, Link).
+read_link_info(Port, Link, DTraceUtag) when is_port(Port) ->
+    read_link_info_int(Port, Link, DTraceUtag).
 
-read_link_info_int(Port, Link) ->
-    drv_command(Port, [?FILE_LSTAT, pathname(Link)]).
+read_link_info_int(Port, Link, DTraceUtag) ->
+    drv_command(Port, [?FILE_LSTAT, pathname(Link), pathname(DTraceUtag)]).
 
 
 
-%% list_dir/{1,2}
+%% list_dir/{1,3}
 
 list_dir(Dir) ->
-    list_dir_int({?DRV, [binary]}, Dir).
+    list_dir_int({?DRV, [binary]}, Dir, get_dtrace_utag()).
 
-list_dir(Port, Dir) when is_port(Port) ->
-    list_dir_int(Port, Dir).
+list_dir(Port, Dir, DTraceUtag) when is_port(Port) ->
+    list_dir_int(Port, Dir, DTraceUtag).
 
-list_dir_int(Port, Dir) ->
-    drv_command(Port, [?FILE_READDIR, pathname(Dir)], []).
+list_dir_int(Port, Dir, DTraceUtag) ->
+    drv_command(Port, [?FILE_READDIR, pathname(Dir), pathname(DTraceUtag)], []).
 
 
 

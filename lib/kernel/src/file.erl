@@ -32,7 +32,7 @@
 	 altname/1,
 	 read_link_info/1, read_link/1,
 	 make_link/2, make_symlink/2,
-	 read_file/1, write_file/2, write_file/3]).
+	 read_file/1, write_file/2, write_file/3]). %% TODO: left off write_file
 %% Specialized
 -export([ipread_s32bu_p32bu/3]).
 %% Generic file contents.
@@ -157,7 +157,7 @@ pid2name(Pid) when is_pid(Pid) ->
       Reason :: posix().
 
 get_cwd() ->
-    call(get_cwd, []).
+    call(get_cwd, [no_drive, get_dtrace_utag()]).
 
 -spec get_cwd(Drive) -> {ok, Dir} | {error, Reason} when
       Drive :: string(),
@@ -165,21 +165,21 @@ get_cwd() ->
       Reason :: posix() | badarg.
 
 get_cwd(Drive) ->
-    check_and_call(get_cwd, [file_name(Drive)]).
+    check_and_call(get_cwd, [file_name(Drive), get_dtrace_utag()]).
 
 -spec set_cwd(Dir) -> ok | {error, Reason} when
       Dir :: name(),
       Reason :: posix() | badarg.
 
 set_cwd(Dirname) -> 
-    check_and_call(set_cwd, [file_name(Dirname)]).
+    check_and_call(set_cwd, [file_name(Dirname), get_dtrace_utag()]).
 
 -spec delete(Filename) -> ok | {error, Reason} when
       Filename :: name(),
       Reason :: posix() | badarg.
 
 delete(Name) ->
-    check_and_call(delete, [file_name(Name)]).
+    check_and_call(delete, [file_name(Name), get_dtrace_utag()]).
 
 -spec rename(Source, Destination) -> ok | {error, Reason} when
       Source :: name(),
@@ -194,14 +194,14 @@ rename(From, To) ->
       Reason :: posix() | badarg.
 
 make_dir(Name) ->
-    check_and_call(make_dir, [file_name(Name)]).
+    check_and_call(make_dir, [file_name(Name), get_dtrace_utag()]).
 
 -spec del_dir(Dir) -> ok | {error, Reason} when
       Dir :: name(),
       Reason :: posix() | badarg.
 
 del_dir(Name) ->
-    check_and_call(del_dir, [file_name(Name)]).
+    check_and_call(del_dir, [file_name(Name), get_dtrace_utag()]).
 
 -spec read_file_info(Filename) -> {ok, FileInfo} | {error, Reason} when
       Filename :: name(),
@@ -209,12 +209,12 @@ del_dir(Name) ->
       Reason :: posix() | badarg.
 
 read_file_info(Name) ->
-    check_and_call(read_file_info, [file_name(Name)]).
+    check_and_call(read_file_info, [file_name(Name), get_dtrace_utag()]).
 
 -spec altname(Name :: name()) -> any().
 
 altname(Name) ->
-    check_and_call(altname, [file_name(Name)]).
+    check_and_call(altname, [file_name(Name), get_dtrace_utag()]).
 
 -spec read_link_info(Name) -> {ok, FileInfo} | {error, Reason} when
       Name :: name(),
@@ -222,7 +222,7 @@ altname(Name) ->
       Reason :: posix() | badarg.
 
 read_link_info(Name) ->
-    check_and_call(read_link_info, [file_name(Name)]).
+    check_and_call(read_link_info, [file_name(Name), get_dtrace_utag()]).
 
 -spec read_link(Name) -> {ok, Filename} | {error, Reason} when
       Name :: name(),
@@ -230,7 +230,7 @@ read_link_info(Name) ->
       Reason :: posix() | badarg.
 
 read_link(Name) ->
-    check_and_call(read_link, [file_name(Name)]).
+    check_and_call(read_link, [file_name(Name), get_dtrace_utag()]).
 
 -spec write_file_info(Filename, FileInfo) -> ok | {error, Reason} when
       Filename :: name(),
@@ -238,7 +238,7 @@ read_link(Name) ->
       Reason :: posix() | badarg.
 
 write_file_info(Name, Info = #file_info{}) ->
-    check_and_call(write_file_info, [file_name(Name), Info]).
+    check_and_call(write_file_info, [file_name(Name), Info, get_dtrace_utag()]).
 
 -spec list_dir(Dir) -> {ok, Filenames} | {error, Reason} when
       Dir :: name(),
@@ -246,7 +246,7 @@ write_file_info(Name, Info = #file_info{}) ->
       Reason :: posix() | badarg.
 
 list_dir(Name) ->
-    check_and_call(list_dir, [file_name(Name)]).
+    check_and_call(list_dir, [file_name(Name), get_dtrace_utag()]).
 
 -spec read_file(Filename) -> {ok, Binary} | {error, Reason} when
       Filename :: name(),
@@ -254,7 +254,7 @@ list_dir(Name) ->
       Reason :: posix() | badarg | terminated | system_limit.
 
 read_file(Name) ->
-    check_and_call(read_file, [file_name(Name)]).
+    check_and_call(read_file, [file_name(Name), get_dtrace_utag()]).
 
 -spec make_link(Existing, New) -> ok | {error, Reason} when
       Existing :: name(),
@@ -262,7 +262,7 @@ read_file(Name) ->
       Reason :: posix() | badarg.
 
 make_link(Old, New) ->
-    check_and_call(make_link, [file_name(Old), file_name(New)]).
+    check_and_call(make_link, [file_name(Old), file_name(New), get_dtrace_utag()]).
 
 -spec make_symlink(Name1, Name2) -> ok | {error, Reason} when
       Name1 :: name(),
@@ -270,7 +270,7 @@ make_link(Old, New) ->
       Reason :: posix() | badarg.
 
 make_symlink(Old, New) ->
-    check_and_call(make_symlink, [file_name(Old), file_name(New)]).
+    check_and_call(make_symlink, [file_name(Old), file_name(New), get_dtrace_utag()]).
 
 -spec write_file(Filename, Bytes) -> ok | {error, Reason} when
       Filename :: name(),
@@ -278,7 +278,7 @@ make_symlink(Old, New) ->
       Reason :: posix() | badarg | terminated | system_limit.
 
 write_file(Name, Bin) ->
-    check_and_call(write_file, [file_name(Name), make_binary(Bin)]).
+    check_and_call(write_file, [file_name(Name), make_binary(Bin), get_dtrace_utag()]).
 
 %% This whole operation should be moved to the file_server and prim_file
 %% when it is time to change file server protocol again.
@@ -330,7 +330,7 @@ raw_write_file_info(Name, #file_info{} = Info) ->
     case check_args(Args) of
 	ok ->
 	    [FileName] = Args,
-	    ?PRIM_FILE:write_file_info(FileName, Info);
+	    ?PRIM_FILE:write_file_info(FileName, Info, get_dtrace_utag());
 	Error ->
 	    Error
     end.

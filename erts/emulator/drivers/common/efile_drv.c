@@ -2296,6 +2296,7 @@ file_output(ErlDrvData e, char* buf, int count)
 	
 	FILENAME_COPY(d->b, name);
         dt_s1 = d->b;
+        dt_utag = name + strlen(d->b) + 1;
 	d->command = command;
 	d->invoke = invoke_mkdir;
 	d->free = free_data;
@@ -2308,6 +2309,7 @@ file_output(ErlDrvData e, char* buf, int count)
 	
 	FILENAME_COPY(d->b, name);
         dt_s1 = d->b;
+        dt_utag = name + strlen(d->b) + 1;
 	d->command = command;
 	d->invoke = invoke_rmdir;
 	d->free = free_data;
@@ -2320,6 +2322,7 @@ file_output(ErlDrvData e, char* buf, int count)
 	
 	FILENAME_COPY(d->b, name);
         dt_s1 = d->b;
+        dt_utag = name + strlen(d->b) + 1;
 	d->command = command;
 	d->invoke = invoke_delete_file;
 	d->free = free_data;
@@ -2354,6 +2357,7 @@ file_output(ErlDrvData e, char* buf, int count)
 	
 	FILENAME_COPY(d->b, name);
         dt_s1 = d->b;
+        dt_utag = name + strlen(d->b) + 1;
 	d->command = command;
 	d->invoke = invoke_chdir;
 	d->free = free_data;
@@ -2365,6 +2369,7 @@ file_output(ErlDrvData e, char* buf, int count)
 	    d = EF_SAFE_ALLOC(sizeof(struct t_data) - 1 + RESBUFSIZE + 1);
 	
 	    d->drive = *(uchar*)buf;
+            dt_utag = buf + 1;
 	    d->command = command;
 	    d->invoke = invoke_pwd;
 	    d->free = free_data;
@@ -2381,6 +2386,7 @@ file_output(ErlDrvData e, char* buf, int count)
 	
 	    FILENAME_COPY(d->b, name);
             dt_s1 = d->b;
+            dt_utag = name + strlen(d->b) + 1;
 	    d->dir_handle = NULL;
 	    d->command = command;
 	    d->invoke = invoke_readdir;
@@ -2471,6 +2477,7 @@ file_output(ErlDrvData e, char* buf, int count)
 	    
 	    FILENAME_COPY(d->b, name);
             dt_s1 = d->b;
+            dt_utag = name + strlen(d->b) + 1;
 	    d->fd = fd;
             dt_i1 = fd;
 	    d->command = command;
@@ -2511,6 +2518,7 @@ file_output(ErlDrvData e, char* buf, int count)
 	    GET_TIME(d->info.cTime, buf + 15 * 4);
 	    FILENAME_COPY(d->b, buf+21*4);
             dt_s1 = d->b;
+            dt_utag = buf + 21 * 4 + strlen(d->b) + 1;
 	    d->command = command;
 	    d->invoke = invoke_write_info;
 	    d->free = free_data;
@@ -2524,6 +2532,7 @@ file_output(ErlDrvData e, char* buf, int count)
 	
 	    FILENAME_COPY(d->b, name);
             dt_s1 = d->b;
+            dt_utag = name + strlen(d->b) + 1;
 	    d->command = command;
 	    d->invoke = invoke_readlink;
 	    d->free = free_data;
@@ -2536,6 +2545,7 @@ file_output(ErlDrvData e, char* buf, int count)
 	    d = EF_SAFE_ALLOC(sizeof(struct t_data) - 1 + RESBUFSIZE + 1);
 	    FILENAME_COPY(d->b, name);
             dt_s1 = d->b;
+            dt_utag = name + strlen(d->b) + 1;
 	    d->command = command;
 	    d->invoke = invoke_altname;
 	    d->free = free_data;
@@ -2558,6 +2568,7 @@ file_output(ErlDrvData e, char* buf, int count)
             dt_s1 = d->b;
 	    FILENAME_COPY(d->b + namelen, new_name);
             dt_s2 = d->b + namelen;
+            dt_utag = buf + namelen + strlen(dt_s2) + 1;
 	    d->flags = desc->flags;
 	    d->fd = fd;
             dt_i1 = fd;
@@ -2583,6 +2594,7 @@ file_output(ErlDrvData e, char* buf, int count)
             dt_s1 = d->b;
 	    FILENAME_COPY(d->b + namelen, new_name);
             dt_s2 = d->b + namelen;
+            dt_utag = buf + namelen + strlen(dt_s2) + 1;
 	    d->flags = desc->flags;
 	    d->fd = fd;
             dt_i1 = d->fd;
@@ -2627,8 +2639,12 @@ file_output(ErlDrvData e, char* buf, int count)
         d->sched_i2 = dt_priv->tag;
         d->sched_utag[0] = '\0';
         if (dt_utag != NULL) {
-            strncpy(d->sched_utag, dt_utag, sizeof(d->sched_utag) - 1);
-            d->sched_utag[sizeof(d->sched_utag) - 1] = '\0';
+            if (dt_utag[0] == '\0') {
+                dt_utag = NULL;
+            } else {
+                strncpy(d->sched_utag, dt_utag, sizeof(d->sched_utag) - 1);
+                d->sched_utag[sizeof(d->sched_utag) - 1] = '\0';
+            }
         }
         DTRACE10(file_drv_entry, dt_priv->thread_num, dt_priv->tag++,
                  dt_utag, command, dt_s1, dt_s2, dt_i1, dt_i2, dt_i3, dt_i4);
@@ -3275,6 +3291,7 @@ file_outputv(ErlDrvData e, ErlIOVec *ev) {
 	/* Copy name */
 	FILENAME_COPY(d->b, filename);
         dt_s1 = d->b;
+        dt_utag = filename + strlen(d->b) + 1;
 	d->c.read_file.binp = NULL;
 	d->invoke = invoke_read_file;
 	d->free = free_read_file;
