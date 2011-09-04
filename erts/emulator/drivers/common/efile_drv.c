@@ -136,6 +136,9 @@ typedef struct {
 
 dt_private *get_dt_private(int);
 #else  /* HAVE_DTRACE */
+typedef struct {
+} dt_private;
+
 #define DTRACE_INVOKE_SETUP(op)            do {} while (0)
 #define DTRACE_INVOKE_SETUP_BY_NAME(op)    do {} while (0)
 #define DTRACE_INVOKE_RETURN(op)           do {} while (0)
@@ -374,7 +377,9 @@ struct t_data
     int               sched_i1;
     Uint64            sched_i2;
     char              sched_utag[128+1];
-#endif  /* HAVE_DTRACE */
+#else
+    char              sched_utag[1];
+#endif
     int            result_ok;
     Efile_error    errInfo;
     int            flags;
@@ -1920,6 +1925,7 @@ static int flush_write(file_descriptor *desc, int *errp,
         }
     }
     MUTEX_UNLOCK(desc->q_mtx);
+#ifdef HAVE_DTRACE
     if (d != NULL) {
         d->sched_i1 = dt_priv->thread_num;
         d->sched_i2 = dt_priv->tag;
@@ -1936,6 +1942,7 @@ static int flush_write(file_descriptor *desc, int *errp,
                  dt_utag, FILE_WRITE,
                  NULL, NULL, dt_i1, dt_i2, dt_i3, 0);
     }
+#endif /* HAVE_DTRACE */
     return result;
 }
 
@@ -2008,6 +2015,7 @@ static int lseek_flush_read(file_descriptor *desc, int *errp,
                              &dt_i1, &dt_i2, &dt_i3)) == NULL) {
             r = -1;
         } else {
+#ifdef HAVE_DTRACE
             d->sched_i1 = dt_priv->thread_num;
             d->sched_i2 = dt_priv->tag;
             d->sched_utag[0] = '\0';
@@ -2022,6 +2030,7 @@ static int lseek_flush_read(file_descriptor *desc, int *errp,
             DTRACE10(file_drv_entry, dt_priv->thread_num, dt_priv->tag++,
                      dt_utag, FILE_LSEEK,
                      NULL, NULL, dt_i1, dt_i2, dt_i3, 0);
+#endif /* HAVE_DTRACE */
         }
     }
     return r;
@@ -2259,7 +2268,9 @@ file_async_ready(ErlDrvData e, ErlDrvThreadData data)
 	  if (d->reply) {
 	      TRACE_C('K');
 	      reply_ok(desc);
+#ifdef HAVE_DTRACE
               result_ok = 1;
+#endif
 	  }
 	  free_data(data);
 	  break;
@@ -2703,6 +2714,8 @@ file_flush(ErlDrvData e) {
     int r;
 #ifdef  HAVE_DTRACE
     dt_private *dt_priv = get_dt_private(dt_driver_io_worker_base);
+#else
+    dt_private *dt_priv = NULL;
 #endif
 
     TRACE_C('f');
@@ -2743,6 +2756,8 @@ file_timeout(ErlDrvData e) {
     enum e_timer timer_state = desc->timer_state;
 #ifdef  HAVE_DTRACE
     dt_private *dt_priv = get_dt_private(dt_driver_io_worker_base);
+#else
+    dt_private *dt_priv = NULL;
 #endif
 
     TRACE_C('t');
@@ -2784,8 +2799,10 @@ file_outputv(ErlDrvData e, ErlIOVec *ev) {
     Sint64 dt_i1 = 0, dt_i2 = 0, dt_i3 = 0, dt_i4 = 0;
     char *dt_utag = NULL, *dt_s1 = NULL;
 #ifdef  HAVE_DTRACE
-    dt_private *dt_priv = get_dt_private(0);
-#endif  /* HAVE_DTRACE */
+    dt_private *dt_priv = get_dt_private(dt_driver_io_worker_base);
+#else
+    dt_private *dt_priv = NULL;
+#endif
     TRACE_C('v');
 
     p = 0; q = 1;
