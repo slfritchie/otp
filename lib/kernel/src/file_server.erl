@@ -100,9 +100,9 @@ init([]) ->
 	{'reply', 'eof' | 'ok' | {'error', term()} | {'ok', term()}, state()} |
 	{'stop', 'normal', 'stopped', state()}.
 
-handle_call({open, Name, ModeList}, {Pid, _Tag} = _From, Handle)
+handle_call({open, Name, ModeList, DTraceUtag}, {Pid, _Tag} = _From, Handle)
   when is_list(ModeList) ->
-    Child = ?FILE_IO_SERVER:start_link(Pid, Name, ModeList),
+    Child = ?FILE_IO_SERVER:start_link(Pid, Name, ModeList, DTraceUtag),
     case Child of
 	{ok, P} when is_pid(P) ->
 	    ets:insert(?FILE_IO_SERVER_TABLE, {P, Name});
@@ -111,7 +111,7 @@ handle_call({open, Name, ModeList}, {Pid, _Tag} = _From, Handle)
     end,
     {reply, Child, Handle};
 
-handle_call({open, _Name, _Mode}, _From, Handle) ->
+handle_call({open, _Name, _Mode, _DTraceUtag}, _From, Handle) ->
     {reply, {error, einval}, Handle};
 
 handle_call({read_file, Name, DTraceUtag}, _From, Handle) ->

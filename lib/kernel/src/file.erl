@@ -32,7 +32,7 @@
 	 altname/1,
 	 read_link_info/1, read_link/1,
 	 make_link/2, make_symlink/2,
-	 read_file/1, write_file/2, write_file/3]). %% TODO: left off write_file
+	 read_file/1, write_file/2, write_file/3]).
 %% Specialized
 -export([ipread_s32bu_p32bu/3]).
 %% Generic file contents.
@@ -363,7 +363,7 @@ open(Item, ModeList) when is_list(ModeList) ->
 			    [FileName | _] = Args,
 			    %% We rely on the returned Handle (in {ok, Handle})
 			    %% being a pid() or a #file_descriptor{}
-			    ?PRIM_FILE:open(FileName, ModeList);
+			    ?PRIM_FILE:open(FileName, ModeList, get_dtrace_utag());
 			Error ->
 			    Error
 		    end
@@ -384,7 +384,7 @@ open(Item, ModeList) when is_list(ModeList) ->
 		    case check_args(Args) of 
 			ok ->
 			    [FileName | _] = Args,
-			    call(open, [FileName, ModeList]);
+			    call(open, [FileName, ModeList, get_dtrace_utag()]);
 			Error ->
 			    Error
 		    end
