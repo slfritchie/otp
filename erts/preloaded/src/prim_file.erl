@@ -29,7 +29,7 @@
          close/1, close/2,
          datasync/1, sync/1, advise/4, position/2, truncate/1,
 	 write/2, write/3,
-         pwrite/2, pwrite/3,
+         pwrite/2, pwrite/3, pwrite/4,
          read/2, read/3, read_line/1,
          pread/2, pread/3, pread/4, copy/3]).
 
@@ -62,6 +62,9 @@
 
 %% Debug exports
 -export([open_int/4, open_int/5, open_mode/1, open_mode/4]).
+
+%% For DTrace/Systemtap tracing
+-export([get_dtrace_utag/0]).
 
 %%%-----------------------------------------------------------------
 %%% Includes and defines
@@ -282,39 +285,40 @@ write(#file_descriptor{module = ?MODULE, data = {Port, _}}, Bytes, DTraceUtag) -
 %% Returns ok | {error, {WrittenCount, Reason}}
 pwrite(#file_descriptor{module = ?MODULE, data = {Port, _}}, L)
   when is_list(L) ->
-    pwrite_int(Port, L, 0, [], []).
+    pwrite_int(Port, L, 0, [], [], get_dtrace_utag()).
 
-pwrite_int(_, [], 0, [], []) ->
+pwrite_int(_, [], 0, [], [], _DTraceUtag) ->
     ok;
-pwrite_int(Port, [], N, Spec, Data) ->
-    Header = list_to_binary([<<?FILE_PWRITEV, N:32>> | reverse(Spec)]),
+pwrite_int(Port, [], N, Spec, Data, DTraceUtag) ->
+    Header = list_to_binary([<<?FILE_PWRITEV>>, enc_utag(DTraceUtag),
+                             <<N:32>>, reverse(Spec)]),
     case drv_command_raw(Port, [Header | reverse(Data)]) of
 	{ok, _Size} ->
 	    ok;
 	Error ->
 	    Error
     end;
-pwrite_int(Port, [{Offs, Bytes} | T], N, Spec, Data)
+pwrite_int(Port, [{Offs, Bytes} | T], N, Spec, Data, DTraceUtag)
   when is_integer(Offs) ->
     if
 	-(?LARGEFILESIZE) =< Offs, Offs < ?LARGEFILESIZE ->
-	    pwrite_int(Port, T, N, Spec, Data, Offs, Bytes);
+	    pwrite_int(Port, T, N, Spec, Data, Offs, Bytes, DTraceUtag);
 	true ->
 	    {error, einval}
     end;
-pwrite_int(_, [_|_], _N, _Spec, _Data) ->
+pwrite_int(_, [_|_], _N, _Spec, _Data, _DTraceUtag) ->
     {error, badarg}.
 
-pwrite_int(Port, T, N, Spec, Data, Offs, Bin)
+pwrite_int(Port, T, N, Spec, Data, Offs, Bin, DTraceUtag)
   when is_binary(Bin) ->
     Size = byte_size(Bin),
     pwrite_int(Port, T, N+1, 
 	       [<<Offs:64/signed, Size:64>> | Spec], 
-	       [Bin | Data]);
-pwrite_int(Port, T, N, Spec, Data, Offs, Bytes) ->
+	       [Bin | Data], DTraceUtag);
+pwrite_int(Port, T, N, Spec, Data, Offs, Bytes, DTraceUtag) ->
     try list_to_binary(Bytes) of
 	Bin ->
-	    pwrite_int(Port, T, N, Spec, Data, Offs, Bin)
+	    pwrite_int(Port, T, N, Spec, Data, Offs, Bin, DTraceUtag)
     catch
 	error:Reason ->
 	    {error, Reason}
@@ -323,11 +327,28 @@ pwrite_int(Port, T, N, Spec, Data, Offs, Bytes) ->
 
 
 %% Returns {error, Reason} | ok.
-pwrite(#file_descriptor{module = ?MODULE, data = {Port, _}}, Offs, Bytes) 
+pwrite(#file_descriptor{module = ?MODULE, data = {Port, _}}, L, DTraceUtag)
+  when is_list(L),
+       (is_list(DTraceUtag) orelse is_binary(DTraceUtag)) ->
+    pwrite_int(Port, L, 0, [], [], DTraceUtag);
+
+pwrite(#file_descriptor{module = ?MODULE, data = {Port, _}}, Offs, Bytes)
   when is_integer(Offs) ->
+    pwrite_int2(Port, Offs, Bytes, get_dtrace_utag());
+pwrite(#file_descriptor{module = ?MODULE}, _, _) ->
+    {error, badarg}.
+
+pwrite(#file_descriptor{module = ?MODULE, data = {Port, _}}, Offs, Bytes, DTraceUtag) 
+  when is_integer(Offs),
+       (is_list(DTraceUtag) orelse is_binary(DTraceUtag)) ->
+    pwrite_int2(Port, Offs, Bytes, DTraceUtag);
+pwrite(#file_descriptor{module = ?MODULE}, _, _, _DTraceUtag) ->
+    {error, badarg}.
+
+pwrite_int2(Port, Offs, Bytes, DTraceUtag) ->
     if
 	-(?LARGEFILESIZE) =< Offs, Offs < ?LARGEFILESIZE ->
-	    case pwrite_int(Port, [], 0, [], [], Offs, Bytes) of
+	    case pwrite_int(Port, [], 0, [], [], Offs, Bytes, DTraceUtag) of
 		{error, {_, Reason}} ->
 		    {error, Reason};
 		Result ->
@@ -335,10 +356,7 @@ pwrite(#file_descriptor{module = ?MODULE, data = {Port, _}}, Offs, Bytes)
 	    end;
 	true ->
 	    {error, einval}
-    end;
-pwrite(#file_descriptor{module = ?MODULE}, _, _) ->
-    {error, badarg}.
-
+    end.
 
 %% Returns {error, Reason} | ok.
 datasync(#file_descriptor{module = ?MODULE, data = {Port, _}}) ->
@@ -411,8 +429,8 @@ pread(#file_descriptor{module = ?MODULE, data = {Port, _}}, L)
 pread_int(_, [], 0, [], _DTraceUtag) ->
     {ok, []};
 pread_int(Port, [], N, Spec, DTraceUtag) ->
-    drv_command(Port, [<<?FILE_PREADV, 0:32, N:32>>, reverse(Spec),
-                       enc_utag(DTraceUtag)]);
+    drv_command(Port, [<<?FILE_PREADV>>, enc_utag(DTraceUtag),
+                       <<0:32, N:32>>, reverse(Spec)]);
 pread_int(Port, [{Offs, Size} | T], N, Spec, DTraceUtag)
   when is_integer(Offs), is_integer(Size), 0 =< Size ->
     if
@@ -440,8 +458,8 @@ pread(#file_descriptor{module = ?MODULE, data = {Port, _}}, Offs, Size, DTraceUt
 	-(?LARGEFILESIZE) =< Offs, Offs < ?LARGEFILESIZE,
 	Size < ?LARGEFILESIZE ->
 	    case drv_command(Port, 
-			     [<<?FILE_PREADV, 0:32, 1:32,
-                                Offs:64/signed, Size:64>>, enc_utag(DTraceUtag)]) of
+			     [<<?FILE_PREADV>>, enc_utag(DTraceUtag),
+                              <<0:32, 1:32, Offs:64/signed, Size:64>>]) of
 		{ok, [eof]} ->
 		    eof;
 		{ok, [Data]} ->

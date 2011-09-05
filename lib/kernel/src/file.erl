@@ -541,7 +541,7 @@ write(_, _) ->
 pwrite(File, L) when is_pid(File), is_list(L) ->
     pwrite_int(File, L, 0);
 pwrite(#file_descriptor{module = Module} = Handle, L) when is_list(L) ->
-    Module:pwrite(Handle, L);
+    Module:pwrite(Handle, L, get_dtrace_utag());
 pwrite(_, _) ->
     {error, badarg}.
 
@@ -1275,9 +1275,4 @@ wait_file_reply(From, Ref) ->
     end.
 
 get_dtrace_utag() ->
-    case get(dtrace_utag) of
-        X when is_list(X) ->
-            X;
-        _ ->
-            ""
-    end.
+    prim_file:get_dtrace_utag().

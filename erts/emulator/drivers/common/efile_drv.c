@@ -470,7 +470,7 @@ static void *ef_safe_realloc(void *op, Uint s)
  * ErlIOVec manipulation functions.
  */
 
-/* char EV_CHAR(ErlIOVec *ev, int p, int q) */
+/* char EV_CHAR_P(ErlIOVec *ev, int p, int q) */
 #define EV_CHAR_P(ev, p, q)                   \
     (((char *)(ev)->iov[(q)].iov_base) + (p))
 
@@ -3100,18 +3100,25 @@ file_outputv(ErlDrvData e, ErlIOVec *ev) {
     case FILE_PWRITEV: {
 	Uint32 i, j, n; 
 	size_t total;
+        char tmp;
+        int dt_utag_bytes = 1;
+
+        dt_utag = EV_CHAR_P(ev, p, q);
+        while (EV_GET_CHAR(ev, &tmp, &p, &q) && tmp != '\0') {
+            dt_utag_bytes++;
+        }
+	if (ev->size < 1+4+dt_utag_bytes
+	    || !EV_GET_UINT32(ev, &n, &p, &q)) {
+	    /* Buffer too short to contain even the number of pos/size specs */
+	    reply_Uint_posix_error(desc, 0, EINVAL);
+	    goto done;
+	}
 	if (lseek_flush_read(desc, &err, dt_priv, dt_utag) < 0) {
 	    reply_Uint_posix_error(desc, 0, err);
 	    goto done;
 	}
 	if (flush_write_check_error(desc, &err, dt_priv, dt_utag) < 0) {
 	    reply_Uint_posix_error(desc, 0, err);
-	    goto done;
-	}
-	if (ev->size < 1+4
-	    || !EV_GET_UINT32(ev, &n, &p, &q)) {
-	    /* Buffer too short to contain even the number of pos/size specs */
-	    reply_Uint_posix_error(desc, 0, EINVAL);
 	    goto done;
 	}
 	if (n == 0) {
@@ -3123,7 +3130,7 @@ file_outputv(ErlDrvData e, ErlIOVec *ev) {
 	    }
 	    goto done;
 	}
-	if (ev->size < 1+4+8*(2*n)) {
+	if (ev->size < 1+4+8*(2*n)+dt_utag_bytes) {
 	    /* Buffer too short to contain even the pos/size specs */
 	    reply_Uint_posix_error(desc, 0, EINVAL);
 	    goto done;
@@ -3184,7 +3191,7 @@ file_outputv(ErlDrvData e, ErlIOVec *ev) {
 	    EF_FREE(d);
 	    reply_Uint(desc, 0);
 	} else {
-	    size_t skip = 1 + 4 + 8*(2*n);
+	    size_t skip = 1 + 4 + 8*(2*n) + dt_utag_bytes;
 	    if (skip + total != ev->size) {
 		/* Actual amount of data does not match 
 		 * total of all pos/size specs
@@ -3209,6 +3216,13 @@ file_outputv(ErlDrvData e, ErlIOVec *ev) {
 	register void * void_ptr;
 	Uint32 i, n;
 	ErlIOVec *res_ev;
+        char tmp;
+        int dt_utag_bytes = 1;
+
+        dt_utag = EV_CHAR_P(ev, p, q);
+        while (EV_GET_CHAR(ev, &tmp, &p, &q) && tmp != '\0') {
+            dt_utag_bytes++;
+        }
 	if (lseek_flush_read(desc, &err, dt_priv, dt_utag) < 0) {
 	    reply_posix_error(desc, err);
 	    goto done;
@@ -3217,14 +3231,14 @@ file_outputv(ErlDrvData e, ErlIOVec *ev) {
 	    reply_posix_error(desc, err);
 	    goto done;
 	}
-	if (ev->size < 1+8
+	if (ev->size < 1+8+dt_utag_bytes
 	    || !EV_GET_UINT32(ev, &n, &p, &q)
 	    || !EV_GET_UINT32(ev, &n, &p, &q)) {
 	    /* Buffer too short to contain even the number of pos/size specs */
 	    reply_posix_error(desc, EINVAL);
 	    goto done;
 	}
-	if (ev->size < 1+8+8*(2*n)) {
+	if (ev->size < 1+8+8*(2*n)+dt_utag_bytes) {
 	    /* Buffer wrong length to contain the pos/size specs */
 	    reply_posix_error(desc, EINVAL);
 	    goto done;
@@ -3282,7 +3296,6 @@ file_outputv(ErlDrvData e, ErlIOVec *ev) {
 		res_ev->iov[i].iov_base = res_ev->binv[i]->orig_bytes;
 	    }
 	}
-        dt_utag = EV_CHAR_P(ev, p, q);
 	if (i < 1+n) {
 	    for (i--; i > 0; i--) {
 		driver_free_binary(res_ev->binv[i]);
