@@ -168,7 +168,7 @@ open(File, ModeList, DTraceUtag) when (is_list(File) orelse is_binary(File)),
                                       is_list(ModeList) ->
     case open_mode(ModeList) of
 	{Mode, Portopts, Setopts} ->
-	    open_int({?FD_DRV, Portopts},File, Mode, Setopts, DTraceUtag);
+	    open_int({?FD_DRV, Portopts}, File, Mode, Setopts, DTraceUtag);
 	Reason ->
 	    {error, Reason}
     end;

@@ -3462,6 +3462,7 @@ file_outputv(ErlDrvData e, ErlIOVec *ev) {
 
     case FILE_SETOPT: {
 	char opt;
+
 	if (ev->size < 1+1
 	    || !EV_GET_CHAR(ev, &opt, &p, &q)) {
 	    /* Buffer too short to contain even the option type */
@@ -3469,10 +3470,11 @@ file_outputv(ErlDrvData e, ErlIOVec *ev) {
 	    goto done;
 	}
         dt_i1 = opt;
+        dt_utag = EV_CHAR_P(ev, p, q);
 	switch (opt) {
 	case FILE_OPT_DELAYED_WRITE: {
 	    Uint32 sizeH, sizeL, delayH, delayL;
-	    if (ev->size != 1+1+4*sizeof(Uint32)
+	    if (ev->size != 1+1+4*sizeof(Uint32)+strlen(dt_utag)+1
 		|| !EV_GET_UINT32(ev, &sizeH, &p, &q)
 		|| !EV_GET_UINT32(ev, &sizeL, &p, &q)
 		|| !EV_GET_UINT32(ev, &delayH, &p, &q)
@@ -3505,7 +3507,7 @@ file_outputv(ErlDrvData e, ErlIOVec *ev) {
 	} goto done;
 	case FILE_OPT_READ_AHEAD: {
 	    Uint32 sizeH, sizeL;
-	    if (ev->size != 1+1+2*sizeof(Uint32)
+	    if (ev->size != 1+1+2*sizeof(Uint32)+strlen(dt_utag)+1
 		|| !EV_GET_UINT32(ev, &sizeH, &p, &q)
 		|| !EV_GET_UINT32(ev, &sizeL, &p, &q)) {
 		/* Buffer has wrong length to contain the option values */
