@@ -2673,6 +2673,7 @@ file_output(ErlDrvData e, char* buf, int count)
         dt_i1 = d->c.fadvise.length;
         d->c.fadvise.advise = get_int32(((uchar*) buf) + 2 * sizeof(Sint64));
         dt_i1 = d->c.fadvise.advise;
+        dt_utag = buf + 3 * sizeof(Sint64);
         goto done;
     }
 
@@ -2822,7 +2823,6 @@ file_outputv(ErlDrvData e, ErlIOVec *ev) {
 
     case FILE_CLOSE: {
         dt_utag = EV_CHAR_P(ev, p, q);
-
 	flush_read(desc);
 	if (flush_write_check_error(desc, &err, dt_priv, dt_utag) < 0) {
 	    reply_posix_error(desc, err);
@@ -2853,6 +2853,14 @@ file_outputv(ErlDrvData e, ErlIOVec *ev) {
     case FILE_READ: {
 	Uint32 sizeH, sizeL;
 	size_t size, alloc_size;
+
+	if (!EV_GET_UINT32(ev, &sizeH, &p, &q)
+	    || !EV_GET_UINT32(ev, &sizeL, &p, &q)) {
+	    /* Wrong buffer length to contain the read count */
+	    reply_posix_error(desc, EINVAL);
+	    goto done;
+	}
+        dt_utag = EV_CHAR_P(ev, p, q);
 	if (flush_write_check_error(desc, &err, dt_priv, dt_utag) < 0) {
 	    reply_posix_error(desc, err);
 	    goto done;
@@ -2867,13 +2875,6 @@ file_outputv(ErlDrvData e, ErlIOVec *ev) {
 	    }
 	}
 #endif
-	if (ev->size != 1+8
-	    || !EV_GET_UINT32(ev, &sizeH, &p, &q)
-	    || !EV_GET_UINT32(ev, &sizeL, &p, &q)) {
-	    /* Wrong buffer length to contain the read count */
-	    reply_posix_error(desc, EINVAL);
-	    goto done;
-	}
 #if SIZEOF_SIZE_T == 4
 	if (sizeH != 0) {
 	    reply_posix_error(desc, EINVAL);
@@ -3223,7 +3224,7 @@ file_outputv(ErlDrvData e, ErlIOVec *ev) {
 	    reply_posix_error(desc, EINVAL);
 	    goto done;
 	}
-	if (ev->size != 1+8+8*(2*n)) {
+	if (ev->size < 1+8+8*(2*n)) {
 	    /* Buffer wrong length to contain the pos/size specs */
 	    reply_posix_error(desc, EINVAL);
 	    goto done;
@@ -3272,7 +3273,7 @@ file_outputv(ErlDrvData e, ErlIOVec *ev) {
 #else
 	    size = ((size_t)sizeH<<32) | sizeL;
 #endif
-            dt_i3 = size;
+            dt_i3 += size;
 	    if (! (res_ev->binv[i] = driver_alloc_binary(size))) {
 		reply_posix_error(desc, ENOMEM);
 		break;
@@ -3281,6 +3282,7 @@ file_outputv(ErlDrvData e, ErlIOVec *ev) {
 		res_ev->iov[i].iov_base = res_ev->binv[i]->orig_bytes;
 	    }
 	}
+        dt_utag = EV_CHAR_P(ev, p, q);
 	if (i < 1+n) {
 	    for (i--; i > 0; i--) {
 		driver_free_binary(res_ev->binv[i]);

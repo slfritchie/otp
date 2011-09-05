@@ -37,8 +37,8 @@
 -export([ipread_s32bu_p32bu/3]).
 %% Generic file contents.
 -export([open/2, close/1, advise/4,
-	 read/2, write/2, 
-	 pread/2, pread/3, pwrite/2, pwrite/3,
+	 read/2, write/2,
+	 pread/2, pread/3, pwrite/2, pwrite/3,    %% left off pwrite
 	 read_line/1,
 	 position/2, truncate/1, datasync/1, sync/1,
 	 copy/2, copy/3]).
@@ -449,7 +449,7 @@ read(File, Sz) when (is_pid(File) orelse is_atom(File)), is_integer(Sz), Sz >= 0
     end;
 read(#file_descriptor{module = Module} = Handle, Sz) 
   when is_integer(Sz), Sz >= 0 ->
-    Module:read(Handle, Sz);
+    Module:read(Handle, Sz, get_dtrace_utag());
 read(_, _) ->
     {error, badarg}.
 
@@ -480,7 +480,7 @@ read_line(_) ->
 pread(File, L) when is_pid(File), is_list(L) ->
     pread_int(File, L, []);
 pread(#file_descriptor{module = Module} = Handle, L) when is_list(L) ->
-    Module:pread(Handle, L);
+    Module:pread(Handle, L, get_dtrace_utag());
 pread(_, _) ->
     {error, badarg}.
 

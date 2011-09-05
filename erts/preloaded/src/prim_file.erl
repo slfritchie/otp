@@ -29,7 +29,9 @@
          close/1, close/2,
          datasync/1, sync/1, advise/4, position/2, truncate/1,
 	 write/2, write/3,
-         pwrite/2, pwrite/3, read/2, read_line/1, pread/2, pread/3, copy/3]).
+         pwrite/2, pwrite/3,
+         read/2, read/3, read_line/1,
+         pread/2, pread/3, pread/4, copy/3]).
 
 %% Specialized file operations
 -export([open/1]).
@@ -233,31 +235,32 @@ close(#file_descriptor{module = ?MODULE, data = {Port, _}}, DTraceUtag) ->
 close(Port, _DTraceUtag) when is_port(Port) ->
     drv_close(Port).
 
--define(ADVISE(Offs, Len, Adv),
+-define(ADVISE(Offs, Len, Adv, BUtag),
 	<<?FILE_ADVISE, Offs:64/signed, Len:64/signed,
-	  Adv:32/signed>>).
+	  Adv:32/signed, BUtag/binary>>).
 
 %% Returns {error, Reason} | ok.
 advise(#file_descriptor{module = ?MODULE, data = {Port, _}},
        Offset, Length, Advise) ->
+    BUtag = term_to_binary(enc_utag(get_dtrace_utag())),
     case Advise of
 	normal ->
-	    Cmd = ?ADVISE(Offset, Length, ?POSIX_FADV_NORMAL),
+	    Cmd = ?ADVISE(Offset, Length, ?POSIX_FADV_NORMAL, BUtag),
 	    drv_command(Port, Cmd);
 	random ->
-	    Cmd = ?ADVISE(Offset, Length, ?POSIX_FADV_RANDOM),
+	    Cmd = ?ADVISE(Offset, Length, ?POSIX_FADV_RANDOM, BUtag),
 	    drv_command(Port, Cmd);
 	sequential ->
-	    Cmd = ?ADVISE(Offset, Length, ?POSIX_FADV_SEQUENTIAL),
+	    Cmd = ?ADVISE(Offset, Length, ?POSIX_FADV_SEQUENTIAL, BUtag),
 	    drv_command(Port, Cmd);
 	will_need ->
-	    Cmd = ?ADVISE(Offset, Length, ?POSIX_FADV_WILLNEED),
+	    Cmd = ?ADVISE(Offset, Length, ?POSIX_FADV_WILLNEED, BUtag),
 	    drv_command(Port, Cmd);
 	dont_need ->
-	    Cmd = ?ADVISE(Offset, Length, ?POSIX_FADV_DONTNEED),
+	    Cmd = ?ADVISE(Offset, Length, ?POSIX_FADV_DONTNEED, BUtag),
 	    drv_command(Port, Cmd);
 	no_reuse ->
-	    Cmd = ?ADVISE(Offset, Length, ?POSIX_FADV_NOREUSE),
+	    Cmd = ?ADVISE(Offset, Length, ?POSIX_FADV_NOREUSE, BUtag),
 	    drv_command(Port, Cmd);
 	_ ->
 	    {error, einval}
@@ -367,11 +370,15 @@ read_line(#file_descriptor{module = ?MODULE, data = {Port, _}}) ->
     end.
 	
 %% Returns {ok, Data} | eof | {error, Reason}.
-read(#file_descriptor{module = ?MODULE, data = {Port, _}}, Size)
+read(FD, Size) ->
+    read(FD, Size, get_dtrace_utag()).
+
+read(#file_descriptor{module = ?MODULE, data = {Port, _}}, Size, DTraceUtag)
   when is_integer(Size), 0 =< Size ->
     if
 	Size < ?LARGEFILESIZE ->
-	    case drv_command(Port, <<?FILE_READ, Size:64>>) of
+	    case drv_command(Port, [<<?FILE_READ, Size:64>>,
+                                    enc_utag(DTraceUtag)]) of
 		{ok, {0, _Data}} when Size =/= 0 ->
 		    eof;
 		{ok, {_Size, Data}} ->
@@ -380,7 +387,8 @@ read(#file_descriptor{module = ?MODULE, data = {Port, _}}, Size)
 		    %% Garbage collecting here might help if
 		    %% the current processes has some old binaries left.
 		    erlang:garbage_collect(),
-		    case drv_command(Port, <<?FILE_READ, Size:64>>) of
+		    case drv_command(Port, [<<?FILE_READ, Size:64>>,
+                                            enc_utag(DTraceUtag)]) of
 			{ok, {0, _Data}} when Size =/= 0 ->
 			    eof;
 			{ok, {_Size, Data}} ->
@@ -398,35 +406,42 @@ read(#file_descriptor{module = ?MODULE, data = {Port, _}}, Size)
 %% Returns {ok, [Data|eof, ...]} | {error, Reason}
 pread(#file_descriptor{module = ?MODULE, data = {Port, _}}, L)
   when is_list(L) ->
-    pread_int(Port, L, 0, []).
+    pread_int(Port, L, 0, [], get_dtrace_utag()).
 
-pread_int(_, [], 0, []) ->
+pread_int(_, [], 0, [], _DTraceUtag) ->
     {ok, []};
-pread_int(Port, [], N, Spec) ->
-    drv_command(Port, [<<?FILE_PREADV, 0:32, N:32>> | reverse(Spec)]);
-pread_int(Port, [{Offs, Size} | T], N, Spec)
+pread_int(Port, [], N, Spec, DTraceUtag) ->
+    drv_command(Port, [<<?FILE_PREADV, 0:32, N:32>>, reverse(Spec),
+                       enc_utag(DTraceUtag)]);
+pread_int(Port, [{Offs, Size} | T], N, Spec, DTraceUtag)
   when is_integer(Offs), is_integer(Size), 0 =< Size ->
     if
 	-(?LARGEFILESIZE) =< Offs, Offs < ?LARGEFILESIZE,
 	Size < ?LARGEFILESIZE ->
-	    pread_int(Port, T, N+1, [<<Offs:64/signed, Size:64>> | Spec]);
+	    pread_int(Port, T, N+1, [<<Offs:64/signed, Size:64>> | Spec],
+                      DTraceUtag);
 	true ->
 	    {error, einval}
     end;
-pread_int(_, [_|_], _N, _Spec) ->
+pread_int(_, [_|_], _N, _Spec, _DTraceUtag) ->
     {error, badarg}.
 
-
-
 %% Returns {ok, Data} | eof | {error, Reason}.
-pread(#file_descriptor{module = ?MODULE, data = {Port, _}}, Offs, Size) 
+pread(#file_descriptor{module = ?MODULE, data = {Port, _}}, L, DTraceUtag)
+  when is_list(L),
+       (is_list(DTraceUtag) orelse is_binary(DTraceUtag)) ->
+    pread_int(Port, L, 0, [], get_dtrace_utag());
+pread(FD, Offs, Size) 
   when is_integer(Offs), is_integer(Size), 0 =< Size ->
+    pread(FD, Offs, Size, get_dtrace_utag()).
+
+pread(#file_descriptor{module = ?MODULE, data = {Port, _}}, Offs, Size, DTraceUtag) ->
     if
 	-(?LARGEFILESIZE) =< Offs, Offs < ?LARGEFILESIZE,
 	Size < ?LARGEFILESIZE ->
 	    case drv_command(Port, 
-			     <<?FILE_PREADV, 0:32, 1:32,
-			      Offs:64/signed, Size:64>>) of
+			     [<<?FILE_PREADV, 0:32, 1:32,
+                                Offs:64/signed, Size:64>>, enc_utag(DTraceUtag)]) of
 		{ok, [eof]} ->
 		    eof;
 		{ok, [Data]} ->
@@ -437,7 +452,7 @@ pread(#file_descriptor{module = ?MODULE, data = {Port, _}}, Offs, Size)
 	true ->
 	    {error, einval}
     end;
-pread(#file_descriptor{module = ?MODULE, data = {_, _}}, _, _) ->
+pread(_, _, _, _) ->
     {error, badarg}.
 
 
