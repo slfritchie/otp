@@ -92,3 +92,8 @@ provider erlang_vm {
 #pragma D attributes Private/Private/Common provider erlang_vm function
 #pragma D attributes Evolving/Evolving/Common provider erlang_vm name
 #pragma D attributes Evolving/Evolving/Common provider erlang_vm args
+
+provider erlang {
+    probe send(void *sender, void*receiver, uint32_t size);
+    probe copy_struct(uint32_t size);
+};

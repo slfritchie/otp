@@ -31,6 +31,8 @@
 #include "erl_binary.h"
 #include "erl_bits.h"
 
+#include "erlang_dtrace.h"
+
 #ifdef HYBRID
 MA_STACK_DECLARE(src);
 MA_STACK_DECLARE(dst);
@@ -212,6 +214,8 @@ Eterm copy_struct(Eterm obj, Uint sz, Eterm** hpp, ErlOffHeap* off_heap)
 
     if (IS_CONST(obj))
 	return obj;
+
+    ERLANG_COPY_STRUCT((int32_t)sz);
 
     hp = htop = *hpp;
     hbot   = htop + sz;

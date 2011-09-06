@@ -32,6 +32,8 @@
 #include "erl_nmgc.h"
 #include "erl_binary.h"
 
+#include "erlang_dtrace.h"
+
 ERTS_SCHED_PREF_QUICK_ALLOC_IMPL(message,
 				 ErlMessage,
 				 ERL_MESSAGE_BUF_SZ,
@@ -786,6 +788,8 @@ erts_send_message(Process* sender,
 	msize = size_object(message);
         BM_SWAP_TIMER(size,send);
 
+        ERLANG_SEND(sender, receiver, msize);
+
 	seq_trace_update_send(sender);
 	seq_trace_output(SEQ_TRACE_TOKEN(sender), message, SEQ_TRACE_SEND, 
 			 receiver->id, sender);
@@ -840,6 +844,9 @@ erts_send_message(Process* sender,
         mp->next = NULL;
 	LINK_MESSAGE(receiver, mp);
         ACTIVATE(receiver);
+
+	msize = size_object(message);
+        ERLANG_SEND(sender, receiver, (uint32_t)msize);
 
         if (receiver->status == P_WAITING) {
             erts_add_to_runq(receiver);
@@ -916,7 +923,9 @@ erts_send_message(Process* sender,
         BM_SWAP_TIMER(send,size);
 	msize = size_object(message);
         BM_SWAP_TIMER(size,send);
-	
+
+        ERLANG_SEND(sender, receiver, (uint32_t)msize);
+
 	if (receiver->stop - receiver->htop <= msize) {
             BM_SWAP_TIMER(send,system);
 	    erts_garbage_collect(receiver, msize, receiver->arg_reg, receiver->arity);
