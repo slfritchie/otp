@@ -25,13 +25,11 @@
 %%% Interface towards a single file's contents. Uses ?FD_DRV.
 
 %% Generic file contents operations
--export([open/2, open/3,
-         close/1, close/2,
+-export([open/2, open/3, close/1, close/2,
          datasync/1, datasync/2, sync/1, sync/2,
-         advise/4,
+         advise/4, advise/5,
          position/2, position/3, truncate/1, truncate/2,
-	 write/2, write/3,
-         pwrite/2, pwrite/3, pwrite/4,
+	 write/2, write/3, pwrite/2, pwrite/3, pwrite/4,
          read/2, read/3, read_line/1, read_line/2,
          pread/2, pread/3, pread/4, copy/3, copy/4]).
 
@@ -166,8 +164,10 @@
 open(File, ModeList) ->
     open(File, ModeList, get_dtrace_utag()).
 
-open(File, ModeList, DTraceUtag) when (is_list(File) orelse is_binary(File)), 
-                                      is_list(ModeList) ->
+open(File, ModeList, DTraceUtag)
+  when (is_list(File) orelse is_binary(File)), 
+       is_list(ModeList),
+       (is_list(DTraceUtag) orelse is_binary(DTraceUtag)) ->
     case open_mode(ModeList) of
 	{Mode, Portopts, Setopts} ->
 	    open_int({?FD_DRV, Portopts}, File, Mode, Setopts, DTraceUtag);
@@ -229,7 +229,8 @@ open_int_setopts(Port, Number, [Cmd | Tail], DTraceUtag) ->
 close(Arg) ->
     close(Arg, get_dtrace_utag()).
 
-close(#file_descriptor{module = ?MODULE, data = {Port, _}}, DTraceUtag) ->
+close(#file_descriptor{module = ?MODULE, data = {Port, _}}, DTraceUtag)
+  when (is_list(DTraceUtag) orelse is_binary(DTraceUtag)) ->
     case drv_command(Port, [<<?FILE_CLOSE>>, enc_utag(DTraceUtag)]) of
 	ok ->
 	    drv_close(Port);
@@ -245,9 +246,13 @@ close(Port, _DTraceUtag) when is_port(Port) ->
 	  Adv:32/signed, BUtag/binary>>).
 
 %% Returns {error, Reason} | ok.
+advise(FD, Offset, Length, Advise) ->
+    advise(FD, Offset, Length, Advise, get_dtrace_utag()).
+
 advise(#file_descriptor{module = ?MODULE, data = {Port, _}},
-       Offset, Length, Advise) ->
-    BUtag = term_to_binary(enc_utag(get_dtrace_utag())),
+       Offset, Length, Advise, DTraceUtag)
+  when (is_list(DTraceUtag) orelse is_binary(DTraceUtag)) ->
+    BUtag = term_to_binary(enc_utag(DTraceUtag)),
     case Advise of
 	normal ->
 	    Cmd = ?ADVISE(Offset, Length, ?POSIX_FADV_NORMAL, BUtag),
@@ -275,7 +280,8 @@ advise(#file_descriptor{module = ?MODULE, data = {Port, _}},
 write(Desc, Bytes) ->
     write(Desc, Bytes, get_dtrace_utag()).
 
-write(#file_descriptor{module = ?MODULE, data = {Port, _}}, Bytes, DTraceUtag) ->
+write(#file_descriptor{module = ?MODULE, data = {Port, _}}, Bytes, DTraceUtag)
+  when (is_list(DTraceUtag) orelse is_binary(DTraceUtag)) ->
     %% This is rare case where DTraceUtag is not at end of command list.
     case drv_command(Port, [?FILE_WRITE,enc_utag(DTraceUtag),Bytes]) of
 	{ok, _Size} ->
@@ -364,14 +370,16 @@ pwrite_int2(Port, Offs, Bytes, DTraceUtag) ->
 datasync(FD) ->
     datasync(FD, get_dtrace_utag()).
 
-datasync(#file_descriptor{module = ?MODULE, data = {Port, _}}, DTraceUtag) ->
+datasync(#file_descriptor{module = ?MODULE, data = {Port, _}}, DTraceUtag)
+  when (is_list(DTraceUtag) orelse is_binary(DTraceUtag)) ->
     drv_command(Port, [?FILE_FDATASYNC, enc_utag(DTraceUtag)]).
 
 %% Returns {error, Reason} | ok.
 sync(FD) ->
     sync(FD, get_dtrace_utag()).
 
-sync(#file_descriptor{module = ?MODULE, data = {Port, _}}, DTraceUtag) ->
+sync(#file_descriptor{module = ?MODULE, data = {Port, _}}, DTraceUtag)
+  when (is_list(DTraceUtag) orelse is_binary(DTraceUtag)) ->
     drv_command(Port, [?FILE_FSYNC, enc_utag(DTraceUtag)]).
 
 %% Returns {ok, Data} | eof | {error, Reason}.
@@ -403,7 +411,9 @@ read(FD, Size) ->
     read(FD, Size, get_dtrace_utag()).
 
 read(#file_descriptor{module = ?MODULE, data = {Port, _}}, Size, DTraceUtag)
-  when is_integer(Size), 0 =< Size ->
+  when is_integer(Size),
+       0 =< Size,
+       (is_list(DTraceUtag) orelse is_binary(DTraceUtag)) ->
     if
 	Size < ?LARGEFILESIZE ->
 	    case drv_command(Port, [<<?FILE_READ, Size:64>>,
@@ -464,7 +474,8 @@ pread(FD, Offs, Size)
   when is_integer(Offs), is_integer(Size), 0 =< Size ->
     pread(FD, Offs, Size, get_dtrace_utag()).
 
-pread(#file_descriptor{module = ?MODULE, data = {Port, _}}, Offs, Size, DTraceUtag) ->
+pread(#file_descriptor{module = ?MODULE, data = {Port, _}}, Offs, Size, DTraceUtag)
+    when (is_list(DTraceUtag) orelse is_binary(DTraceUtag)) ->
     if
 	-(?LARGEFILESIZE) =< Offs, Offs < ?LARGEFILESIZE,
 	Size < ?LARGEFILESIZE ->
@@ -490,7 +501,8 @@ pread(_, _, _, _) ->
 position(FD, At) ->
     position(FD, At, get_dtrace_utag()).
 
-position(#file_descriptor{module = ?MODULE, data = {Port, _}}, At, DTraceUtag) ->
+position(#file_descriptor{module = ?MODULE, data = {Port, _}}, At, DTraceUtag)
+  when (is_list(DTraceUtag) orelse is_binary(DTraceUtag)) ->
     case lseek_position(At) of
 	{Offs, Whence}
 	when -(?LARGEFILESIZE) =< Offs, Offs < ?LARGEFILESIZE ->
@@ -506,7 +518,8 @@ position(#file_descriptor{module = ?MODULE, data = {Port, _}}, At, DTraceUtag) -
 truncate(FD) ->
     truncate(FD, get_dtrace_utag()).
 
-truncate(#file_descriptor{module = ?MODULE, data = {Port, _}}, DTraceUtag) ->
+truncate(#file_descriptor{module = ?MODULE, data = {Port, _}}, DTraceUtag)
+  when (is_list(DTraceUtag) orelse is_binary(DTraceUtag)) ->
     drv_command(Port, [<<?FILE_TRUNCATE>>, enc_utag(DTraceUtag)]).
 
 
@@ -519,33 +532,44 @@ copy(#file_descriptor{module = ?MODULE} = Source,
      #file_descriptor{module = ?MODULE} = Dest,
      Length, DTraceUtag)
   when is_integer(Length), Length >= 0;
-       is_atom(Length) ->
+       is_atom(Length),
+       (is_list(DTraceUtag) orelse is_binary(DTraceUtag)) ->
     %% XXX Should be moved down to the driver for optimization.
 io:format(user, "YO line ~p: ~p -> ~p\n", [?LINE, Source, Dest]),
     file:copy_opened(Source, Dest, Length, DTraceUtag).
 
 
 
+ipread_s32bu_p32bu(FD, Offs, Arg) ->
+    ipread_s32bu_p32bu(FD, Offs, Arg, get_dtrace_utag()).
+
 ipread_s32bu_p32bu(#file_descriptor{module = ?MODULE,
 				    data = {_, _}} = Handle,
 		   Offs,
-		   Infinity) when is_atom(Infinity) ->
+		   Infinity,
+                   DTraceUtag)
+  when is_atom(Infinity),
+       (is_list(DTraceUtag) orelse is_binary(DTraceUtag)) ->
     ipread_s32bu_p32bu(Handle, Offs, (1 bsl 31)-1);
 ipread_s32bu_p32bu(#file_descriptor{module = ?MODULE, data = {Port, _}},
 		   Offs,
-		   MaxSize)
-  when is_integer(Offs), is_integer(MaxSize) ->
+		   MaxSize,
+                   DTraceUtag)
+  when is_integer(Offs),
+       is_integer(MaxSize),
+       (is_list(DTraceUtag) orelse is_binary(DTraceUtag)) ->
     if
 	-(?LARGEFILESIZE) =< Offs, Offs < ?LARGEFILESIZE,
 	0 =< MaxSize, MaxSize < (1 bsl 31) ->
-	    drv_command(Port, <<?FILE_IPREAD, ?IPREAD_S32BU_P32BU,
-			       Offs:64, MaxSize:32>>);
+	    drv_command(Port, [<<?FILE_IPREAD, ?IPREAD_S32BU_P32BU,
+                                 Offs:64, MaxSize:32>>, enc_utag(DTraceUtag)]);
 	true ->
 	    {error, einval}
     end;
 ipread_s32bu_p32bu(#file_descriptor{module = ?MODULE, data = {_, _}},
 		   _Offs,
-		   _MaxSize) ->
+		   _MaxSize,
+                   _DTraceUtag) ->
     {error, badarg}.
 
 
@@ -556,7 +580,9 @@ read_file(File) when (is_list(File) orelse is_binary(File)) ->
 read_file(_) ->
     {error, badarg}.
 
-read_file(File, DTraceUtag) when (is_list(File) orelse is_binary(File)) ->
+read_file(File, DTraceUtag)
+  when (is_list(File) orelse is_binary(File)),
+       (is_list(DTraceUtag) orelse is_binary(DTraceUtag))->
     case drv_open(?FD_DRV, [binary]) of
 	{ok, Port} ->
 	    Result = read_file(Port, File, DTraceUtag),
@@ -593,7 +619,9 @@ read_file(_,_,_) ->
 write_file(File, Bin) ->
     write_file(File, Bin, get_dtrace_utag()).
 
-write_file(File, Bin, DTraceUtag) when (is_list(File) orelse is_binary(File)) ->
+write_file(File, Bin, DTraceUtag)
+  when (is_list(File) orelse is_binary(File)),
+       (is_list(DTraceUtag) orelse is_binary(DTraceUtag)) ->
     OldUtag = put(dtrace_utag, DTraceUtag),     % TODO: API?
     case open(File, [binary, write]) of
 	{ok, Handle} ->
