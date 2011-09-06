@@ -37,6 +37,43 @@ The autoconf procedure is supported, I believe, for OS X/Snow Leopard
 and OpenSolaris/64-bit.  Just add the `--enable-dtrace` option your
 command to run the `configure` script.
 
+The code has been only very lightly tested on OS X.  It ought to
+compile on a Solaris 10 or OpenSolaris machine, but no promises yet.
+
+The autoconf stuff is ugly right now.  It could use some cleaning up.
+For example:
+
+* After editing the `dtrace-probes.d` file, you need to re-run the
+* top-level "configure" script in order to update `dtrace-probes.h`.
+* `make clean` will remove `dtrace-probes.h`.  A build will fail
+  unless the top-level "configure" script is re-run to re-create that
+  file.
+* The `dtrace-probes.h` file's location should probably be moved to an
+  OTP platform-specific build dir, for example,
+  `path/to/somewhere/i386-apple-darwin10.8.0`
+* There are probably some other build by-products that are also being
+  put into the "wrong" directory, for example, `dtrace-probes.o` for
+  Solaris platforms.
+
+Contributions
+-------------
+
+Code contributions are welcome!  This is a side project for me (SLF),
+so things would go faster if other people are willing to pitch in.
+Please use the GitHub pull request mechanism or send me an email
+message.
+
+To build from scratch, use this recipe.  If you're an experienced Git
+user and wish to add my repository as a remote repository, be my
+guest.  Just resume the recipe at command #4.
+
+    % git clone git://github.com/slfritchie/otp.git
+    % cd otp
+    % git checkout -b dtrace-experiment origin/dtrace-experiment
+    % env ERL_TOP=`pwd` ./otp_build autoconf
+    % env ERL_TOP=`pwd` ./configure --enable-dtrace + whatever args you need
+    % env ERL_TOP=`pwd` make
+
 Implementation summary
 ----------------------
 
