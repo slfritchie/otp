@@ -74,6 +74,15 @@ guest.  Just resume the recipe at command #4.
     % env ERL_TOP=`pwd` ./configure --enable-dtrace + whatever args you need
     % env ERL_TOP=`pwd` make
 
+Then `make install` and then start an Erlang shell via
+`/path/to/installed/bin/erl +A 8`.  The Erlang shell's banner should
+include `[dtrace]`.
+
+Try using this (ugly) DTrace command to watch file I/O probes in use
+(tested on OS X only, sorry):
+
+    dtrace -xevaltime=exec -Z -n 'erlang_vm*:::file_drv_entry {printf("%d %d %s | %d | %s %s , %d %d %d", arg0, arg1, arg2 == NULL ? "" : copyinstr(arg2), arg3, arg4 == NULL ? "" : copyinstr(arg4), arg5 == NULL ? "" : copyinstr(arg5), arg6, arg7, arg8)} erlang_vm*:::file_drv_int* {printf("%d %d %d | %d", arg0, arg1, arg2, arg3);} erlang_vm*:::file_drv_return {printf("%d %d %s | %d | %d %d %d", arg0, arg1, arg2 == NULL ? "" : copyinstr(arg2), arg3, arg4, arg5, arg6 ) ; } erlang_vm*:::xx {printf("%s", arg1 == NULL ? "-null-" : copyinstr(arg1));}'
+
 Implementation summary
 ----------------------
 
