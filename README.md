@@ -115,6 +115,142 @@ Example DTrace probe specification
         /* thread-id, tag, user-tag, command, int success?, int errno, sched-thread-id, .??. */
         probe file_drv_return(int, int, char *, int, int, int, int);
 
+Guide to probe arguments
+------------------------
+
+    /* Driver op code: used by file_drv_entry      arg3 */
+    /*                 used by file_drv_int_entry  arg3 */
+    /*                 used by file_drv_int_return arg3 */
+    /*                 used by file_drv_return     arg3 */
+    
+    #define FILE_OPEN            1                 (probe arg3)
+            probe arg6 = C driver dt_i1 = flags;
+            probe arg4 = C driver dt_s1 = path;
+    
+    #define FILE_READ            2                 (probe arg3)
+            probe arg6 = C driver dt_i1 = fd;
+            probe arg7 = C driver dt_i2 = flags;
+            probe arg8 = C driver dt_i3 = size;
+    
+    #define FILE_LSEEK           3                 (probe arg3)
+            probe arg6 = C driver dt_i1 = fd;
+            probe arg7 = C driver dt_i2 = offset;
+            probe arg8 = C driver dt_i3 = origin;
+    
+    #define FILE_WRITE           4                 (probe arg3)
+            probe arg6 = C driver dt_i1 = fd;
+            probe arg7 = C driver dt_i2 = flags;
+            probe arg8 = C driver dt_i3 = size;
+    
+    #define FILE_FSTAT           5                 (probe arg3)
+            probe arg6 = C driver dt_i1 = fd;
+    
+    #define FILE_PWD             6                 (probe arg3)
+            none
+    
+    #define FILE_READDIR         7                 (probe arg3)
+            probe arg4 = C driver dt_s1 = path;
+    
+    #define FILE_CHDIR           8                 (probe arg3)
+            probe arg4 = C driver dt_s1 = path;
+    
+    #define FILE_FSYNC           9                 (probe arg3)
+                probe arg6 = C driver dt_i1 = fd;
+    
+    #define FILE_MKDIR          10                 (probe arg3)
+            probe arg4 = C driver dt_s1 = path;
+    
+    #define FILE_DELETE         11                 (probe arg3)
+            probe arg4 = C driver dt_s1 = path;
+    
+    #define FILE_RENAME         12                 (probe arg3)
+            probe arg4 = C driver dt_s1 = old_name;
+            probe arg5 = C driver dt_s2 = new_name;
+    
+    #define FILE_RMDIR          13                 (probe arg3)
+            probe arg4 = C driver dt_s1 = path;
+    
+    #define FILE_TRUNCATE       14                 (probe arg3)
+            probe arg6 = C driver dt_i1 = fd;
+            probe arg7 = C driver dt_i2 = flags;
+    
+    #define FILE_READ_FILE      15                 (probe arg3)
+            probe arg4 = C driver dt_s1 = path;
+    
+    #define FILE_WRITE_INFO     16                 (probe arg3)
+            probe arg6 = C driver dt_i1 = mode;
+            probe arg7 = C driver dt_i2 = uid;
+            probe arg8 = C driver dt_i3 = gid;
+    
+    #define FILE_LSTAT          19                 (probe arg3)
+            probe arg4 = C driver dt_s1 = path;
+    
+    #define FILE_READLINK       20                 (probe arg3)
+            probe arg4 = C driver dt_s1 = path;
+    
+    #define FILE_LINK           21                 (probe arg3)
+            probe arg4 = C driver dt_s1 = existing_path;
+            probe arg5 = C driver dt_s2 = new_path;
+    
+    #define FILE_SYMLINK        22                 (probe arg3)
+            probe arg4 = C driver dt_s1 = existing_path;
+            probe arg5 = C driver dt_s2 = new_path;
+    
+    #define FILE_CLOSE          23                 (probe arg3)
+            probe arg6 = C driver dt_i1 = fd;
+            probe arg7 = C driver dt_i2 = flags;
+    
+    #define FILE_PWRITEV        24                 (probe arg3)
+            probe arg6 = C driver dt_i1 = fd;
+            probe arg7 = C driver dt_i2 = flags;
+            probe arg8 = C driver dt_i3 = size;
+    
+    #define FILE_PREADV         25                 (probe arg3)
+            probe arg6 = C driver dt_i1 = fd;
+            probe arg7 = C driver dt_i2 = flags;
+            probe arg8 = C driver dt_i3 = size;
+    
+    #define FILE_SETOPT         26                 (probe arg3)
+            probe arg6 = C driver dt_i1 = opt_name;
+            probe arg7 = C driver dt_i2 = opt_specific_value;
+    
+    #define FILE_IPREAD         27                 (probe arg3)
+            probe arg6 = C driver dt_i1 = fd;
+            probe arg7 = C driver dt_i2 = flags;
+            probe arg8 = C driver dt_i3 = offsets[0];
+            probe arg9 = C driver dt_i4 = size;
+    
+    #define FILE_ALTNAME        28                 (probe arg3)
+            probe arg4 = C driver dt_s1 = path;
+    
+    #define FILE_READ_LINE      29                 (probe arg3)
+            probe arg6 = C driver dt_i1 = fd;
+            probe arg7 = C driver dt_i2 = flags;
+            probe arg8 = C driver dt_i3 = read_offset;
+            probe arg9 = C driver dt_i4 = read_ahead;
+    
+    #define FILE_FDATASYNC      30                 (probe arg3)
+            probe arg6 = C driver dt_i1 = fd;
+    
+    #define FILE_FADVISE        31                 (probe arg3)
+            probe arg6 = C driver dt_i1 = fd;
+            probe arg7 = C driver dt_i2 = offset;
+            probe arg8 = C driver dt_i3 = length;
+            probe arg9 = C driver dt_i4 = advise_type;
+    
+    /* Return codes: used by file_drv_return arg4 */
+    
+    #define FILE_RESP_OK         0
+    #define FILE_RESP_ERROR      1
+    #define FILE_RESP_DATA       2
+    #define FILE_RESP_NUMBER     3
+    #define FILE_RESP_INFO       4
+    #define FILE_RESP_NUMERR     5
+    #define FILE_RESP_LDATA      6
+    #define FILE_RESP_N2DATA     7
+    #define FILE_RESP_EOF        8
+    #define FILE_RESP_FNAME      9
+    #define FILE_RESP_ALL_DATA  10
 
 
 Erlang/OTP
