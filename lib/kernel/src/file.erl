@@ -430,7 +430,7 @@ advise(File, Offset, Length, Advise) when is_pid(File) ->
     R = file_request(File, {advise, Offset, Length, Advise}),
     wait_file_reply(File, R);
 advise(#file_descriptor{module = Module} = Handle, Offset, Length, Advise) ->
-    Module:advise(Handle, Offset, Length, Advise);
+    Module:advise(Handle, Offset, Length, Advise, get_dtrace_utag());
 advise(_, _, _, _) ->
     {error, badarg}.
 

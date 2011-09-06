@@ -3419,20 +3419,21 @@ file_outputv(ErlDrvData e, ErlIOVec *ev) {
 	    reply_posix_error(desc, EINVAL);
 	    goto done;
 	}
-	if (lseek_flush_read(desc, &err, dt_priv, dt_utag) < 0) {
-	    reply_posix_error(desc, err);
-	    goto done;
-	}
-	if (flush_write_check_error(desc, &err, dt_priv, dt_utag) < 0) {
-	    reply_posix_error(desc, err);
-	    goto done;
-	}
 	if (ev->size < 1+1+8+4
 	    || !EV_GET_UINT64(ev, &hdr_offset, &p, &q)
 	    || !EV_GET_UINT32(ev, &max_size, &p, &q)) {
 	    /* Buffer too short to contain 
 	     * the header offset and max size spec */
 	    reply_posix_error(desc, EINVAL);
+	    goto done;
+	}
+        dt_utag = EV_CHAR_P(ev, p, q);
+	if (lseek_flush_read(desc, &err, dt_priv, dt_utag) < 0) {
+	    reply_posix_error(desc, err);
+	    goto done;
+	}
+	if (flush_write_check_error(desc, &err, dt_priv, dt_utag) < 0) {
+	    reply_posix_error(desc, err);
 	    goto done;
 	}
 	/* Create the thread data structure with the contained ErlIOVec 
