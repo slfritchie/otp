@@ -76,7 +76,7 @@ stop() ->
 
 init([]) ->
     process_flag(trap_exit, true),
-    put(dtrace_utag, "file_server constant kludge"),
+    put(dtrace_utag, atom_to_list(?FILE_SERVER)),
     case ?PRIM_FILE:start() of
 	{ok, Handle} ->
 	    ets:new(?FILE_IO_SERVER_TABLE, [named_table]),
@@ -166,23 +166,25 @@ handle_call({make_link, Old, New, DTraceUtag}, _From, Handle) ->
 handle_call({make_symlink, Old, New, DTraceUtag}, _From, Handle) ->
     {reply, ?PRIM_FILE:make_symlink(Handle, Old, New, DTraceUtag), Handle};
 
-handle_call({copy, SourceName, SourceOpts, DestName, DestOpts, Length},
+handle_call({copy, SourceName, SourceOpts, DestName, DestOpts, Length, DTraceUtag},
 	    _From, Handle) ->
     Reply = 
-	case ?PRIM_FILE:open(SourceName, [read, binary | SourceOpts]) of
+	case ?PRIM_FILE:open(SourceName, [read, binary | SourceOpts],
+                             DTraceUtag) of
 	    {ok, Source} ->
 		SourceReply = 
 		    case ?PRIM_FILE:open(DestName, 
-					 [write, binary | DestOpts]) of
+					 [write, binary | DestOpts],
+                                         DTraceUtag) of
 			{ok, Dest} ->
 			    DestReply = 
-				?PRIM_FILE:copy(Source, Dest, Length),
-			    ?PRIM_FILE:close(Dest),
+				?PRIM_FILE:copy(Source, Dest, Length, DTraceUtag),
+			    ?PRIM_FILE:close(Dest, DTraceUtag),
 			    DestReply;
 			{error, _} = Error ->
 			    Error
 		    end,
-		?PRIM_FILE:close(Source),
+		?PRIM_FILE:close(Source, DTraceUtag),
 		SourceReply;
 	    {error, _} = Error ->
 		Error

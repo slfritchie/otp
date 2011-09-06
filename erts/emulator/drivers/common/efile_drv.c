@@ -2498,6 +2498,7 @@ file_output(ErlDrvData e, char* buf, int count)
 	{
 	    d = EF_SAFE_ALLOC(sizeof(struct t_data));
 	    
+            dt_utag = name;
 	    d->fd = fd;
             dt_i1 = fd;
 	    d->command = command;
@@ -2511,6 +2512,7 @@ file_output(ErlDrvData e, char* buf, int count)
 	{
 	    d = EF_SAFE_ALLOC(sizeof(struct t_data));
 	    
+            dt_utag = name;
 	    d->fd = fd;
             dt_i1 = fd;
 	    d->command = command;
@@ -2543,6 +2545,7 @@ file_output(ErlDrvData e, char* buf, int count)
         {
 	    d = EF_SAFE_ALLOC(sizeof(struct t_data));
 	    
+            dt_utag = name;
 	    d->flags = desc->flags;
 	    d->fd = fd;
             dt_i1 = fd;
@@ -2970,11 +2973,12 @@ file_outputv(ErlDrvData e, ErlIOVec *ev) {
 	 *    allocated binary + dealing with offsets and lengts are done in file_async ready
 	 *    for this OP.
 	 */
+        dt_utag = EV_CHAR_P(ev, p, q);
 	if (flush_write_check_error(desc, &err, dt_priv, dt_utag) < 0) {
 	    reply_posix_error(desc, err);
 	    goto done;
 	}
-	if (ev->size != 1) {
+	if (ev->size != 1+strlen(dt_utag)+1) {
 	    /* Wrong command length */
 	    reply_posix_error(desc, EINVAL);
 	    goto done;
@@ -3036,6 +3040,7 @@ file_outputv(ErlDrvData e, ErlIOVec *ev) {
 #if !ALWAYS_READ_LINE_AHEAD
 	d->c.read_line.read_ahead = (desc->read_bufsize > 0);
 #endif 
+        dt_i4 = d->c.read_line.read_ahead;
 	driver_binary_inc_refc(d->c.read.binp);
 	d->invoke = invoke_read_line;
 	d->free = free_read_line;
@@ -3336,19 +3341,21 @@ file_outputv(ErlDrvData e, ErlIOVec *ev) {
     case FILE_LSEEK: {
 	Sint64 offset;          /* Offset for seek */
 	Uint32 origin;		/* Origin of seek. */
+
+	if (ev->size < 1+8+4
+	    || !EV_GET_UINT64(ev, &offset, &p, &q)
+	    || !EV_GET_UINT32(ev, &origin, &p, &q)) {
+	    /* Wrong length of buffer to contain offset and origin */
+	    reply_posix_error(desc, EINVAL);
+	    goto done;
+	}
+        dt_utag = EV_CHAR_P(ev, p, q);
 	if (lseek_flush_read(desc, &err, dt_priv, dt_utag) < 0) {
 	    reply_posix_error(desc, err);
 	    goto done;
 	}
 	if (flush_write_check_error(desc, &err, dt_priv, dt_utag) < 0) {
 	    reply_posix_error(desc, err);
-	    goto done;
-	}
-	if (ev->size != 1+8+4
-	    || !EV_GET_UINT64(ev, &offset, &p, &q)
-	    || !EV_GET_UINT32(ev, &origin, &p, &q)) {
-	    /* Wrong length of buffer to contain offset and origin */
-	    reply_posix_error(desc, EINVAL);
 	    goto done;
 	}
 	if ((d = async_lseek(desc, &err, !0, offset, origin,

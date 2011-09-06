@@ -27,11 +27,13 @@
 %% Generic file contents operations
 -export([open/2, open/3,
          close/1, close/2,
-         datasync/1, sync/1, advise/4, position/2, truncate/1,
+         datasync/1, datasync/2, sync/1, sync/2,
+         advise/4,
+         position/2, position/3, truncate/1, truncate/2,
 	 write/2, write/3,
          pwrite/2, pwrite/3, pwrite/4,
-         read/2, read/3, read_line/1,
-         pread/2, pread/3, pread/4, copy/3]).
+         read/2, read/3, read_line/1, read_line/2,
+         pread/2, pread/3, pread/4, copy/3, copy/4]).
 
 %% Specialized file operations
 -export([open/1]).
@@ -359,16 +361,25 @@ pwrite_int2(Port, Offs, Bytes, DTraceUtag) ->
     end.
 
 %% Returns {error, Reason} | ok.
-datasync(#file_descriptor{module = ?MODULE, data = {Port, _}}) ->
-    drv_command(Port, [?FILE_FDATASYNC]).
+datasync(FD) ->
+    datasync(FD, get_dtrace_utag()).
+
+datasync(#file_descriptor{module = ?MODULE, data = {Port, _}}, DTraceUtag) ->
+    drv_command(Port, [?FILE_FDATASYNC, enc_utag(DTraceUtag)]).
 
 %% Returns {error, Reason} | ok.
-sync(#file_descriptor{module = ?MODULE, data = {Port, _}}) ->
-    drv_command(Port, [?FILE_FSYNC]).
+sync(FD) ->
+    sync(FD, get_dtrace_utag()).
+
+sync(#file_descriptor{module = ?MODULE, data = {Port, _}}, DTraceUtag) ->
+    drv_command(Port, [?FILE_FSYNC, enc_utag(DTraceUtag)]).
 
 %% Returns {ok, Data} | eof | {error, Reason}.
-read_line(#file_descriptor{module = ?MODULE, data = {Port, _}}) ->
-    case drv_command(Port, <<?FILE_READ_LINE>>) of
+read_line(FD) ->
+    read_line(FD, get_dtrace_utag()).
+
+read_line(#file_descriptor{module = ?MODULE, data = {Port, _}}, DTraceUtag) ->
+    case drv_command(Port, [<<?FILE_READ_LINE>>, enc_utag(DTraceUtag)]) of
 	{ok, {0, _Data}} ->
 	    eof;
 	{ok, {_Size, Data}} ->
@@ -476,11 +487,15 @@ pread(_, _, _, _) ->
 
 
 %% Returns {ok, Position} | {error, Reason}.
-position(#file_descriptor{module = ?MODULE, data = {Port, _}}, At) ->
+position(FD, At) ->
+    position(FD, At, get_dtrace_utag()).
+
+position(#file_descriptor{module = ?MODULE, data = {Port, _}}, At, DTraceUtag) ->
     case lseek_position(At) of
 	{Offs, Whence}
 	when -(?LARGEFILESIZE) =< Offs, Offs < ?LARGEFILESIZE ->
-	    drv_command(Port, <<?FILE_LSEEK, Offs:64/signed, Whence:32>>);
+	    drv_command(Port, [<<?FILE_LSEEK, Offs:64/signed, Whence:32>>,
+                               enc_utag(DTraceUtag)]);
 	{_, _} ->
 	    {error, einval};
 	Reason ->
@@ -488,19 +503,26 @@ position(#file_descriptor{module = ?MODULE, data = {Port, _}}, At) ->
     end.
 
 %% Returns {error, Reaseon} | ok.
-truncate(#file_descriptor{module = ?MODULE, data = {Port, _}}) ->
-    drv_command(Port, <<?FILE_TRUNCATE>>).
+truncate(FD) ->
+    truncate(FD, get_dtrace_utag()).
+
+truncate(#file_descriptor{module = ?MODULE, data = {Port, _}}, DTraceUtag) ->
+    drv_command(Port, [<<?FILE_TRUNCATE>>, enc_utag(DTraceUtag)]).
 
 
 
 %% Returns {error, Reason} | {ok, BytesCopied}
+copy(Source, Dest, Length) ->
+    copy(Source, Dest, Length, get_dtrace_utag()).
+
 copy(#file_descriptor{module = ?MODULE} = Source,
      #file_descriptor{module = ?MODULE} = Dest,
-     Length)
+     Length, DTraceUtag)
   when is_integer(Length), Length >= 0;
        is_atom(Length) ->
     %% XXX Should be moved down to the driver for optimization.
-    file:copy_opened(Source, Dest, Length).
+io:format(user, "YO line ~p: ~p -> ~p\n", [?LINE, Source, Dest]),
+    file:copy_opened(Source, Dest, Length, DTraceUtag).
 
 
 

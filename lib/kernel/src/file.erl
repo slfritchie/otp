@@ -38,7 +38,7 @@
 %% Generic file contents.
 -export([open/2, close/1, advise/4,
 	 read/2, write/2,
-	 pread/2, pread/3, pwrite/2, pwrite/3,    %% left off pwrite
+	 pread/2, pread/3, pwrite/2, pwrite/3,
 	 read_line/1,
 	 position/2, truncate/1, datasync/1, sync/1,
 	 copy/2, copy/3]).
@@ -57,7 +57,7 @@
 
 %% Internal export to prim_file and ram_file until they implement
 %% an efficient copy themselves.
--export([copy_opened/3]).
+-export([copy_opened/4]).
 
 -export([ipread_s32bu_p32bu_int/3]).
 
@@ -440,17 +440,21 @@ advise(_, _, _, _) ->
       Data :: string() | binary(),
       Reason :: posix() | badarg | terminated.
 
-read(File, Sz) when (is_pid(File) orelse is_atom(File)), is_integer(Sz), Sz >= 0 ->
+read(File, Sz) ->
+    read(File, Sz, get_dtrace_utag()).
+
+read(File, Sz, _DTraceUtag)
+  when (is_pid(File) orelse is_atom(File)), is_integer(Sz), Sz >= 0 ->
     case io:request(File, {get_chars, '', Sz}) of
 	Data when is_list(Data); is_binary(Data) ->
 	    {ok, Data};
 	Other ->
 	    Other
     end;
-read(#file_descriptor{module = Module} = Handle, Sz) 
+read(#file_descriptor{module = Module} = Handle, Sz, DTraceUtag) 
   when is_integer(Sz), Sz >= 0 ->
-    Module:read(Handle, Sz, get_dtrace_utag());
-read(_, _) ->
+    Module:read(Handle, Sz, DTraceUtag);
+read(_, _, _) ->
     {error, badarg}.
 
 -spec read_line(IoDevice) -> {ok, Data} | eof | {error, Reason} when
@@ -466,7 +470,7 @@ read_line(File) when (is_pid(File) orelse is_atom(File)) ->
 	    Other
     end;
 read_line(#file_descriptor{module = Module} = Handle) ->
-    Module:read_line(Handle);
+    Module:read_line(Handle, get_dtrace_utag());
 read_line(_) ->
     {error, badarg}.
 
@@ -520,16 +524,19 @@ pread(_, _, _) ->
       Bytes :: iodata(),
       Reason :: posix() | badarg | terminated.
 
-write(File, Bytes) when (is_pid(File) orelse is_atom(File)) ->
+write(File, Bytes) ->
+    write(File, Bytes, get_dtrace_utag()).
+
+write(File, Bytes, _DTraceUtag) when (is_pid(File) orelse is_atom(File)) ->
     case make_binary(Bytes) of
 	Bin when is_binary(Bin) ->
 	    io:request(File, {put_chars,Bin});
 	Error ->
 	    Error
     end;
-write(#file_descriptor{module = Module} = Handle, Bytes) ->
-    Module:write(Handle, Bytes);
-write(_, _) ->
+write(#file_descriptor{module = Module} = Handle, Bytes, DTraceUtag) ->
+    Module:write(Handle, Bytes, DTraceUtag);
+write(_, _, _) ->
     {error, badarg}.
 
 -spec pwrite(IoDevice, LocBytes) -> ok | {error, {N, Reason}} when
@@ -579,7 +586,7 @@ datasync(File) when is_pid(File) ->
     R = file_request(File, datasync),
     wait_file_reply(File, R);
 datasync(#file_descriptor{module = Module} = Handle) ->
-    Module:datasync(Handle);
+    Module:datasync(Handle, get_dtrace_utag());
 datasync(_) ->
     {error, badarg}.
 
@@ -591,7 +598,7 @@ sync(File) when is_pid(File) ->
     R = file_request(File, sync),
     wait_file_reply(File, R);
 sync(#file_descriptor{module = Module} = Handle) ->
-    Module:sync(Handle);
+    Module:sync(Handle, get_dtrace_utag());
 sync(_) ->
     {error, badarg}.
 
@@ -605,7 +612,7 @@ position(File, At) when is_pid(File) ->
     R = file_request(File, {position,At}),
     wait_file_reply(File, R);
 position(#file_descriptor{module = Module} = Handle, At) ->
-    Module:position(Handle, At);
+    Module:position(Handle, At, get_dtrace_utag());
 position(_, _) ->
     {error, badarg}.
 
@@ -617,7 +624,7 @@ truncate(File) when is_pid(File) ->
     R = file_request(File, truncate),
     wait_file_reply(File, R);
 truncate(#file_descriptor{module = Module} = Handle) ->
-    Module:truncate(Handle);
+    Module:truncate(Handle, get_dtrace_utag());
 truncate(_) ->
     {error, badarg}.
 
@@ -673,7 +680,7 @@ copy_int({SourceName, SourceOpts}, {DestName, DestOpts}, Length)
     check_and_call(copy, 
 		   [file_name(SourceName), SourceOpts,
 		    file_name(DestName), DestOpts,
-		    Length]);
+		    Length, get_dtrace_utag()]);
 %% Filename -> open file; must open Source and do client copy
 copy_int({SourceName, SourceOpts}, Dest, Length) 
   when is_list(SourceOpts), is_pid(Dest);
@@ -736,45 +743,46 @@ copy_int(Source, Dest, Length) ->
 
 
 
-copy_opened(Source, Dest, Length)
+copy_opened(Source, Dest, Length, DTraceUtag)
   when is_integer(Length), Length >= 0;
        is_atom(Length) ->
-    copy_opened_int(Source, Dest, Length);
-copy_opened(_, _, _) ->
+    copy_opened_int(Source, Dest, Length, DTraceUtag);
+copy_opened(_, _, _, _) ->
     {error, badarg}.
 
 %% Here we know that Length is either an atom or an integer >= 0
 %% (by the way, atoms > integers)
 
-copy_opened_int(Source, Dest, Length)
+copy_opened_int(Source, Dest, Length, DTraceUtag)
   when is_pid(Source), is_pid(Dest) ->
-    copy_opened_int(Source, Dest, Length, 0);
-copy_opened_int(Source, Dest, Length)
+    copy_opened_int(Source, Dest, Length, 0, DTraceUtag);
+copy_opened_int(Source, Dest, Length, DTraceUtag)
   when is_pid(Source), is_record(Dest, file_descriptor) ->
-    copy_opened_int(Source, Dest, Length, 0);
-copy_opened_int(Source, Dest, Length)
+    copy_opened_int(Source, Dest, Length, 0, DTraceUtag);
+copy_opened_int(Source, Dest, Length, DTraceUtag)
   when is_record(Source, file_descriptor), is_pid(Dest) ->
-    copy_opened_int(Source, Dest, Length, 0);
-copy_opened_int(Source, Dest, Length)
+    copy_opened_int(Source, Dest, Length, 0, DTraceUtag);
+copy_opened_int(Source, Dest, Length, DTraceUtag)
   when is_record(Source, file_descriptor), is_record(Dest, file_descriptor) ->
-    copy_opened_int(Source, Dest, Length, 0);
-copy_opened_int(_, _, _) ->
+    copy_opened_int(Source, Dest, Length, 0, DTraceUtag);
+copy_opened_int(_, _, _, _) ->
     {error, badarg}.
 
 %% Here we know that Source and Dest are handles to open files, Length is
 %% as above, and Copied is an integer >= 0
 
 %% Copy loop in client process
-copy_opened_int(_, _, Length, Copied) when Length =< 0 -> % atom() > integer()
+copy_opened_int(_, _, Length, Copied, _DTraceUtag)
+  when Length =< 0 -> % atom() > integer()
     {ok, Copied};
-copy_opened_int(Source, Dest, Length, Copied) ->
+copy_opened_int(Source, Dest, Length, Copied, DTraceUtag) ->
     N = if Length > 65536 -> 65536; true -> Length end, % atom() > integer() !
-    case read(Source, N) of
+    case read(Source, N, DTraceUtag) of
 	{ok, Data} ->
 	    M = if is_binary(Data) -> byte_size(Data);
 		   is_list(Data)   -> length(Data)
 		end,
-	    case write(Dest, Data) of
+	    case write(Dest, Data, DTraceUtag) of
 		ok ->
 		    if M < N ->
 			    %% Got less than asked for - must be end of file
@@ -784,7 +792,8 @@ copy_opened_int(Source, Dest, Length, Copied) ->
 			    NewLength = if is_atom(Length) -> Length;
 					   true         -> Length-M
 					end,
-			    copy_opened_int(Source, Dest, NewLength, Copied+M)
+			    copy_opened_int(Source, Dest, NewLength, Copied+M,
+                                            DTraceUtag)
 		    end;
 		{error, _} = Error ->
 		    Error
