@@ -2458,6 +2458,8 @@ file_output(ErlDrvData e, char* buf, int count)
 	    dir_handle = NULL;
 	    resbuf[0] = FILE_RESP_FNAME;
 	    resbufsize = RESBUFSIZE;
+            dt_s1 = name;
+            dt_utag = name + strlen(dt_s1) + 1;
 
 	    while (efile_readdir(&errInfo, name, &dir_handle,
 				 resbuf+1, &resbufsize)) {
@@ -2530,10 +2532,13 @@ file_output(ErlDrvData e, char* buf, int count)
 			      FILENAME_CHARSIZE);
 	    
 	    FILENAME_COPY(d->b, name);
-            dt_s1 = d->b;
             dt_utag = name + strlen(d->b) + 1;
 	    d->fd = fd;
-            dt_i1 = fd;
+            if (command == FILE_LSTAT) {
+                dt_s1 = d->b;
+            } else {
+                dt_i1 = fd;
+            }
 	    d->command = command;
 	    d->invoke = invoke_flstat;
 	    d->free = free_data;
@@ -2626,8 +2631,6 @@ file_output(ErlDrvData e, char* buf, int count)
             dt_utag = buf + namelen + strlen(dt_s2) + 1;
 	    d->flags = desc->flags;
 	    d->fd = fd;
-            dt_i1 = fd;
-            dt_i1 = d->flags;
 	    d->command = command;
 	    d->invoke = invoke_link;
 	    d->free = free_data;
@@ -2652,7 +2655,6 @@ file_output(ErlDrvData e, char* buf, int count)
             dt_utag = buf + namelen + strlen(dt_s2) + 1;
 	    d->flags = desc->flags;
 	    d->fd = fd;
-            dt_i1 = d->fd;
 	    d->command = command;
 	    d->invoke = invoke_symlink;
 	    d->free = free_data;
@@ -2671,11 +2673,11 @@ file_output(ErlDrvData e, char* buf, int count)
         d->free = free_data;
         d->level = 2;
         d->c.fadvise.offset = get_int64((uchar*) buf);
-        dt_i1 = d->c.fadvise.offset;
+        dt_i2 = d->c.fadvise.offset;
         d->c.fadvise.length = get_int64(((uchar*) buf) + sizeof(Sint64));
-        dt_i1 = d->c.fadvise.length;
+        dt_i3 = d->c.fadvise.length;
         d->c.fadvise.advise = get_int32(((uchar*) buf) + 2 * sizeof(Sint64));
-        dt_i1 = d->c.fadvise.advise;
+        dt_i4 = d->c.fadvise.advise;
         dt_utag = buf + 3 * sizeof(Sint64);
         goto done;
     }
