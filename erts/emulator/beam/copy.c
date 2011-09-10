@@ -61,6 +61,11 @@ copy_object(Eterm obj, Process* to)
     Eterm* hp = HAlloc(to, size);
     Eterm res;
 
+    if (ERLANG_COPY_OBJECT_ENABLED()) {
+        char proc_name[64];
+        erts_snprintf(proc_name, sizeof(proc_name), "%T", to->id);
+        ERLANG_COPY_OBJECT(proc_name, size);
+    }
     res = copy_struct(obj, size, &hp, &to->off_heap);
 #ifdef DEBUG
     if (eq(obj, res) == 0) {
