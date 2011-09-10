@@ -867,6 +867,9 @@ $(TTF_DIR)/%.S: hipe/%.m4
 $(TTF_DIR)/%.h: hipe/%.m4
 	m4 $(M4FLAGS) $< > $@
 
+erlang_dtrace.h: beam/erlang_dtrace.d
+	dtrace -h -s beam/erlang_dtrace.d -o beam/erlang_dtrace.h
+
 $(OBJDIR)/%.o: $(TTF_DIR)/%.S
 	$(CC) $(CFLAGS) $(INCLUDES) -c $< -o $@
 
