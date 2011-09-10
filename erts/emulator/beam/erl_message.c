@@ -781,14 +781,21 @@ erts_send_message(Process* sender,
     BM_MESSAGE(message,sender,receiver);
     BM_START_TIMER(send);
 
+
+    if (ERLANG_SEND_ENABLED()) {
+        char sender_name[64];
+        char receiver_name[64];
+        erts_snprintf(sender_name, sizeof(sender_name), "%T", sender->id);
+        erts_snprintf(receiver_name, sizeof(receiver_name), "%T", receiver->id);
+        ERLANG_SEND(sender_name, receiver_name, size_object(message));
+    }
+
     if (SEQ_TRACE_TOKEN(sender) != NIL && !(flags & ERTS_SND_FLG_NO_SEQ_TRACE)) {
         Eterm* hp;
 
         BM_SWAP_TIMER(send,size);
 	msize = size_object(message);
         BM_SWAP_TIMER(size,send);
-
-        ERLANG_SEND(sender, receiver, msize);
 
 	seq_trace_update_send(sender);
 	seq_trace_output(SEQ_TRACE_TOKEN(sender), message, SEQ_TRACE_SEND, 
