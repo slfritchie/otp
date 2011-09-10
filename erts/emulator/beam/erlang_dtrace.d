@@ -99,4 +99,9 @@ provider erlang {
 
     /* PID, Module, Function, Arity */
     probe function__entry(char *, char*, char*, int);
+    probe bif__entry(char *, char*, char*, int);
+    probe nif__entry(char *, char*, char*, int);
+
+    probe bif__return(char *, char*, char*, int);
+    probe nif__return(char *, char*, char*, int);
 };
