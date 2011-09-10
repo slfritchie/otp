@@ -1123,6 +1123,21 @@ dtrace_fun_decode(Process *process, Eterm module, Eterm function,
                               a);                    \
     }
 
+#define DTRACE_RETURN(p, m, f, a)                       \
+    if (ERLANG_FUNCTION_RETURN_ENABLED()) {             \
+        char process_name[DTRACE_TERM_BUF_SIZE];        \
+        char module_name[DTRACE_TERM_BUF_SIZE];         \
+        char function_name[DTRACE_TERM_BUF_SIZE];       \
+        int foff;                                       \
+        dtrace_fun_decode(p, m, f, process_name,        \
+                          module_name,                  \
+                          function_name, &foff);        \
+        ERLANG_FUNCTION_RETURN(process_name,            \
+                               module_name,             \
+                               function_name + foff,    \
+                               a);                      \
+    }
+
 #define DTRACE_BIF_ENTRY(p, m, f, a)                \
     if (ERLANG_BIF_ENTRY_ENABLED()) {               \
         char process_name[DTRACE_TERM_BUF_SIZE];    \
@@ -1644,7 +1659,13 @@ void process_main(void)
 
 
  OpCase(return): {
+    BeamInstr* fptr;
     SET_I(c_p->cp);
+
+    if (ERLANG_FUNCTION_RETURN_ENABLED() && (fptr = find_function_from_pc(c_p->cp))) {
+        DTRACE_RETURN(c_p, (Eterm)fptr[0], (Eterm)fptr[1], (Uint)fptr[2]);
+    }
+
     /*
      * We must clear the CP to make sure that a stale value do not
      * create a false module dependcy preventing code upgrading.
