@@ -221,7 +221,15 @@ provider erlang {
     /**
      * Fired when a process is scheduled.
      *
-     * @param p the PID (string form) of the exiting process
+     * @param p the PID (string form) of the newly scheduled process
      */
     probe process_scheduled(char *p);
+
+    /**
+     * Fired when a process is unscheduled.
+     *
+     * @param p the PID (string form) of the process that has been
+     * unscheduled.
+     */
+    probe process_unscheduled(char *p);
 };

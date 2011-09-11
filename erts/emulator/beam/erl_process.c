@@ -5181,6 +5181,12 @@ Process *schedule(Process *p, int calls)
     int actual_reds;
     int reds;
 
+    if (ERLANG_PROCESS_UNSCHEDULED_ENABLED()) {
+        char process_buf[DTRACE_TERM_BUF_SIZE];
+        dtrace_pid_str(p, process_buf);
+        ERLANG_PROCESS_UNSCHEDULED(process_buf);
+    }
+
     if (ERTS_USE_MODIFIED_TIMING()) {
 	context_reds = ERTS_MODIFIED_TIMING_CONTEXT_REDS;
 	input_reductions = ERTS_MODIFIED_TIMING_INPUT_REDS;
