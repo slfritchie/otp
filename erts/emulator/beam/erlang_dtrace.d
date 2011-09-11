@@ -167,4 +167,20 @@ provider erlang {
      * @param mfa the m:f/a of the function
      */
     probe nif__return(char *p, char *mfa);
+
+    /**
+     * Fired when a process is spawned.
+     *
+     * @param p the PID (string form) of the new process.
+     * @param mfa the m:f/a of the function
+     */
+    probe spawn(char *p, char *mfa);
+
+    /**
+     * Fired when a process is exiting.
+     *
+     * @param p the PID (string form) of the exiting process
+     * @param reason the reason for the exit (may be truncated)
+     */
+    probe exit(char *p, char *reason);
 };

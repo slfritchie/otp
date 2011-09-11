@@ -40,6 +40,9 @@
 #include "beam_bp.h"
 #include "erl_cpu_topology.h"
 
+#include "dtrace_helpers.h"
+#include "erlang_dtrace.h"
+
 #define ERTS_RUNQ_CHECK_BALANCE_REDS_PER_SCHED (2000*CONTEXT_REDS)
 #define ERTS_RUNQ_CALL_CHECK_BALANCE_REDS \
   (ERTS_RUNQ_CHECK_BALANCE_REDS_PER_SCHED/2)
@@ -6381,6 +6384,13 @@ erl_create_process(Process* parent, /* Parent of process (default group leader).
 
     VERBOSE(DEBUG_PROCESSES, ("Created a new process: %T\n",p->id));
 
+    if (ERLANG_SPAWN_ENABLED()) {
+        char process_name[DTRACE_TERM_BUF_SIZE];
+        char mfa[DTRACE_TERM_BUF_SIZE];
+        dtrace_fun_decode(p, mod, func, arity, process_name, mfa);
+        ERLANG_SPAWN(process_name, mfa);
+    }
+
  error:
 
     erts_smp_proc_unlock(parent, ERTS_PROC_LOCKS_ALL_MINOR);
@@ -7384,7 +7394,15 @@ erts_do_exit_process(Process* p, Eterm reason)
 
     p->arity = 0;		/* No live registers */
     p->fvalue = reason;
-    
+
+    if (ERLANG_EXIT_ENABLED()) {
+        char process_buf[DTRACE_TERM_BUF_SIZE];
+        char reason_buf[256];
+        dtrace_pid_str(p, process_buf);
+        erts_snprintf(reason_buf, sizeof(reason_buf) - 1, "%T", reason);
+        ERLANG_EXIT(process_buf, reason_buf);
+    }
+
 #ifdef ERTS_SMP
     ERTS_SMP_CHK_HAVE_ONLY_MAIN_PROC_LOCK(p);
     /* By locking all locks (main lock is already locked) when going

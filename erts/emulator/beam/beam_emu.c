@@ -42,6 +42,7 @@
 #endif
 
 #include <assert.h>
+#include "dtrace_helpers.h"
 #include "erlang_dtrace.h"
 
 /* #define HARDDEBUG 1 */
@@ -1083,9 +1084,15 @@ init_emulator(void)
 #  define REG_tmp_arg2
 #endif
 
-#define DTRACE_TERM_BUF_SIZE 256
+inline void
+dtrace_pid_str(Process *process, char *process_buf) {
+    snprintf(process_buf, DTRACE_TERM_BUF_SIZE, "<%lu.%lu.%lu>",
+             pid_channel_no(process->id),
+             pid_number(process->id),
+             pid_serial(process->id));
+}
 
-static inline void
+inline void
 dtrace_fun_decode(Process *process,
                   Eterm module, Eterm function, int arity,
                   char *process_buf, char *mfa_buf) {
@@ -1093,10 +1100,7 @@ dtrace_fun_decode(Process *process,
     char *funptr = funbuf;
     char *p = NULL;
 
-    snprintf(process_buf, DTRACE_TERM_BUF_SIZE, "<%lu.%lu.%lu>",
-             pid_channel_no(process->id),
-             pid_number(process->id),
-             pid_serial(process->id));
+    dtrace_pid_str(process, process_buf);
 
     erts_snprintf(funbuf, sizeof(funbuf), "%T", function);
     /* I'm not quite sure how these function names are synthesized,
