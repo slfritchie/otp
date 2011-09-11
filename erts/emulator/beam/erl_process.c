@@ -5708,6 +5708,13 @@ Process *schedule(Process *p, int calls)
 	p->fcalls = reds;
 	ASSERT(IS_ACTIVE(p));
 	ERTS_SMP_CHK_HAVE_ONLY_MAIN_PROC_LOCK(p);
+
+        if (ERLANG_PROCESS_SCHEDULED_ENABLED()) {
+            char process_buf[DTRACE_TERM_BUF_SIZE];
+            dtrace_pid_str(p, process_buf);
+            ERLANG_PROCESS_SCHEDULED(process_buf);
+        }
+
 	return p;
     }
 }

@@ -217,4 +217,11 @@ provider erlang {
      * @param reclaimed the amount of space reclaimed
      */
     probe gc_minor__end(char *p, int reclaimed);
+
+    /**
+     * Fired when a process is scheduled.
+     *
+     * @param p the PID (string form) of the exiting process
+     */
+    probe process_scheduled(char *p);
 };
