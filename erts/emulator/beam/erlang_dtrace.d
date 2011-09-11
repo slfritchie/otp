@@ -125,16 +125,18 @@ provider erlang {
      *
      * @param p the PID (string form) of the process
      * @param mfa the m:f/a of the function
+     * @param depth the stack depth
      */
-    probe function__entry(char *p, char *mfa);
+    probe function__entry(char *p, char *mfa, int depth);
 
     /**
      * Fired whenever a user function returns.
      *
      * @param p the PID (string form) of the process
      * @param mfa the m:f/a of the function
+     * @param depth the stack depth
      */
-    probe function__return(char *p, char *mfa);
+    probe function__return(char *p, char *mfa, int depth);
 
     /**
      * Fired whenever a Built In Function is called.

@@ -1118,22 +1118,26 @@ dtrace_fun_decode(Process *process,
                   module, funptr, arity);
 }
 
-#define DTRACE_CALL(p, m, f, a)                     \
-    if (ERLANG_FUNCTION_ENTRY_ENABLED()) {          \
-        char process_name[DTRACE_TERM_BUF_SIZE];    \
-        char mfa[DTRACE_TERM_BUF_SIZE];             \
-        dtrace_fun_decode(p, m, f, a,               \
-                          process_name, mfa);       \
-        ERLANG_FUNCTION_ENTRY(process_name, mfa);   \
+#define DTRACE_CALL(p, m, f, a)                                 \
+    if (ERLANG_FUNCTION_ENTRY_ENABLED()) {                      \
+        char process_name[DTRACE_TERM_BUF_SIZE];                \
+        char mfa[DTRACE_TERM_BUF_SIZE];                         \
+        int depth = (STACK_START(p) - STACK_TOP(p))             \
+            / sizeof(Eterm*);                                   \
+        dtrace_fun_decode(p, m, f, a,                           \
+                          process_name, mfa);                   \
+        ERLANG_FUNCTION_ENTRY(process_name, mfa, depth);        \
     }
 
-#define DTRACE_RETURN(p, m, f, a)                   \
-    if (ERLANG_FUNCTION_RETURN_ENABLED()) {         \
-        char process_name[DTRACE_TERM_BUF_SIZE];    \
-        char mfa[DTRACE_TERM_BUF_SIZE];             \
-        dtrace_fun_decode(p, m, f, a,               \
-                          process_name, mfa);       \
-        ERLANG_FUNCTION_RETURN(process_name, mfa);  \
+#define DTRACE_RETURN(p, m, f, a)                               \
+    if (ERLANG_FUNCTION_RETURN_ENABLED()) {                     \
+        char process_name[DTRACE_TERM_BUF_SIZE];                \
+        char mfa[DTRACE_TERM_BUF_SIZE];                         \
+        int depth = (STACK_START(p) - STACK_TOP(p))             \
+            / sizeof(Eterm*);                                   \
+        dtrace_fun_decode(p, m, f, a,                           \
+                          process_name, mfa);                   \
+        ERLANG_FUNCTION_RETURN(process_name, mfa, depth);       \
     }
 
 #define DTRACE_BIF_ENTRY(p, m, f, a)                \
