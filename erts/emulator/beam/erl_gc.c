@@ -36,6 +36,9 @@
 #include "hipe_mode_switch.h"
 #endif
 
+#include "dtrace_helpers.h"
+#include "erlang_dtrace.h"
+
 #define ERTS_INACT_WR_PB_LEAVE_MUCH_LIMIT 1
 #define ERTS_INACT_WR_PB_LEAVE_MUCH_PERCENTAGE 20
 #define ERTS_INACT_WR_PB_LEAVE_LIMIT 10
@@ -366,14 +369,26 @@ erts_garbage_collect(Process* p, int need, Eterm* objv, int nobj)
         FLAGS(p) |= F_NEED_FULLSWEEP;
     }
 
+    char pidbuf[DTRACE_TERM_BUF_SIZE];
+    if (ERLANG_GC_MAJOR_START_ENABLED()
+        || ERLANG_GC_MAJOR_END_ENABLED()
+        || ERLANG_GC_MINOR_START_ENABLED()
+        || ERLANG_GC_MINOR_END_ENABLED()) {
+        dtrace_pid_str(p, pidbuf);
+    }
+
     /*
      * Test which type of GC to do.
      */
     while (!done) {
 	if ((FLAGS(p) & F_NEED_FULLSWEEP) != 0) {
+            ERLANG_GC_MAJOR_START(pidbuf, need);
 	    done = major_collection(p, need, objv, nobj, &reclaimed_now);
+            ERLANG_GC_MAJOR_END(pidbuf, reclaimed_now);
 	} else {
+            ERLANG_GC_MINOR_START(pidbuf, need);
 	    done = minor_collection(p, need, objv, nobj, &reclaimed_now);
+            ERLANG_GC_MINOR_END(pidbuf, reclaimed_now);
 	}
     }
 

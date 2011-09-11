@@ -183,4 +183,36 @@ provider erlang {
      * @param reason the reason for the exit (may be truncated)
      */
     probe exit(char *p, char *reason);
+
+    /**
+     * Fired when a major GC is starting.
+     *
+     * @param p the PID (string form) of the exiting process
+     * @param need the number of words needed on the heap
+     */
+    probe gc_major__start(char *p, int need);
+
+    /**
+     * Fired when a minor GC is starting.
+     *
+     * @param p the PID (string form) of the exiting process
+     * @param need the number of words needed on the heap
+     */
+    probe gc_minor__start(char *p, int need);
+
+    /**
+     * Fired when a major GC is starting.
+     *
+     * @param p the PID (string form) of the exiting process
+     * @param reclaimed the amount of space reclaimed
+     */
+    probe gc_major__end(char *p, int reclaimed);
+
+    /**
+     * Fired when a minor GC is starting.
+     *
+     * @param p the PID (string form) of the exiting process
+     * @param reclaimed the amount of space reclaimed
+     */
+    probe gc_minor__end(char *p, int reclaimed);
 };
