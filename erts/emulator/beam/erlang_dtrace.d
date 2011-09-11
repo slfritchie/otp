@@ -94,18 +94,89 @@ provider erlang_vm {
 #pragma D attributes Evolving/Evolving/Common provider erlang_vm args
 
 provider erlang {
+    /**
+     * Fired when a message is sent from one local process to another.
+     *
+     * @param sender the PID (string form) of the sender
+     * @param receiver the PID (string form) of the receiver
+     * @param size the size of the message being delivered
+     */
     probe send(char *sender, char *receiver, uint32_t size);
+
+    /**
+     * Fired when an Eterm structure is being copied.
+     *
+     * @param size the size of the structure
+     */
     probe copy_struct(uint32_t size);
 
+    /**
+     * Fired when an Eterm is being copied onto a process.
+     *
+     * @param proc the PID (string form) of the recipient process
+     * @param size the size of the structure
+     */
     probe copy_object(char *proc, uint32_t size);
 
     /* PID, Module, Function, Arity */
-    probe function__entry(char *, char*, char*, int);
-    probe function__return(char *, char*, char*, int);
 
-    probe bif__entry(char *, char*, char*, int);
-    probe nif__entry(char *, char*, char*, int);
+    /**
+     * Fired whenever a user function is being called.
+     *
+     * @param p the PID (string form) of the process
+     * @param m the name of the module
+     * @param f the name of the function
+     * @param a the number of args of the function
+     */
+    probe function__entry(char *p, char *m, char *f, int a);
 
-    probe bif__return(char *, char*, char*, int);
-    probe nif__return(char *, char*, char*, int);
+    /**
+     * Fired whenever a user function returns.
+     *
+     * @param p the PID (string form) of the process
+     * @param m the name of the module
+     * @param f the name of the function
+     * @param a the number of args of the function
+     */
+    probe function__return(char *p, char *m, char *f, int a);
+
+    /**
+     * Fired whenever a Built In Function is called.
+     *
+     * @param p the PID (string form) of the process
+     * @param m the name of the module
+     * @param f the name of the function
+     * @param a the number of args of the function
+     */
+    probe bif__entry(char *p, char *m, char *f, int a);
+
+    /**
+     * Fired whenever a Built In Function returns.
+     *
+     * @param p the PID (string form) of the process
+     * @param m the name of the module
+     * @param f the name of the function
+     * @param a the number of args of the function
+     */
+    probe bif__return(char *p, char *m, char *f, int a);
+
+    /**
+     * Fired whenever a Native Function is called.
+     *
+     * @param p the PID (string form) of the process
+     * @param m the name of the module
+     * @param f the name of the function
+     * @param a the number of args of the function
+     */
+    probe nif__entry(char *p, char *m, char *f, int a);
+
+    /**
+     * Fired whenever a Native Function returns.
+     *
+     * @param p the PID (string form) of the process
+     * @param m the name of the module
+     * @param f the name of the function
+     * @param a the number of args of the function
+     */
+    probe nif__return(char *p, char *m, char *f, int a);
 };
