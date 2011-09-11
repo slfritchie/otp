@@ -1086,116 +1086,86 @@ init_emulator(void)
 #define DTRACE_TERM_BUF_SIZE 256
 
 static inline void
-dtrace_fun_decode(Process *process, Eterm module, Eterm function,
-                  char *process_name, char *module_name, char *function_name,
-                  int *f_offset) {
-    char *p;
+dtrace_fun_decode(Process *process,
+                  Eterm module, Eterm function, int arity,
+                  char *process_buf, char *mfa_buf) {
+    char funbuf[DTRACE_TERM_BUF_SIZE];
+    char *funptr = funbuf;
+    char *p = NULL;
 
-    erts_snprintf(process_name, DTRACE_TERM_BUF_SIZE, "%T", process->id);
-    erts_snprintf(module_name, DTRACE_TERM_BUF_SIZE, "%T", module);
-    erts_snprintf(function_name, DTRACE_TERM_BUF_SIZE, "%T", function);
-    *f_offset = 0;
+    snprintf(process_buf, DTRACE_TERM_BUF_SIZE, "<%lu.%lu.%lu>",
+             pid_channel_no(process->id),
+             pid_number(process->id),
+             pid_serial(process->id));
 
+    erts_snprintf(funbuf, sizeof(funbuf), "%T", function);
     /* I'm not quite sure how these function names are synthesized,
        but they always seem to be in the form of '-name/arity-fun-0'
        so I'm chopping them up */
-    p = strchr(function_name, '/');
+    p = strchr(funbuf, '/');
     if (p) {
         *p = 0;
     }
-    if (function_name[0] == '\'' && function_name[1] == '-') {
-        *f_offset = 2;
+    if (funbuf[0] == '\'' && funbuf[1] == '-') {
+        funptr += 2;
     }
+
+    erts_snprintf(mfa_buf, DTRACE_TERM_BUF_SIZE, "%T:%s/%d",
+                  module, funptr, arity);
 }
 
-#define DTRACE_CALL(p, m, f, a)                      \
-    if (ERLANG_FUNCTION_ENTRY_ENABLED()) {           \
-        char process_name[DTRACE_TERM_BUF_SIZE];     \
-        char module_name[DTRACE_TERM_BUF_SIZE];      \
-        char function_name[DTRACE_TERM_BUF_SIZE];    \
-        int foff;                                    \
-        dtrace_fun_decode(p, m, f, process_name,     \
-                          module_name,               \
-                          function_name, &foff);     \
-        ERLANG_FUNCTION_ENTRY(process_name,          \
-                              module_name,           \
-                              function_name + foff,  \
-                              a);                    \
+#define DTRACE_CALL(p, m, f, a)                     \
+    if (ERLANG_FUNCTION_ENTRY_ENABLED()) {          \
+        char process_name[DTRACE_TERM_BUF_SIZE];    \
+        char mfa[DTRACE_TERM_BUF_SIZE];             \
+        dtrace_fun_decode(p, m, f, a,               \
+                          process_name, mfa);       \
+        ERLANG_FUNCTION_ENTRY(process_name, mfa);   \
     }
 
-#define DTRACE_RETURN(p, m, f, a)                       \
-    if (ERLANG_FUNCTION_RETURN_ENABLED()) {             \
-        char process_name[DTRACE_TERM_BUF_SIZE];        \
-        char module_name[DTRACE_TERM_BUF_SIZE];         \
-        char function_name[DTRACE_TERM_BUF_SIZE];       \
-        int foff;                                       \
-        dtrace_fun_decode(p, m, f, process_name,        \
-                          module_name,                  \
-                          function_name, &foff);        \
-        ERLANG_FUNCTION_RETURN(process_name,            \
-                               module_name,             \
-                               function_name + foff,    \
-                               a);                      \
+#define DTRACE_RETURN(p, m, f, a)                   \
+    if (ERLANG_FUNCTION_RETURN_ENABLED()) {         \
+        char process_name[DTRACE_TERM_BUF_SIZE];    \
+        char mfa[DTRACE_TERM_BUF_SIZE];             \
+        dtrace_fun_decode(p, m, f, a,               \
+                          process_name, mfa);       \
+        ERLANG_FUNCTION_RETURN(process_name, mfa);  \
     }
 
 #define DTRACE_BIF_ENTRY(p, m, f, a)                \
     if (ERLANG_BIF_ENTRY_ENABLED()) {               \
         char process_name[DTRACE_TERM_BUF_SIZE];    \
-        char module_name[DTRACE_TERM_BUF_SIZE];     \
-        char function_name[DTRACE_TERM_BUF_SIZE];   \
-        int foff;                                   \
-        dtrace_fun_decode(p, m, f, process_name,    \
-                          module_name,              \
-                          function_name, &foff);    \
-        ERLANG_BIF_ENTRY(process_name,              \
-                         module_name,               \
-                         function_name + foff,      \
-                         a);                        \
+        char mfa[DTRACE_TERM_BUF_SIZE];             \
+        dtrace_fun_decode(p, m, f, a,               \
+                          process_name, mfa);       \
+        ERLANG_BIF_ENTRY(process_name, mfa);        \
     }
 
 #define DTRACE_BIF_RETURN(p, m, f, a)               \
     if (ERLANG_BIF_RETURN_ENABLED()) {              \
         char process_name[DTRACE_TERM_BUF_SIZE];    \
-        char module_name[DTRACE_TERM_BUF_SIZE];     \
-        char function_name[DTRACE_TERM_BUF_SIZE];   \
-        int foff;                                   \
-        dtrace_fun_decode(p, m, f, process_name,    \
-                          module_name,              \
-                          function_name, &foff);    \
-        ERLANG_BIF_RETURN(process_name,             \
-                          module_name,              \
-                          function_name + foff,     \
-                          a);                       \
+        char mfa[DTRACE_TERM_BUF_SIZE];             \
+        dtrace_fun_decode(p, m, f, a,               \
+                          process_name, mfa);       \
+        ERLANG_BIF_RETURN(process_name, mfa);       \
     }
 
 #define DTRACE_NIF_ENTRY(p, m, f, a)                \
     if (ERLANG_NIF_ENTRY_ENABLED()) {               \
         char process_name[DTRACE_TERM_BUF_SIZE];    \
-        char module_name[DTRACE_TERM_BUF_SIZE];     \
-        char function_name[DTRACE_TERM_BUF_SIZE];   \
-        int foff;                                   \
-        dtrace_fun_decode(p, m, f, process_name,    \
-                          module_name,              \
-                          function_name, &foff);    \
-        ERLANG_NIF_ENTRY(process_name,              \
-                         module_name,               \
-                         function_name + foff,      \
-                         a);                        \
+        char mfa[DTRACE_TERM_BUF_SIZE];             \
+        dtrace_fun_decode(p, m, f, a,               \
+                          process_name, mfa);       \
+        ERLANG_NIF_ENTRY(process_name, mfa);        \
     }
 
 #define DTRACE_NIF_RETURN(p, m, f, a)               \
     if (ERLANG_NIF_RETURN_ENABLED()) {              \
         char process_name[DTRACE_TERM_BUF_SIZE];    \
-        char module_name[DTRACE_TERM_BUF_SIZE];     \
-        char function_name[DTRACE_TERM_BUF_SIZE];   \
-        int foff;                                   \
-        dtrace_fun_decode(p, m, f, process_name,    \
-                          module_name,              \
-                          function_name, &foff);    \
-        ERLANG_NIF_RETURN(process_name,             \
-                          module_name,              \
-                          function_name + foff,     \
-                          a);                       \
+        char mfa[DTRACE_TERM_BUF_SIZE];             \
+        dtrace_fun_decode(p, m, f, a,               \
+                          process_name, mfa);       \
+        ERLANG_NIF_RETURN(process_name, mfa);       \
     }
 
 /*

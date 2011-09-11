@@ -124,59 +124,47 @@ provider erlang {
      * Fired whenever a user function is being called.
      *
      * @param p the PID (string form) of the process
-     * @param m the name of the module
-     * @param f the name of the function
-     * @param a the number of args of the function
+     * @param mfa the m:f/a of the function
      */
-    probe function__entry(char *p, char *m, char *f, int a);
+    probe function__entry(char *p, char *mfa);
 
     /**
      * Fired whenever a user function returns.
      *
      * @param p the PID (string form) of the process
-     * @param m the name of the module
-     * @param f the name of the function
-     * @param a the number of args of the function
+     * @param mfa the m:f/a of the function
      */
-    probe function__return(char *p, char *m, char *f, int a);
+    probe function__return(char *p, char *mfa);
 
     /**
      * Fired whenever a Built In Function is called.
      *
      * @param p the PID (string form) of the process
-     * @param m the name of the module
-     * @param f the name of the function
-     * @param a the number of args of the function
+     * @param mfa the m:f/a of the function
      */
-    probe bif__entry(char *p, char *m, char *f, int a);
+    probe bif__entry(char *p, char *mfa);
 
     /**
      * Fired whenever a Built In Function returns.
      *
      * @param p the PID (string form) of the process
-     * @param m the name of the module
-     * @param f the name of the function
-     * @param a the number of args of the function
+     * @param mfa the m:f/a of the function
      */
-    probe bif__return(char *p, char *m, char *f, int a);
+    probe bif__return(char *p, char *mfa);
 
     /**
      * Fired whenever a Native Function is called.
      *
      * @param p the PID (string form) of the process
-     * @param m the name of the module
-     * @param f the name of the function
-     * @param a the number of args of the function
+     * @param mfa the m:f/a of the function
      */
-    probe nif__entry(char *p, char *m, char *f, int a);
+    probe nif__entry(char *p, char *mfa);
 
     /**
      * Fired whenever a Native Function returns.
      *
      * @param p the PID (string form) of the process
-     * @param m the name of the module
-     * @param f the name of the function
-     * @param a the number of args of the function
+     * @param mfa the m:f/a of the function
      */
-    probe nif__return(char *p, char *m, char *f, int a);
+    probe nif__return(char *p, char *mfa);
 };
