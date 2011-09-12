@@ -6265,6 +6265,11 @@ apply(Process* p, Eterm module, Eterm function, Eterm args, Eterm* reg)
 	save_calls(p, ep);
     }
 
+    if (ERLANG_FUNCTION_ENTRY_ENABLED()) {
+        BeamInstr *fptr = find_function_from_pc(ep->address);
+        DTRACE_CALL(p, (Eterm)fptr[0], (Eterm)fptr[1], (Uint)fptr[2]);
+    }
+
     return ep->address;
 }
 
@@ -6312,6 +6317,11 @@ fixed_apply(Process* p, Eterm* reg, Uint arity)
 	    goto error;
     } else if (ERTS_PROC_GET_SAVED_CALLS_BUF(p)) {
 	save_calls(p, ep);
+    }
+
+    if (ERLANG_FUNCTION_ENTRY_ENABLED()) {
+        BeamInstr *fptr = find_function_from_pc(ep->address);
+        DTRACE_CALL(p, (Eterm)fptr[0], (Eterm)fptr[1], (Uint)fptr[2]);
     }
 
     return ep->address;
