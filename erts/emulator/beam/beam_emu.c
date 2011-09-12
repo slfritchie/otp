@@ -1100,7 +1100,9 @@ dtrace_fun_decode(Process *process,
     char *funptr = funbuf;
     char *p = NULL;
 
-    dtrace_pid_str(process, process_buf);
+    if (process_buf) {
+        dtrace_pid_str(process, process_buf);
+    }
 
     erts_snprintf(funbuf, sizeof(funbuf), "%T", function);
     /* I'm not quite sure how these function names are synthesized,
