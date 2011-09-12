@@ -1374,6 +1374,28 @@ void process_main(void)
 #endif
 	SWAPIN;
 	ASSERT(VALID_INSTR(next));
+
+        if (ERLANG_PROCESS_SCHEDULED_ENABLED()) {
+            char process_buf[DTRACE_TERM_BUF_SIZE];
+            char fun_buf[DTRACE_TERM_BUF_SIZE];
+            dtrace_pid_str(c_p, process_buf);
+
+            if (ERTS_PROC_IS_EXITING(c_p)) {
+                strcpy(fun_buf, "<exiting>");
+            } else {
+                BeamInstr *fptr = find_function_from_pc(c_p->i);
+                if (fptr) {
+                    dtrace_fun_decode(c_p, (Eterm)fptr[0],
+                                      (Eterm)fptr[1], (Uint)fptr[2],
+                                      NULL, fun_buf);
+                } else {
+                    snprintf(fun_buf, sizeof(fun_buf), "<unknown/%p>", next);
+                }
+            }
+
+            ERLANG_PROCESS_SCHEDULED(process_buf, fun_buf);
+        }
+
 	Goto(next);
     }
 
