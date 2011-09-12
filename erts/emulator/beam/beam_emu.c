@@ -6289,9 +6289,11 @@ apply(Process* p, Eterm module, Eterm function, Eterm args, Eterm* reg)
 	save_calls(p, ep);
     }
 
-    if (ERLANG_FUNCTION_ENTRY_ENABLED()) {
+    if (ERLANG_FUNCTION_ENTRY_ENABLED() && ep->address) {
         BeamInstr *fptr = find_function_from_pc(ep->address);
-        DTRACE_CALL(p, (Eterm)fptr[0], (Eterm)fptr[1], (Uint)fptr[2]);
+        if (fptr) {
+            DTRACE_CALL(p, (Eterm)fptr[0], (Eterm)fptr[1], (Uint)fptr[2]);
+        }
     }
 
     return ep->address;
@@ -6345,7 +6347,9 @@ fixed_apply(Process* p, Eterm* reg, Uint arity)
 
     if (ERLANG_FUNCTION_ENTRY_ENABLED()) {
         BeamInstr *fptr = find_function_from_pc(ep->address);
-        DTRACE_CALL(p, (Eterm)fptr[0], (Eterm)fptr[1], (Uint)fptr[2]);
+        if (fptr) {
+            DTRACE_CALL(p, (Eterm)fptr[0], (Eterm)fptr[1], (Uint)fptr[2]);
+        }
     }
 
     return ep->address;
@@ -6474,7 +6478,9 @@ call_fun(Process* p,		/* Current process. */
 
 	fptr = find_function_from_pc(code_ptr);
 
-	DTRACE_CALL(p, fe->module, (Eterm)fptr[1], actual_arity);
+        if (fptr) {
+            DTRACE_CALL(p, fe->module, (Eterm)fptr[1], actual_arity);
+        }
 
 	if (actual_arity == arity+num_free) {
 	    if (num_free == 0) {
