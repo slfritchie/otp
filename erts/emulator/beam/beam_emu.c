@@ -1106,13 +1106,15 @@ dtrace_fun_decode(Process *process,
 
     erts_snprintf(funbuf, sizeof(funbuf), "%T", function);
     /* I'm not quite sure how these function names are synthesized,
-       but they always seem to be in the form of '-name/arity-fun-0'
-       so I'm chopping them up */
-    p = strchr(funbuf, '/');
-    if (p) {
-        *p = 0;
-    }
-    if (funbuf[0] == '\'' && funbuf[1] == '-') {
+       but they almost always seem to be in the form of
+       '-name/arity-fun-0-' so I'm chopping them up when it's -fun-0-
+       (which seems to be the toplevel) */
+    if (funbuf[0] == '\'' && funbuf[1] == '-'
+        && strlen(funbuf) > 3 && funbuf[strlen(funbuf) - 3] == '0') {
+        p = strchr(funbuf, '/');
+        if (p) {
+            *p = 0;
+        }
         funptr += 2;
     }
 
