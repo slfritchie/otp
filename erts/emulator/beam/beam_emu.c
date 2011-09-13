@@ -6401,6 +6401,14 @@ erts_hibernate(Process* c_p, Eterm module, Eterm function, Eterm args, Eterm* re
 	c_p->max_arg_reg = sizeof(c_p->def_arg_reg)/sizeof(c_p->def_arg_reg[0]);
     }
 
+    if (ERLANG_HIBERNATE_ENABLED()) {
+        char process_name[DTRACE_TERM_BUF_SIZE];
+        char mfa[DTRACE_TERM_BUF_SIZE];
+        dtrace_fun_decode(c_p, module, function, arity,
+                          process_name, mfa);
+        ERLANG_HIBERNATE(process_name, mfa);
+    }
+
     /*
      * Arrange for the process to be resumed at the given MFA with
      * the stack cleared.

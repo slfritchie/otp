@@ -233,4 +233,12 @@ provider erlang {
      * unscheduled.
      */
     probe process_unscheduled(char *p);
+
+    /**
+     * Fired when a process goes into hibernation.
+     *
+     * @param p the PID (string form) of the process entering hibernation
+     * @param mfa the m:f/a of the location to resume
+     */
+    probe hibernate(char *p, char *mfa);
 };
