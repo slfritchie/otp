@@ -241,4 +241,22 @@ provider erlang {
      * @param mfa the m:f/a of the location to resume
      */
     probe hibernate(char *p, char *mfa);
+
+    /**
+     * Fired when process' heap is growing.
+     *
+     * @param p the PID (string form) of the existing process
+     * @param old_size the size of the old heap
+     * @param new_size the size of the new heap
+     */
+    probe process_heap__grow(char *p, int old_size, int new_size);
+
+    /**
+     * Fired when process' heap is shrinking.
+     *
+     * @param p the PID (string form) of the existing process
+     * @param old_size the size of the old heap
+     * @param new_size the size of the new heap
+     */
+    probe process_heap__shrink(char *p, int old_size, int new_size);
 };

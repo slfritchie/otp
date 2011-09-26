@@ -1071,6 +1071,13 @@ do_minor(Process *p, int new_sz, Eterm* objv, int nobj)
     sys_memcpy(n_heap + new_sz - n, p->stop, n * sizeof(Eterm));
     p->stop = n_heap + new_sz - n;
 
+    if(HEAP_SIZE(p) != new_sz) {
+        char pidbuf[DTRACE_TERM_BUF_SIZE];
+        if(ERLANG_PROCESS_HEAP_GROW_ENABLED())
+            dtrace_pid_str(p, pidbuf);
+        ERLANG_PROCESS_HEAP_GROW(pidbuf, HEAP_SIZE(p), new_sz);
+    }
+
     ERTS_HEAP_FREE(ERTS_ALC_T_HEAP,
 		   (void*)HEAP_START(p),
 		   HEAP_SIZE(p) * sizeof(Eterm));
@@ -1291,6 +1298,13 @@ major_collection(Process* p, int need, Eterm* objv, int nobj, Uint *recl)
     n = HEAP_END(p) - p->stop;
     sys_memcpy(n_heap + new_sz - n, p->stop, n * sizeof(Eterm));
     p->stop = n_heap + new_sz - n;
+
+    if(HEAP_SIZE(p) != new_sz) {
+        char pidbuf[DTRACE_TERM_BUF_SIZE];
+        if(ERLANG_PROCESS_HEAP_GROW_ENABLED())
+            dtrace_pid_str(p, pidbuf);
+        ERLANG_PROCESS_HEAP_GROW(pidbuf, HEAP_SIZE(p), new_sz);
+    }
 
     ERTS_HEAP_FREE(ERTS_ALC_T_HEAP,
 		   (void *) HEAP_START(p),
@@ -1933,6 +1947,7 @@ grow_new_heap(Process *p, Uint new_sz, Eterm* objv, int nobj)
     int heap_size = HEAP_TOP(p) - HEAP_START(p);
     int stack_size = p->hend - p->stop;
     Sint offs;
+    char pidbuf[DTRACE_TERM_BUF_SIZE];
 
     ASSERT(HEAP_SIZE(p) < new_sz);
     new_heap = (Eterm *) ERTS_HEAP_REALLOC(ERTS_ALC_T_HEAP,
@@ -1962,6 +1977,11 @@ grow_new_heap(Process *p, Uint new_sz, Eterm* objv, int nobj)
         HEAP_TOP(p) = new_heap + heap_size;
         HEAP_START(p) = new_heap;
     }
+
+    if(ERLANG_PROCESS_HEAP_GROW_ENABLED())
+        dtrace_pid_str(p, pidbuf);
+    ERLANG_PROCESS_HEAP_GROW(pidbuf, HEAP_SIZE(p), new_sz);
+
     HEAP_SIZE(p) = new_sz;
 }
 
@@ -1971,7 +1991,7 @@ shrink_new_heap(Process *p, Uint new_sz, Eterm *objv, int nobj)
     Eterm* new_heap;
     int heap_size = HEAP_TOP(p) - HEAP_START(p);
     Sint offs;
-
+    char pidbuf[DTRACE_TERM_BUF_SIZE];
     int stack_size = p->hend - p->stop;
 
     ASSERT(new_sz < p->heap_sz);
@@ -2000,6 +2020,11 @@ shrink_new_heap(Process *p, Uint new_sz, Eterm *objv, int nobj)
         HEAP_TOP(p) = new_heap + heap_size;
         HEAP_START(p) = new_heap;
     }
+
+    if(ERLANG_PROCESS_HEAP_SHRINK_ENABLED())
+        dtrace_pid_str(p, pidbuf);
+    ERLANG_PROCESS_HEAP_SHRINK(pidbuf, HEAP_SIZE(p), new_sz);
+
     HEAP_SIZE(p) = new_sz;
 }
 
