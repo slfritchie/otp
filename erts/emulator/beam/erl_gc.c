@@ -347,6 +347,7 @@ erts_garbage_collect(Process* p, int need, Eterm* objv, int nobj)
     Uint reclaimed_now = 0;
     int done = 0;
     Uint ms1, s1, us1;
+    char pidbuf[DTRACE_TERM_BUF_SIZE];
 
     if (IS_TRACED_FL(p, F_TRACE_GC)) {
         trace_gc(p, am_gc_start);
@@ -369,7 +370,6 @@ erts_garbage_collect(Process* p, int need, Eterm* objv, int nobj)
         FLAGS(p) |= F_NEED_FULLSWEEP;
     }
 
-    char pidbuf[DTRACE_TERM_BUF_SIZE];
     if (ERLANG_GC_MAJOR_START_ENABLED()
         || ERLANG_GC_MAJOR_END_ENABLED()
         || ERLANG_GC_MINOR_START_ENABLED()
