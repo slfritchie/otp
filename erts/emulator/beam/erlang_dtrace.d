@@ -259,4 +259,26 @@ provider erlang {
      * @param new_size the size of the new heap
      */
     probe process_heap__shrink(char *p, int old_size, int new_size);
+
+    /**
+     * Fired when port_command is issued.
+     *
+     * @param proces the PID (string form) of the existing process
+     * @param port the Port (string form) of the existing port
+     * @param port_name the string used when opening a port
+     * @param command command that has been issued to the port (might be truncated)
+     */
+    probe port_command(char *process, char *port, char *port_name, char *command);
+
+    /**
+     * Fired when port_control is issued.
+     *
+     */
+    probe port_control();
+
+    /**
+     * Fired when exit signal is generated.
+     *
+     */
+    probe exit_signal();
 };

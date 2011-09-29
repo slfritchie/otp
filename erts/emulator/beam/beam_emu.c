@@ -1085,11 +1085,23 @@ init_emulator(void)
 #endif
 
 inline void
-dtrace_pid_str(Process *process, char *process_buf) {
+dtrace_proc_str(Process *process, char *process_buf) {
+    dtrace_pid_str(process->id, process_buf);
+}
+
+inline void
+dtrace_pid_str(Eterm pid, char *process_buf) {
     snprintf(process_buf, DTRACE_TERM_BUF_SIZE, "<%lu.%lu.%lu>",
-             pid_channel_no(process->id),
-             pid_number(process->id),
-             pid_serial(process->id));
+             pid_channel_no(pid),
+             pid_number(pid),
+             pid_serial(pid));
+}
+
+inline void
+dtrace_port_str(Port *port, char *port_buf) {
+    snprintf(port_buf, DTRACE_TERM_BUF_SIZE, "#Port<%lu.%lu>",
+             port_channel_no(port->id),
+             port_number(port->id));
 }
 
 inline void
@@ -1101,7 +1113,7 @@ dtrace_fun_decode(Process *process,
     char *p = NULL;
 
     if (process_buf) {
-        dtrace_pid_str(process, process_buf);
+        dtrace_proc_str(process, process_buf);
     }
 
     erts_snprintf(funbuf, sizeof(funbuf), "%T", function);
@@ -1380,7 +1392,7 @@ void process_main(void)
         if (ERLANG_PROCESS_SCHEDULED_ENABLED()) {
             char process_buf[DTRACE_TERM_BUF_SIZE];
             char fun_buf[DTRACE_TERM_BUF_SIZE];
-            dtrace_pid_str(c_p, process_buf);
+            dtrace_proc_str(c_p, process_buf);
 
             if (ERTS_PROC_IS_EXITING(c_p)) {
                 strcpy(fun_buf, "<exiting>");

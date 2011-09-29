@@ -5183,7 +5183,7 @@ Process *schedule(Process *p, int calls)
 
     if (ERLANG_PROCESS_UNSCHEDULED_ENABLED()) {
         char process_buf[DTRACE_TERM_BUF_SIZE];
-        dtrace_pid_str(p, process_buf);
+        dtrace_proc_str(p, process_buf);
         ERLANG_PROCESS_UNSCHEDULED(process_buf);
     }
 
@@ -7405,7 +7405,7 @@ erts_do_exit_process(Process* p, Eterm reason)
     if (ERLANG_EXIT_ENABLED()) {
         char process_buf[DTRACE_TERM_BUF_SIZE];
         char reason_buf[256];
-        dtrace_pid_str(p, process_buf);
+        dtrace_proc_str(p, process_buf);
         erts_snprintf(reason_buf, sizeof(reason_buf) - 1, "%T", reason);
         ERLANG_EXIT(process_buf, reason_buf);
     }

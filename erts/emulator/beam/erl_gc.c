@@ -374,7 +374,7 @@ erts_garbage_collect(Process* p, int need, Eterm* objv, int nobj)
         || ERLANG_GC_MAJOR_END_ENABLED()
         || ERLANG_GC_MINOR_START_ENABLED()
         || ERLANG_GC_MINOR_END_ENABLED()) {
-        dtrace_pid_str(p, pidbuf);
+        dtrace_proc_str(p, pidbuf);
     }
 
     /*
@@ -1074,7 +1074,7 @@ do_minor(Process *p, int new_sz, Eterm* objv, int nobj)
     if(HEAP_SIZE(p) != new_sz) {
         char pidbuf[DTRACE_TERM_BUF_SIZE];
         if(ERLANG_PROCESS_HEAP_GROW_ENABLED())
-            dtrace_pid_str(p, pidbuf);
+            dtrace_proc_str(p, pidbuf);
         ERLANG_PROCESS_HEAP_GROW(pidbuf, HEAP_SIZE(p), new_sz);
     }
 
@@ -1302,7 +1302,7 @@ major_collection(Process* p, int need, Eterm* objv, int nobj, Uint *recl)
     if(HEAP_SIZE(p) != new_sz) {
         char pidbuf[DTRACE_TERM_BUF_SIZE];
         if(ERLANG_PROCESS_HEAP_GROW_ENABLED())
-            dtrace_pid_str(p, pidbuf);
+            dtrace_proc_str(p, pidbuf);
         ERLANG_PROCESS_HEAP_GROW(pidbuf, HEAP_SIZE(p), new_sz);
     }
 
@@ -1979,7 +1979,7 @@ grow_new_heap(Process *p, Uint new_sz, Eterm* objv, int nobj)
     }
 
     if(ERLANG_PROCESS_HEAP_GROW_ENABLED())
-        dtrace_pid_str(p, pidbuf);
+        dtrace_proc_str(p, pidbuf);
     ERLANG_PROCESS_HEAP_GROW(pidbuf, HEAP_SIZE(p), new_sz);
 
     HEAP_SIZE(p) = new_sz;
@@ -2022,7 +2022,7 @@ shrink_new_heap(Process *p, Uint new_sz, Eterm *objv, int nobj)
     }
 
     if(ERLANG_PROCESS_HEAP_SHRINK_ENABLED())
-        dtrace_pid_str(p, pidbuf);
+        dtrace_proc_str(p, pidbuf);
     ERLANG_PROCESS_HEAP_SHRINK(pidbuf, HEAP_SIZE(p), new_sz);
 
     HEAP_SIZE(p) = new_sz;

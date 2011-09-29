@@ -4,7 +4,13 @@
 #define DTRACE_TERM_BUF_SIZE 256
 
 inline void
-dtrace_pid_str(Process *process, char *process_buf);
+dtrace_proc_str(Process *process, char *process_buf);
+
+inline void
+dtrace_pid_str(Eterm pid, char *process_buf);
+
+inline void
+dtrace_port_str(Port *port, char *port_buf);
 
 inline void
 dtrace_fun_decode(Process *process,
