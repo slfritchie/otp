@@ -33,6 +33,7 @@
 #include "erl_binary.h"
 
 #include "erlang_dtrace.h"
+#include "dtrace_helpers.h"
 
 ERTS_SCHED_PREF_QUICK_ALLOC_IMPL(message,
 				 ErlMessage,
@@ -464,12 +465,19 @@ erts_queue_message(Process* receiver,
     LINK_MESSAGE(receiver, mp);
 #endif
 
+    if (ERLANG_RECEIVE_ENABLED()) {
+        char receiver_name[DTRACE_TERM_BUF_SIZE];
+
+        dtrace_proc_str(receiver, receiver_name);
+        ERLANG_RECEIVE(receiver_name, size_object(message), receiver->msg.len);
+    }
+
     notify_new_message(receiver);
 
     if (IS_TRACED_FL(receiver, F_TRACE_RECEIVE)) {
 	trace_receive(receiver, message);
     }
-    
+
 #ifndef ERTS_SMP
     ERTS_HOLE_CHECK(receiver);
 #endif
