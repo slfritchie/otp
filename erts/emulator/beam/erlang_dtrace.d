@@ -187,6 +187,15 @@ provider erlang {
     probe exit(char *p, char *reason);
 
     /**
+     * Fired when exit signal is delivered to a local process.
+     *
+     * @param sender the PID (string form) of the exiting process
+     * @param receiver the PID (string form) of the process receiving EXIT signal
+     * @param reason the reason for the exit (may be truncated)
+     */
+    probe exit_signal(char *sender, char *receiver, char *reason);
+
+    /**
      * Fired when a major GC is starting.
      *
      * @param p the PID (string form) of the exiting process
@@ -279,10 +288,4 @@ provider erlang {
      * @param command_no command number that has been issued to the port
      */
     probe port__control(char *process, char *port, char *port_name, int command_no);
-
-    /**
-     * Fired when exit signal is generated.
-     *
-     */
-    probe exit_signal();
 };

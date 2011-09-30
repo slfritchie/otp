@@ -6966,6 +6966,17 @@ send_exit_signal(Process *c_p,		/* current process if and only
 
     ASSERT(reason != THE_NON_VALUE);
 
+    if(ERLANG_EXIT_SIGNAL_ENABLED() && is_pid(from)) {
+        char sender_str[DTRACE_TERM_BUF_SIZE];
+        char receiver_str[DTRACE_TERM_BUF_SIZE];
+        char reason_buf[DTRACE_TERM_BUF_SIZE];
+
+        dtrace_pid_str(from, sender_str);
+        dtrace_proc_str(rp, receiver_str);
+        erts_snprintf(reason_buf, sizeof(reason_buf) - 1, "%T", reason);
+        ERLANG_EXIT_SIGNAL(sender_str, receiver_str, reason_buf);
+    }
+
     if (ERTS_PROC_IS_TRAPPING_EXITS(rp)
 	&& (reason != am_kill || (flags & ERTS_XSIG_FLG_IGN_KILL))) {
 	if (is_not_nil(token) && token_update)
