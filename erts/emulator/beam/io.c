@@ -1180,13 +1180,10 @@ int erts_write_to_port(Eterm caller_id, Port *p, Eterm list)
     if(ERLANG_PORT_COMMAND_ENABLED()) {
         char process_str[DTRACE_TERM_BUF_SIZE];
         char port_str[DTRACE_TERM_BUF_SIZE];
-        char command_str[DTRACE_TERM_BUF_SIZE];
 
         dtrace_pid_str(caller_id, process_str);
         dtrace_port_str(p, port_str);
-        strcpy(command_str, "command: "),
-        erts_snprintf(command_str+9, sizeof(command_str) - 10, "%T", buf);
-        ERLANG_PORT_COMMAND(process_str, port_str, p->name, command_str);
+        ERLANG_PORT_COMMAND(process_str, port_str, p->name, "command");
     }
 
 	if (r >= 0) {
@@ -2242,6 +2239,15 @@ erts_port_control(Process* p, Port* prt, Uint command, Eterm iolist)
 
     erts_smp_proc_unlock(p, ERTS_PROC_LOCK_MAIN);
     ERTS_SMP_CHK_NO_PROC_LOCKS;
+
+    if(ERLANG_PORT_CONTROL_ENABLED()) {
+        char process_str[DTRACE_TERM_BUF_SIZE];
+        char port_str[DTRACE_TERM_BUF_SIZE];
+
+        dtrace_proc_str(p, process_str);
+        dtrace_port_str(prt, port_str);
+        ERLANG_PORT_CONTROL(process_str, port_str, prt->name, command);
+    }
 
     /*
      * Call the port's control routine.

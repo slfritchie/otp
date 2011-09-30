@@ -266,15 +266,19 @@ provider erlang {
      * @param proces the PID (string form) of the existing process
      * @param port the Port (string form) of the existing port
      * @param port_name the string used when opening a port
-     * @param command command that has been issued to the port (might be truncated)
+     * @param command_type type of the issued command, one of: "close", "command" or "connect"
      */
-    probe port_command(char *process, char *port, char *port_name, char *command);
+    probe port__command(char *process, char *port, char *port_name, char *command_type);
 
     /**
      * Fired when port_control is issued.
      *
+     * @param proces the PID (string form) of the existing process
+     * @param port the Port (string form) of the existing port
+     * @param port_name the string used when opening a port
+     * @param command_no command number that has been issued to the port
      */
-    probe port_control();
+    probe port__control(char *process, char *port, char *port_name, int command_no);
 
     /**
      * Fired when exit signal is generated.
