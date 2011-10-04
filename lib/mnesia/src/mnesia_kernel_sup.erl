@@ -36,11 +36,11 @@ start() ->
 init([]) ->
     ProcLib = [mnesia_monitor, proc_lib],
     Flags = {one_for_all, 0, timer:hours(24)}, % Trust the top supervisor
-    Workers = [worker_spec(mnesia_monitor, timer:seconds(3), [gen_server]),
-	       worker_spec(mnesia_subscr, timer:seconds(3), [gen_server]),
-	       worker_spec(mnesia_locker, timer:seconds(3), ProcLib),
+    Workers = [worker_spec(mnesia_monitor, timer:seconds(30), [gen_server]),
+	       worker_spec(mnesia_subscr, timer:seconds(30), [gen_server]),
+	       worker_spec(mnesia_locker, timer:seconds(30), ProcLib),
 	       worker_spec(mnesia_recover, timer:minutes(3), [gen_server]),
-	       worker_spec(mnesia_tm, timer:seconds(30), ProcLib),
+	       worker_spec(mnesia_tm, timer:seconds(45), ProcLib),
 	       supervisor_spec(mnesia_checkpoint_sup),
 	       supervisor_spec(mnesia_snmp_sup),
 	       worker_spec(mnesia_controller, timer:seconds(3), [gen_server]),

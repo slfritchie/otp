@@ -389,7 +389,7 @@ initial_call(Info)  ->
     end.
 
 iformat(A1, A2, A3, A4, A5) ->
-    format("~-21s ~-33s ~8s ~8s ~4s~n", [A1,A2,A3,A4,A5]).
+    format("~-21s ~-33s ~8s ~8s ~8s~n", [A1,A2,A3,A4,A5]).
 
 all_procs() ->
     case is_alive() of
@@ -660,7 +660,7 @@ procline(Name, Info, Pid) ->
 	       integer_to_list(Reds), integer_to_list(LM)).
 
 procformat(Name, Pid, Call, Reds, LM) ->
-    format("~-21s ~-12s ~-25s ~12s ~4s~n", [Name,Pid,Call,Reds,LM]).
+    format("~-21s ~-12s ~-25s ~12s ~8s~n", [Name,Pid,Call,Reds,LM]).
 
 portline(Name, Info, Id) ->
     Cmd = fetch(name, Info),
