@@ -365,23 +365,38 @@ switch_cmd({ok,[{atom,_,s}],_}, Iport, Oport, Gr0) ->
 switch_cmd({ok,[{atom,_,r}],_}, Iport, Oport, Gr0) ->
     case is_alive() of
 	true ->
-	    Node = pool:get_node(),
-	    Pid = group:start(self(), {Node,shell,start,[]}),
-	    Gr = gr_add_cur(Gr0, Pid, {Node,shell,start,[]}),
-	    switch_loop(Iport, Oport, Gr);
+	    case catch pool:get_node() of
+		Node when is_atom(Node) ->
+		    Pid = group:start(self(), {Node,shell,start,[]}),
+		    Gr = gr_add_cur(Gr0, Pid, {Node,shell,start,[]}),
+		    switch_loop(Iport, Oport, Gr);
+		{'EXIT', _} ->
+		    io_request({put_chars,unicode,"No node\n"}, Iport, Oport),
+		    switch_loop(Iport, Oport, Gr0)
+	    end;
 	false ->
 	    io_request({put_chars,unicode,"Not alive\n"}, Iport, Oport),
 	    switch_loop(Iport, Oport, Gr0)
     end;
 switch_cmd({ok,[{atom,_,r},{atom,_,Node}],_}, Iport, Oport, Gr0) ->
-    Pid = group:start(self(), {Node,shell,start,[]}),
-    Gr = gr_add_cur(Gr0, Pid, {Node,shell,start,[]}),
-    switch_loop(Iport, Oport, Gr);
+    net_adm:ping(Node),
+    case lists:member(Node, [node()|nodes()]) of
+	true -> Pid = group:start(self(), {Node,shell,start,[]}),
+		Gr = gr_add_cur(Gr0, Pid, {Node,shell,start,[]}),
+		switch_loop(Iport, Oport, Gr);
+	false -> io_request({put_chars,unicode,"No node\n"}, Iport, Oport),
+		 switch_loop(Iport, Oport, Gr0)
+    end;
 switch_cmd({ok,[{atom,_,r},{atom,_,Node},{atom,_,Shell}],_},
 	   Iport, Oport, Gr0) ->
-    Pid = group:start(self(), {Node,Shell,start,[]}),
-    Gr = gr_add_cur(Gr0, Pid, {Node,Shell,start,[]}),
-    switch_loop(Iport, Oport, Gr);
+    net_adm:ping(Node),
+    case lists:member(Node, [node()|nodes()]) of
+	true -> Pid = group:start(self(), {Node,Shell,start,[]}),
+		Gr = gr_add_cur(Gr0, Pid, {Node,Shell,start,[]}),
+		switch_loop(Iport, Oport, Gr);
+	false -> io_request({put_chars,unicode,"No node\n"}, Iport, Oport),
+		 switch_loop(Iport, Oport, Gr0)
+    end;
 switch_cmd({ok,[{atom,_,q}],_}, Iport, Oport, Gr) ->
     case erlang:system_info(break_ignored) of
 	true ->					% noop
