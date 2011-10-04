@@ -549,7 +549,7 @@ load({Mod, Src, Beam, BeamBin, Exp, Abst}, Dist) ->
 check_module(Mod) ->
     case code:which(Mod) of
 	Beam when is_list(Beam) ->
-	    case find_src(Beam) of
+	    case find_src(Mod) of
 		Src when is_list(Src) ->
 		    check_application(Src),
 		    case check_beam(Beam) of
@@ -610,7 +610,7 @@ check_application2("gs-"++_) -> throw({error,{app,gs}});
 check_application2("debugger-"++_) -> throw({error,{app,debugger}});
 check_application2(_) -> ok.
 
-find_src(Beam) ->
+find_src(Beam) when is_list(Beam) ->
     Src0 = filename:rootname(Beam) ++ ".erl",
     case is_file(Src0) of
 	true -> Src0;
@@ -622,6 +622,18 @@ find_src(Beam) ->
 		true -> Src;
 		false -> error
 	    end
+    end;
+find_src(Mod) ->
+    Src0 = case lists:keyfind(source, 1, Mod:module_info(compile)) of
+	       {source, Path} -> Path;
+	       _ -> case lists:keyfind(file, 1, Mod:module_info(attributes)) of
+			{file, {Path, _}} -> Path;
+			_ -> not_found
+		    end
+	   end,
+    case is_file(Src0) of
+	true -> Src0;
+	false -> find_src(code:which(Mod))
     end.
 
 find_beam(Mod, Src) ->
