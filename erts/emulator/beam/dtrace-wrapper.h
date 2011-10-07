@@ -22,7 +22,7 @@
 
 #ifdef  HAVE_DTRACE
 
-#include "dtrace-probes.h"
+#include "erlang_dtrace.h"
 
 #define DTRACE_ENABLED(name)                         \
     erlang_vm_##name##_enabled()

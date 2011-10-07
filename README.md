@@ -43,16 +43,16 @@ compile on a Solaris 10 or OpenSolaris machine, but no promises yet.
 The autoconf stuff is ugly right now.  It could use some cleaning up.
 For example:
 
-* After editing the `dtrace-probes.d` file, you need to re-run the
-* top-level "configure" script in order to update `dtrace-probes.h`.
-* `make clean` will remove `dtrace-probes.h`.  A build will fail
+* After editing the `erlang_dtrace.d` file, you need to re-run the
+* top-level "configure" script in order to update `erlang_dtrace.h`.
+* `make clean` will remove `erlang_dtrace.h`.  A build will fail
   unless the top-level "configure" script is re-run to re-create that
   file.
-* The `dtrace-probes.h` file's location should probably be moved to an
+* The `erlang_dtrace.h` file's location should probably be moved to an
   OTP platform-specific build dir, for example,
   `path/to/somewhere/i386-apple-darwin10.8.0`
 * There are probably some other build by-products that are also being
-  put into the "wrong" directory, for example, `dtrace-probes.o` for
+  put into the "wrong" directory, for example, `erlang_dtrace.o` for
   Solaris platforms.
 
 Contributions

@@ -3541,18 +3541,18 @@ if test "$enable_dtrace" = "yes" ; then
         if test "$DTRACE" = "dtrace" ; then
                 AC_CHECK_HEADERS(sys/sdt.h)
                 # The OS X version of dtrace prints a spurious line here.
-                if ! dtrace -h $DTRACE_CPP -Iemulator/beam -s emulator/beam/dtrace-probes.d; then
-                        AC_MSG_ERROR([Could not precompile dtrace-probes.d: dtrace -h failed])
+                if ! dtrace -h $DTRACE_CPP -Iemulator/beam -s emulator/beam/erlang_dtrace.d; then
+                        AC_MSG_ERROR([Could not precompile erlang_dtrace.d: dtrace -h failed])
                 fi
-                if ! sed -e '/^#define[ 	]*ERLANG_VM_[A-Z_]*(.*)/y/ABCDEFGHIJKLMNOPQRSTUVWXYZ/abcdefghijklmnopqrstuvwxyz/' dtrace-probes.h > emulator/beam/dtrace-probes.h ; then
-                        AC_MSG_ERROR([Could not precompile dtrace-probes.d: sed failed])
+                if ! sed -e '/^#define[ 	]*ERLANG_VM_[A-Z_]*(.*)/y/ABCDEFGHIJKLMNOPQRSTUVWXYZ/abcdefghijklmnopqrstuvwxyz/' erlang_dtrace.h > emulator/beam/erlang_dtrace.h ; then
+                        AC_MSG_ERROR([Could not precompile erlang_dtrace.d: sed failed])
                 fi
-                rm dtrace-probes.h
+                rm erlang_dtrace.h
 
-                $RM -f ./dtrace-probes.o
-                if dtrace -G $DTRACE_CPP -Iemulator/beam -s emulator/beam/dtrace-probes.d 2> /dev/null && \
-                   test -f ./dtrace-probes.o ; then
-                        rm ./dtrace-probes.o
+                $RM -f ./erlang_dtrace.o
+                if dtrace -G $DTRACE_CPP -Iemulator/beam -s emulator/beam/erlang_dtrace.d 2> /dev/null && \
+                   test -f ./erlang_dtrace.o ; then
+                        rm ./erlang_dtrace.o
                         DTRACE_ENABLED_SOLARIS=yes
                         AC_MSG_NOTICE([dtrace precompilation for Solaris successful])
                 else

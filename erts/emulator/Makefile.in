@@ -836,24 +836,24 @@ BASE_OBJS = $(RUN_OBJS) $(EMU_OBJS) $(OS_OBJS) $(EXTRA_BASE_OBJS)
 OBJS =	$(BASE_OBJS) $(DRV_OBJS)
 
 ifdef DTRACE_ENABLED
-$(ERL_TOP)/erts/emulator/beam/dtrace-probes.h: $(ERL_TOP)/erts/emulator/beam/dtrace-probes.d
+$(ERL_TOP)/erts/emulator/beam/erlang_dtrace.h: $(ERL_TOP)/erts/emulator/beam/erlang_dtrace.d
 	dtrace -h -C -I$(ERL_TOP)/erts/emulator/beam \
-	  -s $(ERL_TOP)/erts/emulator/beam/dtrace-probes.d \
-	  -o ./dtrace-probes.h
-	sed -e '/^#define[ 	]*ERLANG_VM_[A-Z_]*(.*)/y/ABCDEFGHIJKLMNOPQRSTUVWXYZ/abcdefghijklmnopqrstuvwxyz/' ./dtrace-probes.h > $(ERL_TOP)/erts/emulator/beam/dtrace-probes.h
-	rm ./dtrace-probes.h
+	  -s $(ERL_TOP)/erts/emulator/beam/erlang_dtrace.d \
+	  -o ./erlang_dtrace.h
+	sed -e '/^#define[ 	]*ERLANG_VM_[A-Z_]*(.*)/y/ABCDEFGHIJKLMNOPQRSTUVWXYZ/abcdefghijklmnopqrstuvwxyz/' ./erlang_dtrace.h > $(ERL_TOP)/erts/emulator/beam/erlang_dtrace.h
+	rm ./erlang_dtrace.h
 endif
 
 ifdef DTRACE_ENABLED_SOLARIS
-OBJS += $(OBJDIR)/dtrace-probes.o
-$(OBJDIR)/dtrace-probes.o: $(OBJS) $(ERL_TOP)/erts/emulator/beam/dtrace-probes.h
-	touch $(OBJDIR)/dtrace-probes.c
-	gcc -c $(CFLAGS) -o $@ $(OBJDIR)/dtrace-probes.c
+OBJS += $(OBJDIR)/erlang_dtrace.o
+$(OBJDIR)/erlang_dtrace.o: $(OBJS) $(ERL_TOP)/erts/emulator/beam/erlang_dtrace.h
+	touch $(OBJDIR)/erlang_dtrace.c
+	gcc -c $(CFLAGS) -o $@ $(OBJDIR)/erlang_dtrace.c
 	# The object file created above is immediately clobbered below.
-	# But creating it above avoids chicken-and-egg problem with $(OBJS)
+	# But creating it above avoids chicken-and-egg problem with OBJS
 	dtrace -G -C -I$(ERL_TOP)/erts/emulator/beam \
-	  -s $(ERL_TOP)/erts/emulator/beam/dtrace-probes.d \
-	  -o $(OBJDIR)/dtrace-probes.o $(OBJS)
+	  -s $(ERL_TOP)/erts/emulator/beam/erlang_dtrace.d \
+	  -o $(OBJDIR)/erlang_dtrace.o $(OBJS)
 endif
 
 ########################################
