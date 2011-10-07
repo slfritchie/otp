@@ -148,18 +148,83 @@ This method of tagging I/O at the Erlang level is subject to change.
 Example DTrace probe specification
 ----------------------------------
 
-        /* Async driver pool */
-        
-        probe async_io_pool_add(int, int);  /* Pool member #, post-op queue length */
-        probe async_io_pool_get(int, int);  /* Pool member #, post-op queue length */
-        
-        /* thread-id, tag,  user-tag,  command, 2 char* args, 4 int args */
-        probe file_drv_entry(int, int, char *, int, char *, char *, int64_t, int64_t, int64_t, int64_t);
-        /* thread-id, tag, work-thread-id,  command */
-        probe file_drv_int_entry(int, int, int, int);
-        probe file_drv_int_return(int, int, int, int);
-        /* thread-id, tag, user-tag, command, int success?, int errno, sched-thread-id, .??. */
-        probe file_drv_return(int, int, char *, int, int, int, int);
+     /* Async driver pool */
+
+     /**
+      * Show the post-add length of the async driver thread pool member's queue.
+      *
+      * @param pool member number
+      * @param new queue length
+      */
+     probe async_io_pool_add(int, int);
+
+     /**
+      * Show the post-get length of the async driver thread pool member's queue.
+      *
+      * @param pool member number
+      * @param new queue length
+      */
+     probe async_io_pool_get(int, int);
+
+     /* Probes for efile_drv.c */
+
+     /**
+      * Entry into the efile_drv.c file I/O driver
+      *
+      * For a list of command numbers used by this driver, see the section
+      * "Guide to probe arguments" in ../../../README.md.  That section
+      * also contains explanation of the various integer and string
+      * arguments that may be present when any particular probe fires.
+      *
+      * @param thread-id number of the scheduler Pthread                   arg0
+      * @param tag number: {thread-id, tag} uniquely names a driver operation
+      * @param user-tag string                                             arg2
+      * @param command number                                              arg3
+      * @param string argument 1                                           arg4
+      * @param string argument 2                                           arg5
+      * @param integer argument 1                                          arg6
+      * @param integer argument 2                                          arg7
+      * @param integer argument 3                                          arg8
+      * @param integer argument 4                                          arg9
+      */
+     probe file_drv_entry(int, int, char *, int, char *, char *,
+			  int64_t, int64_t, int64_t, int64_t);
+
+     /*     0       1              2       3     */
+     /* thread-id, tag, work-thread-id,  command */
+     /**
+      * Entry into the driver's internal work function.  Computation here
+      * is performed by a async worker pool Pthread.
+      *
+      * @param thread-id number
+      * @param tag number
+      * @param worker pool thread-id number
+      * @param command number
+      */
+     probe file_drv_int_entry(int, int, int, int);
+
+     /**
+      * Return from the driver's internal work function.
+      *
+      * @param thread-id number
+      * @param tag number
+      * @param worker pool thread-id number
+      * @param command number
+      */
+     probe file_drv_int_return(int, int, int, int);
+
+     /**
+      * Return from the efile_drv.c file I/O driver
+      *
+      * @param thread-id number                                            arg0
+      * @param tag number                                                  arg1
+      * @param user-tag string                                             arg2
+      * @param command number                                              arg3
+      * @param Success? 1 is success, 0 is failure                         arg4
+      * @param If failure, the errno of the error.                         arg5
+      * @param thread-id number of the scheduler Pthread executing now     arg6
+      */
+     probe file_drv_return(int, int, char *, int, int, int, int);
 
 Guide to probe arguments
 ------------------------

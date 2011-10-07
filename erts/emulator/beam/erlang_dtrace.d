@@ -223,57 +223,93 @@ provider erlang {
      */
     probe port__control(char *process, char *port, char *port_name, int command_no);
 
-/**************************************************************
-SLF TODO: annotation challenges:
 
-    1. Some calls have port owned directly by user proc, e.g.
-       file:open() with 'raw' option.
-    2. Some calls have intermediate owner proc, e.g. file:open()
-       without 'raw' options.
-    3. Some calls are performed by 'file_server_2' process, e.g.
-       make_link() and rename().  (usually pid <0.18.0>)
-    4. Some are done by 'erl_prim_loader'. (usually pid <0.3.0>)
+     /* Async driver pool */
 
-"Best" official way to annotate efile_drv I/O is to add extra
-NUL-terminated string to all calls?
-    * But how to get that string from user Erlang code to driver?
-    * port_open option isn't flexible enough: if owner is a proxy
-      like file_server_2 or non-raw-read/write, proxy isn't good
-      enough.
-    * file.erl API is cast in stone.
-    * abuse proc dict??
-        - what about proxies, e.g. non-raw-read/write??
-**************************************************************/
+     /**
+      * Show the post-add length of the async driver thread pool member's queue.
+      *
+      * @param pool member number
+      * @param new queue length
+      */
+     probe async_io_pool_add(int, int);
 
-        /* Async driver pool */
+     /**
+      * Show the post-get length of the async driver thread pool member's queue.
+      *
+      * @param pool member number
+      * @param new queue length
+      */
+     probe async_io_pool_get(int, int);
 
-        probe async_io_pool_add(int, int);  /* Pool member #, post-op queue length */
-        probe async_io_pool_get(int, int);  /* Pool member #, post-op queue length */
+     /* Probes for efile_drv.c */
 
-        /* Probes for efile_drv.c */
+     /**
+      * Entry into the efile_drv.c file I/O driver
+      *
+      * For a list of command numbers used by this driver, see the section
+      * "Guide to probe arguments" in ../../../README.md.  That section
+      * also contains explanation of the various integer and string
+      * arguments that may be present when any particular probe fires.
+      *
+      * @param thread-id number of the scheduler Pthread                   arg0
+      * @param tag number: {thread-id, tag} uniquely names a driver operation
+      * @param user-tag string                                             arg2
+      * @param command number                                              arg3
+      * @param string argument 1                                           arg4
+      * @param string argument 2                                           arg5
+      * @param integer argument 1                                          arg6
+      * @param integer argument 2                                          arg7
+      * @param integer argument 3                                          arg8
+      * @param integer argument 4                                          arg9
+      */
+     probe file_drv_entry(int, int, char *, int, char *, char *,
+			  int64_t, int64_t, int64_t, int64_t);
 
-        /*     0       1         2       3       4,5            6,7,8,9  */
-        /* thread-id, tag,  user-tag,  command, 2 char* args, 4 int args */
-        probe file_drv_entry(int, int, char *, int, char *, char *, int64_t, int64_t, int64_t, int64_t);
+     /*     0       1              2       3     */
+     /* thread-id, tag, work-thread-id,  command */
+     /**
+      * Entry into the driver's internal work function.  Computation here
+      * is performed by a async worker pool Pthread.
+      *
+      * @param thread-id number
+      * @param tag number
+      * @param worker pool thread-id number
+      * @param command number
+      */
+     probe file_drv_int_entry(int, int, int, int);
+
+     /**
+      * Return from the driver's internal work function.
+      *
+      * @param thread-id number
+      * @param tag number
+      * @param worker pool thread-id number
+      * @param command number
+      */
+     probe file_drv_int_return(int, int, int, int);
+
+     /**
+      * Return from the efile_drv.c file I/O driver
+      *
+      * @param thread-id number                                            arg0
+      * @param tag number                                                  arg1
+      * @param user-tag string                                             arg2
+      * @param command number                                              arg3
+      * @param Success? 1 is success, 0 is failure                         arg4
+      * @param If failure, the errno of the error.                         arg5
+      * @param thread-id number of the scheduler Pthread executing now     arg6
+      */
+     probe file_drv_return(int, int, char *, int, int, int, int);
 
 /*
  * NOTE:
- * For formatting the last N int64_t arguments to the
- * file_drv_entry probe, see:
+ * For formatting int64_t arguments within a D script, see:
  *
  *   http://mail.opensolaris.org/pipermail/dtrace-discuss/2006-November/002830.html
- *
- *   "1) you don't need the 'l' printf() modifiers with DTrace ever"
+ *   Summary:
+ *       "1) you don't need the 'l' printf() modifiers with DTrace ever"
  */
-
-        /*     0       1              2       3     */
-        /* thread-id, tag, work-thread-id,  command */
-        probe file_drv_int_entry(int, int, int, int);
-        probe file_drv_int_return(int, int, int, int);
-
-        /*     0       1       2       3          4             5           6           .??. */
-        /* thread-id, tag, user-tag, command, int success?, int errno, sched-thread-id, .??. */
-        probe file_drv_return(int, int, char *, int, int, int, int);
 
 /*
  * NOTE: For file_drv_return + SMP + R14B03 (and perhaps other
