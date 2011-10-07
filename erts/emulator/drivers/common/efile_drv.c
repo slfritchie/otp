@@ -112,6 +112,8 @@ void erl_exit(int n, char *fmt, ...);
 static ErlDrvSysInfo sys_info;
 
 #ifdef  HAVE_DTRACE
+/* For explanation of this var, see comment for same var in erl_async.c */
+static int gcc_optimizer_hack = 0;
 
 #define DTRACE_INVOKE_SETUP(op) \
     dt_private *dt_priv = get_dt_private(dt_driver_io_worker_base) ; \
@@ -122,7 +124,7 @@ static ErlDrvSysInfo sys_info;
     DTRACE_INVOKE_SETUP(op)
 #define DTRACE_INVOKE_RETURN(op) \
     do { DTRACE4(file_drv_int_return, d->sched_i1, d->sched_i2, \
-                 dt_priv->thread_num, op); } while (0)
+                 dt_priv->thread_num, op); } while (0) ; gcc_optimizer_hack++ ;
 
 int             dt_driver_idnum = 0;
 int             dt_driver_io_worker_base = 5000;
@@ -1619,6 +1621,7 @@ static void invoke_flstat(void *data)
     DTRACE4(file_drv_int_entry, d->sched_i1, d->sched_i2,
             dt_priv->thread_num, d->command == FILE_LSTAT ? FILE_LSTAT :
                                                             FILE_FSTAT);
+    gcc_optimizer_hack++;
 }
 
 static void invoke_link(void *data)
