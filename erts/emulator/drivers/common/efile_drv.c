@@ -103,6 +103,7 @@
 #include "erl_threads.h"
 #include "zlib.h"
 #include "gzio.h"
+#define DTRACE_DRIVER_SKIP_FUNC_DECLARATIONS
 #include "dtrace-wrapper.h"
 #include <ctype.h>
 #include <sys/types.h>
@@ -111,9 +112,10 @@ void erl_exit(int n, char *fmt, ...);
 
 static ErlDrvSysInfo sys_info;
 
-#ifdef  HAVE_DTRACE
 /* For explanation of this var, see comment for same var in erl_async.c */
 static int gcc_optimizer_hack = 0;
+
+#ifdef  HAVE_DTRACE
 
 #define DTRACE_INVOKE_SETUP(op) \
     dt_private *dt_priv = get_dt_private(dt_driver_io_worker_base) ; \
@@ -2330,12 +2332,11 @@ file_output(ErlDrvData e, char* buf, int count)
     int command;
     struct t_data *d = NULL;
     char *dt_utag = NULL, *dt_s1 = NULL, *dt_s2 = NULL;
-    Sint64 dt_i1 = 0, dt_i2 = 0, dt_i3 = 0;
+    Sint64 dt_i1 = 0, dt_i2 = 0, dt_i3 = 0, dt_i4 = 0;
 #ifdef  HAVE_DTRACE
-    Sint64 dt_i4 = 0;              /* put here to avoid unused var warning */
     dt_private *dt_priv = get_dt_private(0);
-
 #endif  /* HAVE_DTRACE */
+
     TRACE_C('o');
 
     fd  = desc->fd;

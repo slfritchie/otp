@@ -31,7 +31,7 @@
 #include "erl_binary.h"
 #include "erl_bits.h"
 
-#include "erlang_dtrace.h"
+#include "dtrace-wrapper.h"
 
 #ifdef HYBRID
 MA_STACK_DECLARE(src);
@@ -61,10 +61,10 @@ copy_object(Eterm obj, Process* to)
     Eterm* hp = HAlloc(to, size);
     Eterm res;
 
-    if (ERLANG_COPY_OBJECT_ENABLED()) {
+    if (DTRACE_ENABLED(copy_object)) {
         char proc_name[64];
         erts_snprintf(proc_name, sizeof(proc_name), "%T", to->id);
-        ERLANG_COPY_OBJECT(proc_name, size);
+        DTRACE2(copy_object, proc_name, size);
     }
     res = copy_struct(obj, size, &hp, &to->off_heap);
 #ifdef DEBUG
@@ -220,7 +220,7 @@ Eterm copy_struct(Eterm obj, Uint sz, Eterm** hpp, ErlOffHeap* off_heap)
     if (IS_CONST(obj))
 	return obj;
 
-    ERLANG_COPY_STRUCT((int32_t)sz);
+    DTRACE1(copy_struct, (int32_t)sz);
 
     hp = htop = *hpp;
     hbot   = htop + sz;

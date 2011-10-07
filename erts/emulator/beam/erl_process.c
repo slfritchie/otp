@@ -40,8 +40,7 @@
 #include "beam_bp.h"
 #include "erl_cpu_topology.h"
 
-#include "dtrace_helpers.h"
-#include "erlang_dtrace.h"
+#include "dtrace-wrapper.h"
 
 #define ERTS_RUNQ_CHECK_BALANCE_REDS_PER_SCHED (2000*CONTEXT_REDS)
 #define ERTS_RUNQ_CALL_CHECK_BALANCE_REDS \
@@ -5181,10 +5180,10 @@ Process *schedule(Process *p, int calls)
     int actual_reds;
     int reds;
 
-    if (ERLANG_PROCESS_UNSCHEDULED_ENABLED()) {
+    if (DTRACE_ENABLED(process_unscheduled)) {
         char process_buf[DTRACE_TERM_BUF_SIZE];
         dtrace_proc_str(p, process_buf);
-        ERLANG_PROCESS_UNSCHEDULED(process_buf);
+        DTRACE1(process_unscheduled, process_buf);
     }
 
     if (ERTS_USE_MODIFIED_TIMING()) {
@@ -6391,11 +6390,11 @@ erl_create_process(Process* parent, /* Parent of process (default group leader).
 
     VERBOSE(DEBUG_PROCESSES, ("Created a new process: %T\n",p->id));
 
-    if (ERLANG_SPAWN_ENABLED()) {
+    if (DTRACE_ENABLED(spawn)) {
         char process_name[DTRACE_TERM_BUF_SIZE];
         char mfa[DTRACE_TERM_BUF_SIZE];
         dtrace_fun_decode(p, mod, func, arity, process_name, mfa);
-        ERLANG_SPAWN(process_name, mfa);
+        DTRACE2(spawn, process_name, mfa);
     }
 
  error:
@@ -6966,7 +6965,7 @@ send_exit_signal(Process *c_p,		/* current process if and only
 
     ASSERT(reason != THE_NON_VALUE);
 
-    if(ERLANG_EXIT_SIGNAL_ENABLED() && is_pid(from)) {
+    if(DTRACE_ENABLED(exit_signal) && is_pid(from)) {
         char sender_str[DTRACE_TERM_BUF_SIZE];
         char receiver_str[DTRACE_TERM_BUF_SIZE];
         char reason_buf[DTRACE_TERM_BUF_SIZE];
@@ -6974,7 +6973,7 @@ send_exit_signal(Process *c_p,		/* current process if and only
         dtrace_pid_str(from, sender_str);
         dtrace_proc_str(rp, receiver_str);
         erts_snprintf(reason_buf, sizeof(reason_buf) - 1, "%T", reason);
-        ERLANG_EXIT_SIGNAL(sender_str, receiver_str, reason_buf);
+        DTRACE3(exit_signal, sender_str, receiver_str, reason_buf);
     }
 
     if (ERTS_PROC_IS_TRAPPING_EXITS(rp)
@@ -7413,12 +7412,12 @@ erts_do_exit_process(Process* p, Eterm reason)
     p->arity = 0;		/* No live registers */
     p->fvalue = reason;
 
-    if (ERLANG_EXIT_ENABLED()) {
+    if (DTRACE_ENABLED(exit)) {
         char process_buf[DTRACE_TERM_BUF_SIZE];
         char reason_buf[256];
         dtrace_proc_str(p, process_buf);
         erts_snprintf(reason_buf, sizeof(reason_buf) - 1, "%T", reason);
-        ERLANG_EXIT(process_buf, reason_buf);
+        DTRACE2(exit, process_buf, reason_buf);
     }
 
 #ifdef ERTS_SMP

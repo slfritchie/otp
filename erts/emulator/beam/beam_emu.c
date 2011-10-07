@@ -42,8 +42,7 @@
 #endif
 
 #include <assert.h>
-#include "dtrace_helpers.h"
-#include "erlang_dtrace.h"
+#include "dtrace-wrapper.h"
 
 /* #define HARDDEBUG 1 */
 
@@ -1134,63 +1133,76 @@ dtrace_fun_decode(Process *process,
                   module, funptr, arity);
 }
 
+#ifdef HAVE_DTRACE
+
 #define DTRACE_CALL(p, m, f, a)                                 \
-    if (ERLANG_FUNCTION_ENTRY_ENABLED()) {                      \
+    if (DTRACE_ENABLED(function_entry)) {                       \
         char process_name[DTRACE_TERM_BUF_SIZE];                \
         char mfa[DTRACE_TERM_BUF_SIZE];                         \
         int depth = (STACK_START(p) - STACK_TOP(p))             \
             / sizeof(Eterm*);                                   \
         dtrace_fun_decode(p, m, f, a,                           \
                           process_name, mfa);                   \
-        ERLANG_FUNCTION_ENTRY(process_name, mfa, depth);        \
+        DTRACE3(function_entry, process_name, mfa, depth);	\
     }
 
 #define DTRACE_RETURN(p, m, f, a)                               \
-    if (ERLANG_FUNCTION_RETURN_ENABLED()) {                     \
+    if (DTRACE_ENABLED(function_return)) {                      \
         char process_name[DTRACE_TERM_BUF_SIZE];                \
         char mfa[DTRACE_TERM_BUF_SIZE];                         \
         int depth = (STACK_START(p) - STACK_TOP(p))             \
             / sizeof(Eterm*);                                   \
         dtrace_fun_decode(p, m, f, a,                           \
                           process_name, mfa);                   \
-        ERLANG_FUNCTION_RETURN(process_name, mfa, depth);       \
+        DTRACE3(function_return, process_name, mfa, depth);	\
     }
 
 #define DTRACE_BIF_ENTRY(p, m, f, a)                \
-    if (ERLANG_BIF_ENTRY_ENABLED()) {               \
+    if (DTRACE_ENABLED(bif_entry)) {                \
         char process_name[DTRACE_TERM_BUF_SIZE];    \
         char mfa[DTRACE_TERM_BUF_SIZE];             \
         dtrace_fun_decode(p, m, f, a,               \
                           process_name, mfa);       \
-        ERLANG_BIF_ENTRY(process_name, mfa);        \
+        DTRACE2(bif_entry, process_name, mfa);	\
     }
 
 #define DTRACE_BIF_RETURN(p, m, f, a)               \
-    if (ERLANG_BIF_RETURN_ENABLED()) {              \
+    if (DTRACE_ENABLED(bif_return)) {               \
         char process_name[DTRACE_TERM_BUF_SIZE];    \
         char mfa[DTRACE_TERM_BUF_SIZE];             \
         dtrace_fun_decode(p, m, f, a,               \
                           process_name, mfa);       \
-        ERLANG_BIF_RETURN(process_name, mfa);       \
+        DTRACE2(bif_return, process_name, mfa);	    \
     }
 
 #define DTRACE_NIF_ENTRY(p, m, f, a)                \
-    if (ERLANG_NIF_ENTRY_ENABLED()) {               \
+    if (DTRACE_ENABLED(nif_entry)) {                \
         char process_name[DTRACE_TERM_BUF_SIZE];    \
         char mfa[DTRACE_TERM_BUF_SIZE];             \
         dtrace_fun_decode(p, m, f, a,               \
                           process_name, mfa);       \
-        ERLANG_NIF_ENTRY(process_name, mfa);        \
+        DTRACE2(nif_entry, process_name, mfa);	    \
     }
 
 #define DTRACE_NIF_RETURN(p, m, f, a)               \
-    if (ERLANG_NIF_RETURN_ENABLED()) {              \
+    if (DTRACE_ENABLED(nif_return)) {               \
         char process_name[DTRACE_TERM_BUF_SIZE];    \
         char mfa[DTRACE_TERM_BUF_SIZE];             \
         dtrace_fun_decode(p, m, f, a,               \
                           process_name, mfa);       \
-        ERLANG_NIF_RETURN(process_name, mfa);       \
+        DTRACE2(nif_return, process_name, mfa);	    \
     }
+
+#else /* HAVE_DTRACE */
+
+#define DTRACE_CALL(p, m, f, a)       do {} while (0)
+#define DTRACE_RETURN(p, m, f, a)     do {} while (0)
+#define DTRACE_BIF_ENTRY(p, m, f, a)  do {} while (0)
+#define DTRACE_BIF_RETURN(p, m, f, a) do {} while (0)
+#define DTRACE_NIF_ENTRY(p, m, f, a)  do {} while (0)
+#define DTRACE_NIF_RETURN(p, m, f, a) do {} while (0)
+
+#endif /* HAVE_DTRACE */
 
 /*
  * process_main() is called twice:
@@ -1389,7 +1401,7 @@ void process_main(void)
 	SWAPIN;
 	ASSERT(VALID_INSTR(next));
 
-        if (ERLANG_PROCESS_SCHEDULED_ENABLED()) {
+        if (DTRACE_ENABLED(process_scheduled)) {
             char process_buf[DTRACE_TERM_BUF_SIZE];
             char fun_buf[DTRACE_TERM_BUF_SIZE];
             dtrace_proc_str(c_p, process_buf);
@@ -1407,7 +1419,7 @@ void process_main(void)
                 }
             }
 
-            ERLANG_PROCESS_SCHEDULED(process_buf, fun_buf);
+            DTRACE2(process_scheduled, process_buf, fun_buf);
         }
 
 	Goto(next);
@@ -1678,7 +1690,7 @@ void process_main(void)
     BeamInstr* fptr;
     SET_I(c_p->cp);
 
-    if (ERLANG_FUNCTION_RETURN_ENABLED() && (fptr = find_function_from_pc(c_p->cp))) {
+    if (DTRACE_ENABLED(function_return) && (fptr = find_function_from_pc(c_p->cp))) {
         DTRACE_RETURN(c_p, (Eterm)fptr[0], (Eterm)fptr[1], (Uint)fptr[2]);
     }
 
@@ -6303,7 +6315,7 @@ apply(Process* p, Eterm module, Eterm function, Eterm args, Eterm* reg)
 	save_calls(p, ep);
     }
 
-    if (ERLANG_FUNCTION_ENTRY_ENABLED() && ep->address) {
+    if (DTRACE_ENABLED(function_entry) && ep->address) {
         BeamInstr *fptr = find_function_from_pc(ep->address);
         if (fptr) {
             DTRACE_CALL(p, (Eterm)fptr[0], (Eterm)fptr[1], (Uint)fptr[2]);
@@ -6359,7 +6371,7 @@ fixed_apply(Process* p, Eterm* reg, Uint arity)
 	save_calls(p, ep);
     }
 
-    if (ERLANG_FUNCTION_ENTRY_ENABLED()) {
+    if (DTRACE_ENABLED(function_entry)) {
         BeamInstr *fptr = find_function_from_pc(ep->address);
         if (fptr) {
             DTRACE_CALL(p, (Eterm)fptr[0], (Eterm)fptr[1], (Uint)fptr[2]);
@@ -6415,12 +6427,12 @@ erts_hibernate(Process* c_p, Eterm module, Eterm function, Eterm args, Eterm* re
 	c_p->max_arg_reg = sizeof(c_p->def_arg_reg)/sizeof(c_p->def_arg_reg[0]);
     }
 
-    if (ERLANG_HIBERNATE_ENABLED()) {
+    if (DTRACE_ENABLED(hibernate)) {
         char process_name[DTRACE_TERM_BUF_SIZE];
         char mfa[DTRACE_TERM_BUF_SIZE];
         dtrace_fun_decode(c_p, module, function, arity,
                           process_name, mfa);
-        ERLANG_HIBERNATE(process_name, mfa);
+        DTRACE2(hibernate, process_name, mfa);
     }
 
     /*
@@ -6491,18 +6503,19 @@ call_fun(Process* p,		/* Current process. */
 	Eterm* var_ptr;
 	int actual_arity;
 	unsigned num_free;
-	BeamInstr *fptr;
 
 	fe = funp->fe;
 	num_free = funp->num_free;
 	code_ptr = fe->address;
 	actual_arity = (int) code_ptr[-1];
 
-	fptr = find_function_from_pc(code_ptr);
+	if (DTRACE_ENABLED(function_entry)) {
+	    BeamInstr *fptr = find_function_from_pc(code_ptr);
 
-        if (fptr) {
-            DTRACE_CALL(p, fe->module, (Eterm)fptr[1], actual_arity);
-        }
+	    if (fptr) {
+		DTRACE_CALL(p, fe->module, (Eterm)fptr[1], actual_arity);
+	    }
+	}
 
 	if (actual_arity == arity+num_free) {
 	    if (num_free == 0) {

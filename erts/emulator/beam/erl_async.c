@@ -59,7 +59,6 @@ typedef struct {
 static erts_smp_spinlock_t async_id_lock;
 static long async_id = 0;
 
-#ifdef HAVE_DTRACE
 /*
  * Some compilers, e.g. GCC 4.2.1 and -O3, will optimize away DTrace
  * calls if they're the last thing in the function.  :-(
@@ -67,7 +66,6 @@ static long async_id = 0;
  * https://github.com/memcached/memcached/commit/6298b3978687530bc9d219b6ac707a1b681b2a46
  */
 static int gcc_optimizer_hack = 0;
-#endif /* HAVE_DTRACE */
 
 #ifndef ERTS_SMP
 
@@ -226,7 +224,10 @@ static void async_add(ErlAsync* a, AsyncQueue* q, int pool_member)
 static ErlAsync* async_get(AsyncQueue* q)
 {
     ErlAsync* a;
-    int pool_member, len;
+    int len;
+#ifdef HAVE_DTRACE
+    int pool_member;
+#endif
 
     erts_mtx_lock(&q->mtx);
     while((a = q->tail) == NULL) {

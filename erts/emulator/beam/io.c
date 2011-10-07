@@ -43,8 +43,7 @@
 #include "erl_version.h"
 #include "error.h"
 
-#include "dtrace_helpers.h"
-#include "erlang_dtrace.h"
+#include "dtrace-wrapper.h"
 
 extern ErlDrvEntry fd_driver_entry;
 extern ErlDrvEntry vanilla_driver_entry;
@@ -1177,13 +1176,13 @@ int erts_write_to_port(Eterm caller_id, Port *p, Eterm list)
 	buf = erts_alloc(ERTS_ALC_T_TMP, size+1);
 	r = io_list_to_buf(list, buf, size);
 
-    if(ERLANG_PORT_COMMAND_ENABLED()) {
+    if(DTRACE_ENABLED(port_command)) {
         char process_str[DTRACE_TERM_BUF_SIZE];
         char port_str[DTRACE_TERM_BUF_SIZE];
 
         dtrace_pid_str(caller_id, process_str);
         dtrace_port_str(p, port_str);
-        ERLANG_PORT_COMMAND(process_str, port_str, p->name, "command");
+        DTRACE4(port_command, process_str, port_str, p->name, "command");
     }
 
 	if (r >= 0) {
@@ -2116,13 +2115,13 @@ void erts_port_command(Process *proc,
 		erts_port_status_bor_set(port, ERTS_PORT_SFLG_SEND_CLOSED);
 		erts_do_exit_port(port, pid, am_normal);
 
-        if(ERLANG_PORT_COMMAND_ENABLED()) {
+        if(DTRACE_ENABLED(port_command)) {
             char process_str[DTRACE_TERM_BUF_SIZE];
             char port_str[DTRACE_TERM_BUF_SIZE];
 
             dtrace_proc_str(proc, process_str);
             dtrace_port_str(port, port_str);
-            ERLANG_PORT_COMMAND(process_str, port_str, port->name, "close");
+            DTRACE4(port_command, process_str, port_str, port->name, "close");
         }
 		goto done;
 	    } else if (is_tuple_arity(tp[2], 2)) {
@@ -2131,13 +2130,13 @@ void erts_port_command(Process *proc,
 		    if (erts_write_to_port(caller_id, port, tp[2]) == 0)
 			goto done;
 		} else if ((tp[1] == am_connect) && is_internal_pid(tp[2])) {
-            if(ERLANG_PORT_COMMAND_ENABLED()) {
+            if(DTRACE_ENABLED(port_command)) {
                 char process_str[DTRACE_TERM_BUF_SIZE];
                 char port_str[DTRACE_TERM_BUF_SIZE];
 
                 dtrace_proc_str(proc, process_str);
                 dtrace_port_str(port, port_str);
-                ERLANG_PORT_COMMAND(process_str, port_str, port->name, "connect");
+                DTRACE4(port_command, process_str, port_str, port->name, "connect");
             }
 		    port->connected = tp[2];
 		    deliver_result(port->id, pid, am_connected);
@@ -2240,13 +2239,13 @@ erts_port_control(Process* p, Port* prt, Uint command, Eterm iolist)
     erts_smp_proc_unlock(p, ERTS_PROC_LOCK_MAIN);
     ERTS_SMP_CHK_NO_PROC_LOCKS;
 
-    if(ERLANG_PORT_CONTROL_ENABLED()) {
+    if(DTRACE_ENABLED(port_control)) {
         char process_str[DTRACE_TERM_BUF_SIZE];
         char port_str[DTRACE_TERM_BUF_SIZE];
 
         dtrace_proc_str(p, process_str);
         dtrace_port_str(prt, port_str);
-        ERLANG_PORT_CONTROL(process_str, port_str, prt->name, command);
+        DTRACE4(port_control, process_str, port_str, prt->name, command);
     }
 
     /*
