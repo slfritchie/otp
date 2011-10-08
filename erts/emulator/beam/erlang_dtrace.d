@@ -61,7 +61,7 @@ provider erlang {
      * @param mfa the m:f/a of the function
      * @param depth the stack depth
      */
-    probe function__entry(char *p, char *mfa, int depth);
+    probe function_entry(char *p, char *mfa, int depth);
 
     /**
      * Fired whenever a user function returns.
@@ -70,7 +70,7 @@ provider erlang {
      * @param mfa the m:f/a of the function
      * @param depth the stack depth
      */
-    probe function__return(char *p, char *mfa, int depth);
+    probe function_return(char *p, char *mfa, int depth);
 
     /**
      * Fired whenever a Built In Function is called.
@@ -78,7 +78,7 @@ provider erlang {
      * @param p the PID (string form) of the process
      * @param mfa the m:f/a of the function
      */
-    probe bif__entry(char *p, char *mfa);
+    probe bif_entry(char *p, char *mfa);
 
     /**
      * Fired whenever a Built In Function returns.
@@ -86,7 +86,7 @@ provider erlang {
      * @param p the PID (string form) of the process
      * @param mfa the m:f/a of the function
      */
-    probe bif__return(char *p, char *mfa);
+    probe bif_return(char *p, char *mfa);
 
     /**
      * Fired whenever a Native Function is called.
@@ -94,7 +94,7 @@ provider erlang {
      * @param p the PID (string form) of the process
      * @param mfa the m:f/a of the function
      */
-    probe nif__entry(char *p, char *mfa);
+    probe nif_entry(char *p, char *mfa);
 
     /**
      * Fired whenever a Native Function returns.
@@ -102,7 +102,7 @@ provider erlang {
      * @param p the PID (string form) of the process
      * @param mfa the m:f/a of the function
      */
-    probe nif__return(char *p, char *mfa);
+    probe nif_return(char *p, char *mfa);
 
     /**
      * Fired when a process is spawned.
@@ -135,7 +135,7 @@ provider erlang {
      * @param p the PID (string form) of the exiting process
      * @param need the number of words needed on the heap
      */
-    probe gc_major__start(char *p, int need);
+    probe gc_major_start(char *p, int need);
 
     /**
      * Fired when a minor GC is starting.
@@ -143,7 +143,7 @@ provider erlang {
      * @param p the PID (string form) of the exiting process
      * @param need the number of words needed on the heap
      */
-    probe gc_minor__start(char *p, int need);
+    probe gc_minor_start(char *p, int need);
 
     /**
      * Fired when a major GC is starting.
@@ -151,7 +151,7 @@ provider erlang {
      * @param p the PID (string form) of the exiting process
      * @param reclaimed the amount of space reclaimed
      */
-    probe gc_major__end(char *p, int reclaimed);
+    probe gc_major_end(char *p, int reclaimed);
 
     /**
      * Fired when a minor GC is starting.
@@ -159,7 +159,7 @@ provider erlang {
      * @param p the PID (string form) of the exiting process
      * @param reclaimed the amount of space reclaimed
      */
-    probe gc_minor__end(char *p, int reclaimed);
+    probe gc_minor_end(char *p, int reclaimed);
 
     /**
      * Fired when a process is scheduled.
@@ -192,7 +192,7 @@ provider erlang {
      * @param old_size the size of the old heap
      * @param new_size the size of the new heap
      */
-    probe process_heap__grow(char *p, int old_size, int new_size);
+    probe process_heap_grow(char *p, int old_size, int new_size);
 
     /**
      * Fired when process' heap is shrinking.
@@ -201,7 +201,7 @@ provider erlang {
      * @param old_size the size of the old heap
      * @param new_size the size of the new heap
      */
-    probe process_heap__shrink(char *p, int old_size, int new_size);
+    probe process_heap_shrink(char *p, int old_size, int new_size);
 
     /**
      * Fired when port_command is issued.
@@ -211,7 +211,7 @@ provider erlang {
      * @param port_name the string used when opening a port
      * @param command_type type of the issued command, one of: "close", "command" or "connect"
      */
-    probe port__command(char *process, char *port, char *port_name, char *command_type);
+    probe port_command(char *process, char *port, char *port_name, char *command_type);
 
     /**
      * Fired when port_control is issued.
@@ -221,7 +221,7 @@ provider erlang {
      * @param port_name the string used when opening a port
      * @param command_no command number that has been issued to the port
      */
-    probe port__control(char *process, char *port, char *port_name, int command_no);
+    probe port_control(char *process, char *port, char *port_name, int command_no);
 
 
      /* Async driver pool */

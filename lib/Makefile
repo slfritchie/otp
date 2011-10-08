@@ -73,7 +73,8 @@ else
           runtime_tools diameter \
           cosTransactions cosEvent cosTime cosNotification \
           cosProperty cosFileTransfer cosEventDomain et megaco webtool \
-	  xmerl edoc eunit ssh inviso typer docbuilder erl_docgen common_test percept
+	  xmerl edoc eunit ssh inviso typer docbuilder erl_docgen common_test percept \
+	  dtrace
 # dialyzer
         OTHER_SUB_DIRECTORIES += hipe $(TSP_APP)
       endif
