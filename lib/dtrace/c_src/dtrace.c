@@ -99,7 +99,8 @@ static ERL_NIF_TERM user_trace(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv
 	    message_bin.size > MESSAGE_BUFSIZ) {
 	    return atom_badarg;
 	}
-	strcpy(messagebuf, (char *) message_bin.data);
+	memcpy(messagebuf, (char *) message_bin.data, message_bin.size);
+        messagebuf[message_bin.size] = '\0';
 	DTRACE1(user_trace, messagebuf);
 	return atom_true;
     } else {
@@ -120,8 +121,8 @@ get_string_maybe(ErlNifEnv *env,
         str_bin.size > bufsiz) {
         *ptr = NULL;
     } else {
-        strncpy(buf, (char *) str_bin.data, bufsiz);
-        buf[bufsiz] = '\0';
+        memcpy(buf, (char *) str_bin.data, str_bin.size);
+        buf[str_bin.size] = '\0';
         *ptr = buf;
     }    
 }

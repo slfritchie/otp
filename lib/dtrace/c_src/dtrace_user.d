@@ -36,10 +36,10 @@ provider erlang {
      * @param i2, integer
      * @param i3, integer
      * @param i4, integer
-     * @param s1, NUL-terminated string. D's arg6 is NULL if not given by Erlang
-     * @param s2, NUL-terminated string. D's arg7 is NULL if not given by Erlang
-     * @param s3, NUL-terminated string. D's arg8 is NULL if not given by Erlang
-     * @param s4, NUL-terminated string. D's arg9 is NULL if not given by Erlang
+     * @param s1, string/iolist. D's arg6 is NULL if not given by Erlang
+     * @param s2, string/iolist. D's arg7 is NULL if not given by Erlang
+     * @param s3, string/iolist. D's arg8 is NULL if not given by Erlang
+     * @param s4, string/iolist. D's arg9 is NULL if not given by Erlang
      */
     probe user_trace_i4s4(char *proc, char *user_tag,
                           int i1, int i2, int i3, int i4,
