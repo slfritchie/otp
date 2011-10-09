@@ -1692,6 +1692,11 @@ void erl_nif_init()
     resource_type_list.name = THE_NON_VALUE;
 }
 
+inline void
+dtrace_nifenv_str(ErlNifEnv *env, char *process_buf) {
+    dtrace_pid_str(env->proc->id, process_buf);
+}
+
 #ifdef READONLY_CHECK
 /* Use checksums to assert that NIFs do not write into inspected binaries
 */

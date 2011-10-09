@@ -840,7 +840,7 @@ $(ERL_TOP)/erts/emulator/beam/erlang_dtrace.h: $(ERL_TOP)/erts/emulator/beam/erl
 	dtrace -h -C -I$(ERL_TOP)/erts/emulator/beam \
 	  -s $(ERL_TOP)/erts/emulator/beam/erlang_dtrace.d \
 	  -o ./erlang_dtrace.h
-	sed -e '/^#define[ 	]*ERLANG_[A-Z_]*(.*)/y/ABCDEFGHIJKLMNOPQRSTUVWXYZ/abcdefghijklmnopqrstuvwxyz/' ./erlang_dtrace.h > $(ERL_TOP)/erts/emulator/beam/erlang_dtrace.h
+	sed -e '/^#define[ 	]*ERLANG_[A-Z0-9_]*(.*)/y/ABCDEFGHIJKLMNOPQRSTUVWXYZ/abcdefghijklmnopqrstuvwxyz/' ./erlang_dtrace.h > $(ERL_TOP)/erts/emulator/beam/erlang_dtrace.h
 	rm ./erlang_dtrace.h
 endif
 

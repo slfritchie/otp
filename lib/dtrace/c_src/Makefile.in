@@ -93,7 +93,7 @@ $(OBJDIR)/dtrace_user.h: ./dtrace_user.d
 	dtrace -h -C $(INCLUDES) \
 	  -s ./dtrace_user.d \
 	  -o ./dtrace_user.tmp
-	sed -e '/^#define[ 	]*ERLANG_[A-Z_]*(.*)/y/ABCDEFGHIJKLMNOPQRSTUVWXYZ/abcdefghijklmnopqrstuvwxyz/' ./dtrace_user.tmp > $@
+	sed -e '/^#define[ 	]*ERLANG_[A-Z0-9_]*(.*)/y/ABCDEFGHIJKLMNOPQRSTUVWXYZ/abcdefghijklmnopqrstuvwxyz/' ./dtrace_user.tmp > $@
 	rm ./dtrace_user.tmp
 else
 DTRACE_USER_HEADER=
