@@ -29,6 +29,11 @@
 %%% ```
 %%% <0.34.0> GGOOOAAALL!!!!! 7 8 9 0 'one' 'four' '' ''
 %%% '''
+%%%
+%%% If the expected type of variable is not present, e.g. integer when
+%%% integer() is expected, or an I/O list when iolist() is expected,
+%%% then the driver will ignore the user's input and use a default
+%%% value of 0 or NULL, respectively.
 
 -export([init/0, available/0, user_trace/1,
          p/0, p/1, p/2, p/3, p/4, p/5, p/6, p/7, p/8]).
@@ -36,6 +41,13 @@
 -export([user_trace_i4s4/9]). % Know what you're doing!
 
 -type probe_arg() :: integer() | iolist().
+-type int_p_arg() :: integer() | iolist() | undef.
+%% The *_maybe() types use atom() instead of a stricter 'undef'
+%% because user_trace_i4s4/9 is exposed to the outside world, and
+%% because the driver will allow any atom to be used as a "not
+%% present" indication, we'll allow any atom in the types.
+-type integer_maybe() :: integer() | atom().
+-type iolist_maybe() :: iolist() | atom().
 
 -spec init() -> ok | {error, {term(), term()}}.
 
@@ -51,20 +63,22 @@ init() ->
 -spec available() -> true | false.
 
 available() ->
-    nif_not_loaded.
+    erlang:nif_error(nif_not_loaded).
 
 -spec user_trace(iolist()) -> true | false | error | badarg.
 
 user_trace(_Message) ->
-    nif_not_loaded.
+    erlang:nif_error(nif_not_loaded).
 
 -spec user_trace_i4s4(iolist(),
-                      integer(), integer(), integer(), integer(),
-                      iolist(), iolist(), iolist(), iolist()) ->
+                      integer_maybe(), integer_maybe(),
+                          integer_maybe(), integer_maybe(),
+                      iolist_maybe(), iolist_maybe(),
+                          iolist_maybe(), iolist_maybe()) ->
       true | false | error | badarg.
 
 user_trace_i4s4(_, _, _, _, _, _, _, _, _) ->
-    nif_not_loaded.
+    erlang:nif_error(nif_not_loaded).
 
 %%%
 %%% Erlang support functions
@@ -156,8 +170,8 @@ p(I1, I2, I3, S1, S2, S3, S4) when is_integer(I1), is_integer(I2), is_integer(I3
 p(I1, I2, I3, I4, S1, S2, S3, S4) when is_integer(I1), is_integer(I2), is_integer(I3), is_integer(I4) ->
     user_trace_int(I1, I2, I3, I4, S1, S2, S3, S4).
 
--spec user_trace_int(probe_arg(), probe_arg(), probe_arg(), probe_arg(),
-                     probe_arg(), probe_arg(), probe_arg(), probe_arg()) ->
+-spec user_trace_int(int_p_arg(), int_p_arg(), int_p_arg(), int_p_arg(),
+                     int_p_arg(), int_p_arg(), int_p_arg(), int_p_arg()) ->
       true | false | error | badarg.
 
 user_trace_int(I1, I2, I3, I4, S1, S2, S3, S4) ->
