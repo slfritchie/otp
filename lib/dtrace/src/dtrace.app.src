@@ -20,6 +20,7 @@
    [{description, "DTRACE version 1"},
     {vsn, "%VSN%"},
     {modules, [
+               dtrace
 	      ]},
     {registered, []},
     {applications, [kernel, stdlib]},
