@@ -1,5 +1,35 @@
 -module(dtrace).
 
+%%% @doc The DTrace interface module
+%%%
+%%% This DTrace interface module, with the corresponding NIFs, should
+%%% work on any operating system platform where user-space DTrace
+%%% probes are supported.
+%%%
+%%% Use the `dtrace:init()' function to load the NIF shared library and
+%%% to initialize library's private state.
+%%%
+%%% It is recommended that you use the `dtrace:p()' function to add
+%%% DTrace probes to your Erlang code.  This function can accept up to
+%%% four integer arguments and four string arguments; the integer
+%%% argument(s) must come before any string argument.  For example:
+%%% ```
+%%% 1> put(dtrace_utag, "GGOOOAAALL!!!!!").
+%%% undefined
+%%% 2> dtrace:init().
+%%% ok
+%%%
+%%% % % % Enable the DTrace probe using the 'dtrace' command.
+%%%
+%%% 3> dtrace:p(7, 8, 9, "one", "four").
+%%% true
+%%% '''
+%%%
+%%% Output from the example D script `user-probe.d' looks like:
+%%% ```
+%%% <0.34.0> GGOOOAAALL!!!!! 7 8 9 0 'one' 'four' '' ''
+%%% '''
+
 -export([init/0, available/0, user_trace/1,
          p/0, p/1, p/2, p/3, p/4, p/5, p/6, p/7, p/8]).
 -export([scaff/0]). % Development only
@@ -13,6 +43,10 @@ init() ->
     PrivDir = code:priv_dir(dtrace),
     Lib = filename:join([PrivDir, "lib", "dtrace"]),
     erlang:load_nif(Lib, 0).
+
+%%%
+%%% NIF placeholders
+%%%
 
 -spec available() -> true | false.
 
@@ -31,6 +65,10 @@ user_trace(_Message) ->
 
 user_trace_i4s4(_, _, _, _, _, _, _, _, _) ->
     nif_not_loaded.
+
+%%%
+%%% Erlang support functions
+%%%
 
 -spec p() -> true | false | error | badarg.
 
@@ -123,7 +161,8 @@ p(I1, I2, I3, I4, S1, S2, S3, S4) when is_integer(I1), is_integer(I2), is_intege
       true | false | error | badarg.
 
 user_trace_int(I1, I2, I3, I4, S1, S2, S3, S4) ->
-    user_trace_i4s4(<<"ToFix">>, I1, I2, I3, I4, S1, S2, S3, S4).
+    UTag = prim_file:get_dtrace_utag(),
+    user_trace_i4s4(UTag, I1, I2, I3, I4, S1, S2, S3, S4).
 
 %% Scaffolding to write tedious code: quick brute force and not 100% correct.
 
