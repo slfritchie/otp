@@ -5,27 +5,46 @@
 -export([scaff/0]). % Development only
 -export([user_trace_i4s4/9]). % Know what you're doing!
 
+-type probe_arg() :: integer() | iolist().
+
+-spec init() -> ok | {error, {term(), term()}}.
+
 init() ->
     PrivDir = code:priv_dir(dtrace),
     Lib = filename:join([PrivDir, "lib", "dtrace"]),
     erlang:load_nif(Lib, 0).
 
+-spec available() -> true | false.
+
 available() ->
     nif_not_loaded.
+
+-spec user_trace(iolist()) -> true | false | error | badarg.
 
 user_trace(_Message) ->
     nif_not_loaded.
 
+-spec user_trace_i4s4(iolist(),
+                      integer(), integer(), integer(), integer(),
+                      iolist(), iolist(), iolist(), iolist()) ->
+      true | false | error | badarg.
+
 user_trace_i4s4(_, _, _, _, _, _, _, _, _) ->
     nif_not_loaded.
 
+-spec p() -> true | false | error | badarg.
+
 p() ->
     user_trace_int(undef, undef, undef, undef, undef, undef, undef, undef).
+
+-spec p(probe_arg()) -> true | false | error | badarg.
 
 p(I1) when is_integer(I1) ->
     user_trace_int(I1, undef, undef, undef, undef, undef, undef, undef);
 p(S1) ->
     user_trace_int(undef, undef, undef, undef, S1, undef, undef, undef).
+
+-spec p(probe_arg(), probe_arg()) -> true | false | error | badarg.
 
 p(I1, I2) when is_integer(I1), is_integer(I2) ->
     user_trace_int(I1, I2, undef, undef, undef, undef, undef, undef);
@@ -33,6 +52,8 @@ p(I1, S1) when is_integer(I1) ->
     user_trace_int(I1, undef, undef, undef, S1, undef, undef, undef);
 p(S1, S2) ->
     user_trace_int(undef, undef, undef, undef, S1, S2, undef, undef).
+
+-spec p(probe_arg(), probe_arg(), probe_arg()) -> true | false | error | badarg.
 
 p(I1, I2, I3) when is_integer(I1), is_integer(I2), is_integer(I3) ->
     user_trace_int(I1, I2, I3, undef, undef, undef, undef, undef);
@@ -42,6 +63,9 @@ p(I1, S1, S2) when is_integer(I1) ->
     user_trace_int(I1, undef, undef, undef, S1, S2, undef, undef);
 p(S1, S2, S3) ->
     user_trace_int(undef, undef, undef, undef, S1, S2, S3, undef).
+
+-spec p(probe_arg(), probe_arg(), probe_arg(), probe_arg()) ->
+      true | false | error | badarg.
 
 p(I1, I2, I3, I4) when is_integer(I1), is_integer(I2), is_integer(I3), is_integer(I4) ->
     user_trace_int(I1, I2, I3, I4, undef, undef, undef, undef);
@@ -54,6 +78,10 @@ p(I1, S1, S2, S3) when is_integer(I1) ->
 p(S1, S2, S3, S4) ->
     user_trace_int(undef, undef, undef, undef, S1, S2, S3, S4).
 
+-spec p(probe_arg(), probe_arg(), probe_arg(), probe_arg(),
+        probe_arg()) ->
+      true | false | error | badarg.
+
 p(I1, I2, I3, I4, S1) when is_integer(I1), is_integer(I2), is_integer(I3), is_integer(I4) ->
     user_trace_int(I1, I2, I3, I4, S1, undef, undef, undef);
 p(I1, I2, I3, S1, S2) when is_integer(I1), is_integer(I2), is_integer(I3) ->
@@ -63,6 +91,10 @@ p(I1, I2, S1, S2, S3) when is_integer(I1), is_integer(I2) ->
 p(I1, S1, S2, S3, S4) when is_integer(I1) ->
     user_trace_int(I1, undef, undef, undef, S1, S2, S3, S4).
 
+-spec p(probe_arg(), probe_arg(), probe_arg(), probe_arg(),
+        probe_arg(), probe_arg()) ->
+      true | false | error | badarg.
+
 p(I1, I2, I3, I4, S1, S2) when is_integer(I1), is_integer(I2), is_integer(I3), is_integer(I4) ->
     user_trace_int(I1, I2, I3, I4, S1, S2, undef, undef);
 p(I1, I2, I3, S1, S2, S3) when is_integer(I1), is_integer(I2), is_integer(I3) -> 
@@ -70,13 +102,25 @@ p(I1, I2, I3, S1, S2, S3) when is_integer(I1), is_integer(I2), is_integer(I3) ->
 p(I1, I2, S1, S2, S3, S4) when is_integer(I1), is_integer(I2) ->
     user_trace_int(I1, I2, undef, undef, S1, S2, S3, S4).
 
+-spec p(probe_arg(), probe_arg(), probe_arg(), probe_arg(),
+        probe_arg(), probe_arg(), probe_arg()) ->
+      true | false | error | badarg.
+
 p(I1, I2, I3, I4, S1, S2, S3) when is_integer(I1), is_integer(I2), is_integer(I3), is_integer(I4) ->
     user_trace_int(I1, I2, I3, I4, S1, S2, S3, undef);
 p(I1, I2, I3, S1, S2, S3, S4) when is_integer(I1), is_integer(I2), is_integer(I3) ->
     user_trace_int(I1, I2, I3, undef, S1, S2, S3, S4).
 
+-spec p(probe_arg(), probe_arg(), probe_arg(), probe_arg(),
+        probe_arg(), probe_arg(), probe_arg(), probe_arg()) ->
+      true | false | error | badarg.
+
 p(I1, I2, I3, I4, S1, S2, S3, S4) when is_integer(I1), is_integer(I2), is_integer(I3), is_integer(I4) ->
     user_trace_int(I1, I2, I3, I4, S1, S2, S3, S4).
+
+-spec user_trace_int(probe_arg(), probe_arg(), probe_arg(), probe_arg(),
+                     probe_arg(), probe_arg(), probe_arg(), probe_arg()) ->
+      true | false | error | badarg.
 
 user_trace_int(I1, I2, I3, I4, S1, S2, S3, S4) ->
     user_trace_i4s4(<<"ToFix">>, I1, I2, I3, I4, S1, S2, S3, S4).
