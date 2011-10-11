@@ -65,7 +65,8 @@ static void add_readonly_check(ErlNifEnv*, unsigned char* ptr, unsigned sz);
 static int is_offheap(const ErlOffHeap* off_heap);
 #endif
 
-
+void dtrace_nifenv_str(ErlNifEnv *, char *);
+ 
 #define MIN_HEAP_FRAG_SZ 200
 static Eterm* alloc_heap_heavy(ErlNifEnv* env, unsigned need, Eterm* hp);
 
@@ -1692,8 +1693,7 @@ void erl_nif_init()
     resource_type_list.name = THE_NON_VALUE;
 }
 
-inline void
-dtrace_nifenv_str(ErlNifEnv *env, char *process_buf) {
+void dtrace_nifenv_str(ErlNifEnv *env, char *process_buf) {
     dtrace_pid_str(env->proc->id, process_buf);
 }
 

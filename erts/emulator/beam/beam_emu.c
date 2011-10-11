@@ -1083,12 +1083,12 @@ init_emulator(void)
 #  define REG_tmp_arg2
 #endif
 
-inline void
+ERTS_INLINE void
 dtrace_proc_str(Process *process, char *process_buf) {
     dtrace_pid_str(process->id, process_buf);
 }
 
-inline void
+ERTS_INLINE void
 dtrace_pid_str(Eterm pid, char *process_buf) {
     snprintf(process_buf, DTRACE_TERM_BUF_SIZE, "<%lu.%lu.%lu>",
              pid_channel_no(pid),
@@ -1096,14 +1096,14 @@ dtrace_pid_str(Eterm pid, char *process_buf) {
              pid_serial(pid));
 }
 
-inline void
+ERTS_INLINE void
 dtrace_port_str(Port *port, char *port_buf) {
     snprintf(port_buf, DTRACE_TERM_BUF_SIZE, "#Port<%lu.%lu>",
              port_channel_no(port->id),
              port_number(port->id));
 }
 
-inline void
+ERTS_INLINE void
 dtrace_fun_decode(Process *process,
                   Eterm module, Eterm function, int arity,
                   char *process_buf, char *mfa_buf) {
