@@ -3536,6 +3536,7 @@ AC_SUBST(DTRACE_ENABLED_2STEP)
 DTRACE_CPP=-C
 DTRACE_ENABLED=
 DTRACE_ENABLED_2STEP=
+DTRACE_2STEP_TEST=./dtrace-test.o
 if test "$enable_dtrace" = "yes" ; then
         if test "$DTRACE" = "dtrace" ; then
                 AC_CHECK_HEADERS(sys/sdt.h)
@@ -3545,10 +3546,10 @@ if test "$enable_dtrace" = "yes" ; then
                 fi
                 rm -f foo-dtrace.h
 
-                $RM -f ./erlang_dtrace.o
-                if dtrace -G $DTRACE_CPP -Iemulator/beam -s emulator/beam/erlang_dtrace.d 2> /dev/null && \
-                   test -f ./erlang_dtrace.o ; then
-                        rm ./erlang_dtrace.o
+                $RM -f $DTRACE_2STEP_TEST
+                if dtrace -G $DTRACE_CPP -Iemulator/beam -o $DTRACE_2STEP_TEST -s emulator/beam/erlang_dtrace.d 2> /dev/null && \
+                   test -f $DTRACE_2STEP_TEST ; then
+                        rm $DTRACE_2STEP_TEST
                         DTRACE_ENABLED_2STEP=yes
                         AC_MSG_NOTICE([dtrace precompilation for 2-stage DTrace successful])
                 else
@@ -3556,7 +3557,14 @@ if test "$enable_dtrace" = "yes" ; then
                 fi
                 DTRACE_ENABLED=yes
                 AC_DEFINE(HAVE_DTRACE, 1, [Define to enable DTrace probes (or SystemTap probes on Linux systems)])
-                LIBS="$LIBS -ldtrace"
+                case $OPSYS in
+                    linux)
+                        : # No extra libs to add to LIBS
+                    ;;
+                    *)
+                        LIBS="$LIBS -ldtrace"
+                    ;;
+                esac
         else
                 AC_MSG_ERROR([Dtrace preprocessing test failed.])
         fi
