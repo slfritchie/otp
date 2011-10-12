@@ -24,7 +24,7 @@ include $(ERL_TOP)/make/$(TARGET)/otp_ded.mk
 # Items from top-level configure
 # ----------------------------------------------------
 DTRACE_ENABLED=@DTRACE_ENABLED@
-DTRACE_ENABLED_SOLARIS=@DTRACE_ENABLED_SOLARIS@
+DTRACE_ENABLED_2STEP=@DTRACE_ENABLED_2STEP@
 
 # ----------------------------------------------------
 # Application version
@@ -61,7 +61,8 @@ TYPE_FLAGS = $(CFLAGS)
 endif
 endif
 
-ALL_CFLAGS = $(TYPE_FLAGS) $(INCLUDES) -I$(OBJDIR)
+ALL_CFLAGS = $(TYPE_FLAGS) $(INCLUDES) -I$(OBJDIR) \
+    -I$(ERL_TOP)/erts/emulator/$(TARGET)
 
 # ----------------------------------------------------
 # Release directory specification
@@ -99,14 +100,14 @@ else
 DTRACE_USER_HEADER=
 endif
 
-ifdef DTRACE_ENABLED_SOLARIS
+ifdef DTRACE_ENABLED_2STEP
 OBJS += $(OBJDIR)/dtrace_user.o
 $(OBJDIR)/dtrace_user.o: $(OBJS) $(OBJDIR)/dtrace_user.h
-	touch $@
-	gcc -c $(CFLAGS) -o $@ -I$(OBJDIR) $(OBJDIR)/dtrace_user.c
+	touch $(OBJDIR)/erlang_dtrace.c
+	$(CC) $(CFLAGS) -c -o $@ $(OBJDIR)/erlang_dtrace.c
 	# The object file created above is immediately clobbered below.
 	# But creating it above avoids chicken-and-egg problem with OBJS
-	dtrace -G -C $(INCLUDES) $(OBJDIR) \
+	dtrace -G -C \
 	  -s ./dtrace_user.d \
 	  -o $@ $(OBJS)
 endif

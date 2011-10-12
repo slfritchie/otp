@@ -370,5 +370,3 @@ make/win32/
 /lib/erl_interface/config.h.in
 /lib/configure.in
 
-# DTrace
-/erts/emulator/beam/erlang_dtrace.h

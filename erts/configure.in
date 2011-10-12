@@ -3532,33 +3532,30 @@ AC_SUBST(DTRACE)
 
 AC_SUBST(DTRACE_CPP)
 AC_SUBST(DTRACE_ENABLED)
-AC_SUBST(DTRACE_ENABLED_SOLARIS)
+AC_SUBST(DTRACE_ENABLED_2STEP)
 DTRACE_CPP=-C
 DTRACE_ENABLED=
-DTRACE_ENABLED_SOLARIS=
+DTRACE_ENABLED_2STEP=
 if test "$enable_dtrace" = "yes" ; then
         if test "$DTRACE" = "dtrace" ; then
                 AC_CHECK_HEADERS(sys/sdt.h)
                 # The OS X version of dtrace prints a spurious line here.
-                if ! dtrace -h $DTRACE_CPP -Iemulator/beam -s emulator/beam/erlang_dtrace.d; then
+                if ! dtrace -h $DTRACE_CPP -Iemulator/beam -o ./foo-dtrace.h -s emulator/beam/erlang_dtrace.d; then
                         AC_MSG_ERROR([Could not precompile erlang_dtrace.d: dtrace -h failed])
                 fi
-                if ! sed -e '/^#define[ 	]*ERLANG_[A-Z_]*(.*)/y/ABCDEFGHIJKLMNOPQRSTUVWXYZ/abcdefghijklmnopqrstuvwxyz/' erlang_dtrace.h > emulator/beam/erlang_dtrace.h ; then
-                        AC_MSG_ERROR([Could not precompile erlang_dtrace.d: sed failed])
-                fi
-                rm erlang_dtrace.h
+                rm -f foo-dtrace.h
 
                 $RM -f ./erlang_dtrace.o
                 if dtrace -G $DTRACE_CPP -Iemulator/beam -s emulator/beam/erlang_dtrace.d 2> /dev/null && \
                    test -f ./erlang_dtrace.o ; then
                         rm ./erlang_dtrace.o
-                        DTRACE_ENABLED_SOLARIS=yes
-                        AC_MSG_NOTICE([dtrace precompilation for Solaris successful])
+                        DTRACE_ENABLED_2STEP=yes
+                        AC_MSG_NOTICE([dtrace precompilation for 2-stage DTrace successful])
                 else
-                        AC_MSG_NOTICE([dtrace precompilation successful])
+                        AC_MSG_NOTICE([dtrace precompilation for 1-stage DTrace successful])
                 fi
                 DTRACE_ENABLED=yes
-                AC_DEFINE(HAVE_DTRACE, 1, [Define to enable DTrace probes])
+                AC_DEFINE(HAVE_DTRACE, 1, [Define to enable DTrace probes (or SystemTap probes on Linux systems)])
                 LIBS="$LIBS -ldtrace"
         else
                 AC_MSG_ERROR([Dtrace preprocessing test failed.])

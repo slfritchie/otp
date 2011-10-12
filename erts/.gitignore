@@ -21,5 +21,3 @@
 
 /emulator/pcre/pcre_exec_loop_break_cases.inc
 
-# DTrace byproducts, probably should move to somewhere else
-/emulator/beam/erlang_dtrace.h
