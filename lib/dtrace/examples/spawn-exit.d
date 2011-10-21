@@ -18,17 +18,17 @@
  * %CopyrightEnd%
  */
 
-erlang*:::spawn
+erlang*:::process-spawn
 {
     printf("pid %s mfa %s\n", copyinstr(arg0), copyinstr(arg1));
 }
 
-erlang*:::exit
+erlang*:::process-exit
 {
     printf("pid %s reason %s\n", copyinstr(arg0), copyinstr(arg1));
 }
 
-erlang*:::exit_signal
+erlang*:::process-exit_signal
 {
     printf("sender %s -> pid %s reason %s\n",
 	   copyinstr(arg0), copyinstr(arg1), copyinstr(arg2));

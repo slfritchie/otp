@@ -35,7 +35,8 @@
 %%% then the driver will ignore the user's input and use a default
 %%% value of 0 or NULL, respectively.
 
--export([init/0, available/0, user_trace/1,
+-export([init/0, available/0,
+         user_trace_s1/1, % TODO: unify with pid & tag args like user_trace_i4s4
          p/0, p/1, p/2, p/3, p/4, p/5, p/6, p/7, p/8]).
 -export([scaff/0]). % Development only
 -export([user_trace_i4s4/9]). % Know what you're doing!
@@ -65,9 +66,9 @@ init() ->
 available() ->
     erlang:nif_error(nif_not_loaded).
 
--spec user_trace(iolist()) -> true | false | error | badarg.
+-spec user_trace_s1(iolist()) -> true | false | error | badarg.
 
-user_trace(_Message) ->
+user_trace_s1(Message) ->
     erlang:nif_error(nif_not_loaded).
 
 -spec user_trace_i4s4(iolist(),

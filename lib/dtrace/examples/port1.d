@@ -30,12 +30,12 @@ erlang*:::port-control
 	   copyinstr(arg0), copyinstr(arg1), copyinstr(arg2), arg3);
 }
 
-erlang*:::async_io_pool_add
+erlang*:::aio_pool-add
 {
     printf("async I/O pool add thread %d queue len %d\n", arg0, arg1);
 }
 
-erlang*:::async_io_pool_get
+erlang*:::aio_pool-get
 {
     printf("async I/O pool get thread %d queue len %d\n", arg0, arg1);
 }

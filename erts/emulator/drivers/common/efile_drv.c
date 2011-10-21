@@ -119,13 +119,13 @@ static int gcc_optimizer_hack = 0;
 
 #define DTRACE_INVOKE_SETUP(op) \
     dt_private *dt_priv = get_dt_private(dt_driver_io_worker_base) ; \
-    do { DTRACE4(file_drv_int_entry, d->sched_i1, d->sched_i2, \
+    do { DTRACE4(efile_drv_int_entry, d->sched_i1, d->sched_i2, \
                  dt_priv->thread_num, op); } while (0)
 #define DTRACE_INVOKE_SETUP_BY_NAME(op) \
     struct t_data *d = (struct t_data *) data ; \
     DTRACE_INVOKE_SETUP(op)
 #define DTRACE_INVOKE_RETURN(op) \
-    do { DTRACE4(file_drv_int_return, d->sched_i1, d->sched_i2, \
+    do { DTRACE4(efile_drv_int_return, d->sched_i1, d->sched_i2, \
                  dt_priv->thread_num, op); } while (0) ; gcc_optimizer_hack++ ;
 
 int             dt_driver_idnum = 0;
@@ -1614,13 +1614,13 @@ static void invoke_flstat(void *data)
     dt_private *dt_priv = get_dt_private(dt_driver_io_worker_base);
 #endif
 
-    DTRACE4(file_drv_int_entry, d->sched_i1, d->sched_i2,
+    DTRACE4(efile_drv_int_entry, d->sched_i1, d->sched_i2,
             dt_priv->thread_num, d->command == FILE_LSTAT ? FILE_LSTAT :
                                                             FILE_FSTAT);
     d->again = 0;
     d->result_ok = efile_fileinfo(&d->errInfo, &d->info,
 				  d->b, d->command == FILE_LSTAT);
-    DTRACE4(file_drv_int_entry, d->sched_i1, d->sched_i2,
+    DTRACE4(efile_drv_int_entry, d->sched_i1, d->sched_i2,
             dt_priv->thread_num, d->command == FILE_LSTAT ? FILE_LSTAT :
                                                             FILE_FSTAT);
     gcc_optimizer_hack++;
@@ -1943,7 +1943,7 @@ static int flush_write(file_descriptor *desc, int *errp,
                 d->sched_utag[sizeof(d->sched_utag) - 1] = '\0';
             }
         }
-        DTRACE10(file_drv_entry, dt_priv->thread_num, dt_priv->tag++,
+        DTRACE10(efile_drv_entry, dt_priv->thread_num, dt_priv->tag++,
                  dt_utag, FILE_WRITE,
                  NULL, NULL, dt_i1, dt_i2, dt_i3, 0);
     }
@@ -2032,7 +2032,7 @@ static int lseek_flush_read(file_descriptor *desc, int *errp,
                     d->sched_utag[sizeof(d->sched_utag) - 1] = '\0';
                 }
             }
-            DTRACE10(file_drv_entry, dt_priv->thread_num, dt_priv->tag++,
+            DTRACE10(efile_drv_entry, dt_priv->thread_num, dt_priv->tag++,
                      dt_utag, FILE_LSEEK,
                      NULL, NULL, dt_i1, dt_i2, dt_i3, 0);
 #endif /* HAVE_DTRACE */
@@ -2061,7 +2061,7 @@ file_async_ready(ErlDrvData e, ErlDrvThreadData data)
     char sched_utag[128+1];
 
     sched_utag[0] = '\0';
-    if (DTRACE_ENABLED(file_drv_return)) {
+    if (DTRACE_ENABLED(efile_drv_return)) {
         strncpy(sched_utag, d->sched_utag, sizeof(sched_utag) - 1);
         sched_utag[sizeof(sched_utag) - 1] = '\0';
     }
@@ -2308,7 +2308,7 @@ file_async_ready(ErlDrvData e, ErlDrvThreadData data)
       default:
 	abort();
     }
-    DTRACE7(file_drv_return, sched_i1, sched_i2, sched_utag,
+    DTRACE7(efile_drv_return, sched_i1, sched_i2, sched_utag,
             command, result_ok, posix_errno, dt_priv->thread_num);
     if (desc->write_buffered != 0 && desc->timer_state == timer_idle) {
 	desc->timer_state = timer_write;
@@ -2475,7 +2475,7 @@ file_output(ErlDrvData e, char* buf, int count)
 		return;
 	    }
 #ifdef HAVE_DTRACE
-            DTRACE10(file_drv_entry, dt_priv->thread_num, dt_priv->tag++,
+            DTRACE10(efile_drv_entry, dt_priv->thread_num, dt_priv->tag++,
                      dt_utag, command, name, dt_s2, dt_i1, dt_i2, dt_i3, dt_i4);
 #endif
 	    TRACE_C('R');
@@ -2708,7 +2708,7 @@ file_output(ErlDrvData e, char* buf, int count)
                 d->sched_utag[sizeof(d->sched_utag) - 1] = '\0';
             }
         }
-        DTRACE10(file_drv_entry, dt_priv->thread_num, dt_priv->tag++,
+        DTRACE10(efile_drv_entry, dt_priv->thread_num, dt_priv->tag++,
                  dt_utag, command, dt_s1, dt_s2, dt_i1, dt_i2, dt_i3, dt_i4);
 #endif
 	cq_enq(desc, d);
@@ -3589,7 +3589,7 @@ file_outputv(ErlDrvData e, ErlIOVec *ev) {
             strncpy(d->sched_utag, dt_utag, sizeof(d->sched_utag) - 1);
             d->sched_utag[sizeof(d->sched_utag) - 1] = '\0';
         }
-        DTRACE10(file_drv_entry, dt_priv->thread_num, dt_priv->tag++,
+        DTRACE10(efile_drv_entry, dt_priv->thread_num, dt_priv->tag++,
                  dt_utag, command, dt_s1, NULL, dt_i1, dt_i2, dt_i3, dt_i4);
 #endif
     }

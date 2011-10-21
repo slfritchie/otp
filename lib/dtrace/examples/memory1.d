@@ -18,23 +18,23 @@
  * %CopyrightEnd%
  */
 
-erlang*:::copy_struct
+erlang*:::copy-struct
 {
     printf("copy_struct %d bytes\n", arg0);
 }
 
-erlang*:::copy_object
+erlang*:::copy-object
 {
     printf("copy_object pid %s %d bytes\n", copyinstr(arg0), arg1);
 }
 
-erlang*:::process_heap-grow
+erlang*:::process-heap_grow
 {
     printf("proc heap grow pid %s %d -> %d bytes\n", copyinstr(arg0),
 	   arg1, arg2);
 }
 
-erlang*:::process_heap-shrink
+erlang*:::process-heap_shrink
 {
     printf("proc heap shrink pid %s %d -> %d bytes\n", copyinstr(arg0),
 	   arg1, arg2);

@@ -18,17 +18,17 @@
  * %CopyrightEnd%
  */
 
-erlang*:::process_scheduled
+erlang*:::process-scheduled
 {
     printf("  Schedule pid %s mfa %s\n", copyinstr(arg0), copyinstr(arg1));
 }
 
-erlang*:::process_unscheduled
+erlang*:::process-unscheduled
 {
-    printf(" Unschedule pid %s\n", copyinstr(arg0));
+    printf("Unschedule pid %s\n", copyinstr(arg0));
 }
 
-erlang*:::hibernate
+erlang*:::process-hibernate
 {
     printf("  Hibernate pid %s resume mfa %s\n",
      copyinstr(arg0), copyinstr(arg1));

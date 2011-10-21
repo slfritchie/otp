@@ -6390,11 +6390,11 @@ erl_create_process(Process* parent, /* Parent of process (default group leader).
 
     VERBOSE(DEBUG_PROCESSES, ("Created a new process: %T\n",p->id));
 
-    if (DTRACE_ENABLED(spawn)) {
+    if (DTRACE_ENABLED(process_spawn)) {
         char process_name[DTRACE_TERM_BUF_SIZE];
         char mfa[DTRACE_TERM_BUF_SIZE];
         dtrace_fun_decode(p, mod, func, arity, process_name, mfa);
-        DTRACE2(spawn, process_name, mfa);
+        DTRACE2(process_spawn, process_name, mfa);
     }
 
  error:
@@ -6965,7 +6965,7 @@ send_exit_signal(Process *c_p,		/* current process if and only
 
     ASSERT(reason != THE_NON_VALUE);
 
-    if(DTRACE_ENABLED(exit_signal) && is_pid(from)) {
+    if(DTRACE_ENABLED(process_exit_signal) && is_pid(from)) {
         char sender_str[DTRACE_TERM_BUF_SIZE];
         char receiver_str[DTRACE_TERM_BUF_SIZE];
         char reason_buf[DTRACE_TERM_BUF_SIZE];
@@ -6973,7 +6973,7 @@ send_exit_signal(Process *c_p,		/* current process if and only
         dtrace_pid_str(from, sender_str);
         dtrace_proc_str(rp, receiver_str);
         erts_snprintf(reason_buf, sizeof(reason_buf) - 1, "%T", reason);
-        DTRACE3(exit_signal, sender_str, receiver_str, reason_buf);
+        DTRACE3(process_exit_signal, sender_str, receiver_str, reason_buf);
     }
 
     if (ERTS_PROC_IS_TRAPPING_EXITS(rp)
@@ -7412,12 +7412,12 @@ erts_do_exit_process(Process* p, Eterm reason)
     p->arity = 0;		/* No live registers */
     p->fvalue = reason;
 
-    if (DTRACE_ENABLED(exit)) {
+    if (DTRACE_ENABLED(process_exit)) {
         char process_buf[DTRACE_TERM_BUF_SIZE];
         char reason_buf[256];
         dtrace_proc_str(p, process_buf);
         erts_snprintf(reason_buf, sizeof(reason_buf) - 1, "%T", reason);
-        DTRACE2(exit, process_buf, reason_buf);
+        DTRACE2(process_exit, process_buf, reason_buf);
     }
 
 #ifdef ERTS_SMP

@@ -18,7 +18,12 @@
  * %CopyrightEnd%
  */
 
-erlang*:::user_trace_i4s4
+erlang*:::user_trace-s1
+{
+    printf("%s\n", copyinstr(arg0));
+}
+
+erlang*:::user_trace-i4s4
 {
     printf("%s %s %d %d %d %d '%s' '%s' '%s' '%s'\n",
            copyinstr(arg0),

@@ -18,12 +18,12 @@
  * %CopyrightEnd%
  */
 
-erlang*:::send
+erlang*:::message-send
 {
-    printf("%s -> %s: %d bytes\n", copyinstr(arg0), copyinstr(arg1), arg2);
+    printf("send: %s -> %s: %d bytes\n", copyinstr(arg0), copyinstr(arg1), arg2);
 }
 
-erlang*:::receive
+erlang*:::message-receive
 {
-    printf("%s: %d bytes, queue len %d\n", copyinstr(arg0), arg1, arg2);
+    printf("recv: %s: %d bytes, queue len %d\n", copyinstr(arg0), arg1, arg2);
 }

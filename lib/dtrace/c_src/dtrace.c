@@ -49,12 +49,12 @@ static int load(ErlNifEnv* env, void** priv_data, ERL_NIF_TERM load_info);
 
 /* The NIFs: */
 static ERL_NIF_TERM available(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[]);
-static ERL_NIF_TERM user_trace(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[]);
+static ERL_NIF_TERM user_trace_s1(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[]);
 static ERL_NIF_TERM user_trace_i4s4(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[]);
 
 static ErlNifFunc nif_funcs[] = {
     {"available", 0, available},
-    {"user_trace", 1, user_trace},
+    {"user_trace_s1", 1, user_trace_s1},
     {"user_trace_i4s4", 9, user_trace_i4s4}
 };
 
@@ -88,20 +88,20 @@ static ERL_NIF_TERM available(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[
 #endif
 }
 
-static ERL_NIF_TERM user_trace(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
+static ERL_NIF_TERM user_trace_s1(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 {
 #ifdef	HAVE_DTRACE
     ErlNifBinary message_bin;
     char messagebuf[MESSAGE_BUFSIZ + 1];
 
-    if (DTRACE_ENABLED(user_trace)) {
+    if (DTRACE_ENABLED(user_trace_s1)) {
 	if (!enif_inspect_iolist_as_binary(env, argv[0], &message_bin) ||
 	    message_bin.size > MESSAGE_BUFSIZ) {
 	    return atom_badarg;
 	}
 	memcpy(messagebuf, (char *) message_bin.data, message_bin.size);
         messagebuf[message_bin.size] = '\0';
-	DTRACE1(user_trace, messagebuf);
+	DTRACE1(user_trace_s1, messagebuf);
 	return atom_true;
     } else {
 	return atom_false;

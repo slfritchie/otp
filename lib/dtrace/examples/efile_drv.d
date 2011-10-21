@@ -18,17 +18,17 @@
  * %CopyrightEnd%
  */
 
-erlang*:::async_io_pool_add
+erlang*:::aio_pool-add
 {
     printf("async I/O pool add thread %d queue len %d\n", arg0, arg1);
 }
 
-erlang*:::async_io_pool_get
+erlang*:::aio_pool-get
 {
     printf("async I/O pool get thread %d queue len %d\n", arg0, arg1);
 }
 
-erlang*:::file_drv_entry
+erlang*:::efile_drv-entry
 {
     printf("efile_drv enter %d %d %s | %d | %s %s , %d %d\n",
 	   arg0, arg1, arg2 == NULL ? "" : copyinstr(arg2), arg3,
@@ -36,12 +36,12 @@ erlang*:::file_drv_entry
 	   arg5 == NULL ? "" : copyinstr(arg5), arg6, arg7)
 }
 
-erlang*:::file_drv_int*
+erlang*:::efile_drv-int*
 {
     printf("async I/O worker %d %d %d | %d\n", arg0, arg1, arg2, arg3);
 }
 
-erlang*:::file_drv_return
+erlang*:::efile_drv-return
 {
     printf("efile_drv return %d %d %s | %d | %d %d %d\n", arg0, arg1,
 	   arg2 == NULL ? "" : copyinstr(arg2), arg3, arg4, arg5, arg6);

@@ -18,6 +18,31 @@
  * %CopyrightEnd%
  */
 
+/*
+ * A note on probe naming: if "__" appears in a provider probe
+ * definition, then two things happen during compilation:
+ *
+ *    1. The "__" will turn into a hypen, "-", for the probe name.
+ *    2. The "__" will turn into a single underscore, "_", for the
+ *       macro names and function definitions that the compiler and
+ *       C developers will see.
+ *
+ * We'll try to use the following naming convention.  We're a bit
+ * limited because, as a USDT probe, we can only specify the 4th part
+ * of the probe name, e.g. erlang*:::mumble.  The 2nd part of the
+ * probe name is always going to be "beam" or "beam.smp", and the 3rd
+ * part of the probe name will always be the name of the function
+ * that's calling the probe.
+ *
+ * So, all probes will be have names defined in this file using the
+ * convention category__name or category__sub_category__name.  This
+ * will translate to probe names of category-name or
+ * category-sub_category-name.
+ * 
+ * Each of "category", "sub_category", and "name" may have underscores
+ * but may not have hyphens.
+ */
+
 provider erlang {
     /**
      * Fired when a message is sent from one local process to another.
@@ -26,7 +51,7 @@ provider erlang {
      * @param receiver the PID (string form) of the receiver
      * @param size the size of the message being delivered
      */
-    probe send(char *sender, char *receiver, uint32_t size);
+    probe message__send(char *sender, char *receiver, uint32_t size);
 
     /**
      * Fired when a message is delivered to a local process.
@@ -35,14 +60,17 @@ provider erlang {
      * @param size the size of the message being delivered
      * @param queue_len length of the queue of the receiving process
      */
-    probe receive(char *receiver, uint32_t size, uint32_t queue_len);
+    probe message__receive(char *receiver, uint32_t size, uint32_t queue_len);
 
     /**
      * Fired when an Eterm structure is being copied.
      *
+     * NOTE: Due to the placement of this probe, the process ID of
+     *       owner of the Eterm is not available.
+     *
      * @param size the size of the structure
      */
-    probe copy_struct(uint32_t size);
+    probe copy__struct(uint32_t size);
 
     /**
      * Fired when an Eterm is being copied onto a process.
@@ -50,7 +78,7 @@ provider erlang {
      * @param proc the PID (string form) of the recipient process
      * @param size the size of the structure
      */
-    probe copy_object(char *proc, uint32_t size);
+    probe copy__object(char *proc, uint32_t size);
 
     /* PID, Module, Function, Arity */
 
@@ -61,7 +89,7 @@ provider erlang {
      * @param mfa the m:f/a of the function
      * @param depth the stack depth
      */
-    probe function_entry(char *p, char *mfa, int depth);
+    probe function__entry(char *p, char *mfa, int depth);
 
     /**
      * Fired whenever a user function returns.
@@ -70,7 +98,7 @@ provider erlang {
      * @param mfa the m:f/a of the function
      * @param depth the stack depth
      */
-    probe function_return(char *p, char *mfa, int depth);
+    probe function__return(char *p, char *mfa, int depth);
 
     /**
      * Fired whenever a Built In Function is called.
@@ -78,7 +106,7 @@ provider erlang {
      * @param p the PID (string form) of the process
      * @param mfa the m:f/a of the function
      */
-    probe bif_entry(char *p, char *mfa);
+    probe bif__entry(char *p, char *mfa);
 
     /**
      * Fired whenever a Built In Function returns.
@@ -86,7 +114,7 @@ provider erlang {
      * @param p the PID (string form) of the process
      * @param mfa the m:f/a of the function
      */
-    probe bif_return(char *p, char *mfa);
+    probe bif__return(char *p, char *mfa);
 
     /**
      * Fired whenever a Native Function is called.
@@ -94,7 +122,7 @@ provider erlang {
      * @param p the PID (string form) of the process
      * @param mfa the m:f/a of the function
      */
-    probe nif_entry(char *p, char *mfa);
+    probe nif__entry(char *p, char *mfa);
 
     /**
      * Fired whenever a Native Function returns.
@@ -102,7 +130,39 @@ provider erlang {
      * @param p the PID (string form) of the process
      * @param mfa the m:f/a of the function
      */
-    probe nif_return(char *p, char *mfa);
+    probe nif__return(char *p, char *mfa);
+
+    /**
+     * Fired when a major GC is starting.
+     *
+     * @param p the PID (string form) of the exiting process
+     * @param need the number of words needed on the heap
+     */
+    probe gc_major__start(char *p, int need);
+
+    /**
+     * Fired when a minor GC is starting.
+     *
+     * @param p the PID (string form) of the exiting process
+     * @param need the number of words needed on the heap
+     */
+    probe gc_minor__start(char *p, int need);
+
+    /**
+     * Fired when a major GC is starting.
+     *
+     * @param p the PID (string form) of the exiting process
+     * @param reclaimed the amount of space reclaimed
+     */
+    probe gc_major__end(char *p, int reclaimed);
+
+    /**
+     * Fired when a minor GC is starting.
+     *
+     * @param p the PID (string form) of the exiting process
+     * @param reclaimed the amount of space reclaimed
+     */
+    probe gc_minor__end(char *p, int reclaimed);
 
     /**
      * Fired when a process is spawned.
@@ -110,7 +170,7 @@ provider erlang {
      * @param p the PID (string form) of the new process.
      * @param mfa the m:f/a of the function
      */
-    probe spawn(char *p, char *mfa);
+    probe process__spawn(char *p, char *mfa);
 
     /**
      * Fired when a process is exiting.
@@ -118,7 +178,7 @@ provider erlang {
      * @param p the PID (string form) of the exiting process
      * @param reason the reason for the exit (may be truncated)
      */
-    probe exit(char *p, char *reason);
+    probe process__exit(char *p, char *reason);
 
     /**
      * Fired when exit signal is delivered to a local process.
@@ -127,39 +187,7 @@ provider erlang {
      * @param receiver the PID (string form) of the process receiving EXIT signal
      * @param reason the reason for the exit (may be truncated)
      */
-    probe exit_signal(char *sender, char *receiver, char *reason);
-
-    /**
-     * Fired when a major GC is starting.
-     *
-     * @param p the PID (string form) of the exiting process
-     * @param need the number of words needed on the heap
-     */
-    probe gc_major_start(char *p, int need);
-
-    /**
-     * Fired when a minor GC is starting.
-     *
-     * @param p the PID (string form) of the exiting process
-     * @param need the number of words needed on the heap
-     */
-    probe gc_minor_start(char *p, int need);
-
-    /**
-     * Fired when a major GC is starting.
-     *
-     * @param p the PID (string form) of the exiting process
-     * @param reclaimed the amount of space reclaimed
-     */
-    probe gc_major_end(char *p, int reclaimed);
-
-    /**
-     * Fired when a minor GC is starting.
-     *
-     * @param p the PID (string form) of the exiting process
-     * @param reclaimed the amount of space reclaimed
-     */
-    probe gc_minor_end(char *p, int reclaimed);
+    probe process__exit_signal(char *sender, char *receiver, char *reason);
 
     /**
      * Fired when a process is scheduled.
@@ -167,7 +195,7 @@ provider erlang {
      * @param p the PID (string form) of the newly scheduled process
      * @param mfa the m:f/a of the function it should run next
      */
-    probe process_scheduled(char *p, char *mfa);
+    probe process__scheduled(char *p, char *mfa);
 
     /**
      * Fired when a process is unscheduled.
@@ -175,7 +203,7 @@ provider erlang {
      * @param p the PID (string form) of the process that has been
      * unscheduled.
      */
-    probe process_unscheduled(char *p);
+    probe process__unscheduled(char *p);
 
     /**
      * Fired when a process goes into hibernation.
@@ -183,7 +211,7 @@ provider erlang {
      * @param p the PID (string form) of the process entering hibernation
      * @param mfa the m:f/a of the location to resume
      */
-    probe hibernate(char *p, char *mfa);
+    probe process__hibernate(char *p, char *mfa);
 
     /**
      * Fired when process' heap is growing.
@@ -192,7 +220,7 @@ provider erlang {
      * @param old_size the size of the old heap
      * @param new_size the size of the new heap
      */
-    probe process_heap_grow(char *p, int old_size, int new_size);
+    probe process__heap_grow(char *p, int old_size, int new_size);
 
     /**
      * Fired when process' heap is shrinking.
@@ -201,7 +229,7 @@ provider erlang {
      * @param old_size the size of the old heap
      * @param new_size the size of the new heap
      */
-    probe process_heap_shrink(char *p, int old_size, int new_size);
+    probe process__heap_shrink(char *p, int old_size, int new_size);
 
     /**
      * Fired when port_command is issued.
@@ -211,7 +239,7 @@ provider erlang {
      * @param port_name the string used when opening a port
      * @param command_type type of the issued command, one of: "close", "command" or "connect"
      */
-    probe port_command(char *process, char *port, char *port_name, char *command_type);
+    probe port__command(char *process, char *port, char *port_name, char *command_type);
 
     /**
      * Fired when port_control is issued.
@@ -221,7 +249,7 @@ provider erlang {
      * @param port_name the string used when opening a port
      * @param command_no command number that has been issued to the port
      */
-    probe port_control(char *process, char *port, char *port_name, int command_no);
+    probe port__control(char *process, char *port, char *port_name, int command_no);
 
 
     /* Async driver pool */
@@ -232,7 +260,7 @@ provider erlang {
      * @param pool member number
      * @param new queue length
      */
-    probe async_io_pool_add(int, int);
+    probe aio_pool__add(int, int);
 
     /**
      * Show the post-get length of the async driver thread pool member's queue.
@@ -240,7 +268,7 @@ provider erlang {
      * @param pool member number
      * @param new queue length
      */
-    probe async_io_pool_get(int, int);
+    probe aio_pool__get(int, int);
 
     /* Probes for efile_drv.c */
 
@@ -263,8 +291,8 @@ provider erlang {
      * @param integer argument 3                                          arg8
      * @param integer argument 4                                          arg9
      */
-    probe file_drv_entry(int, int, char *, int, char *, char *,
-                         int64_t, int64_t, int64_t, int64_t);
+    probe efile_drv__entry(int, int, char *, int, char *, char *,
+                           int64_t, int64_t, int64_t, int64_t);
 
     /*     0       1              2       3     */
     /* thread-id, tag, work-thread-id,  command */
@@ -277,7 +305,7 @@ provider erlang {
      * @param worker pool thread-id number
      * @param command number
      */
-    probe file_drv_int_entry(int, int, int, int);
+    probe efile_drv__int_entry(int, int, int, int);
 
     /**
      * Return from the driver's internal work function.
@@ -287,7 +315,7 @@ provider erlang {
      * @param worker pool thread-id number
      * @param command number
      */
-    probe file_drv_int_return(int, int, int, int);
+    probe efile_drv__int_return(int, int, int, int);
 
     /**
      * Return from the efile_drv.c file I/O driver
@@ -300,7 +328,7 @@ provider erlang {
      * @param If failure, the errno of the error.                         arg5
      * @param thread-id number of the scheduler Pthread executing now     arg6
      */
-    probe file_drv_return(int, int, char *, int, int, int, int);
+    probe efile_drv__return(int, int, char *, int, int, int, int);
 
 /*
  * NOTE:

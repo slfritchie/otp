@@ -24,7 +24,7 @@ provider erlang {
      *
      * @param NUL-terminated string
      */
-    probe user_trace(char* message);
+    probe user_trace__s1(char* message);
 
     /**
      * Multi-purpose probe: up to 4 NUL-terminated strings and 4
@@ -41,9 +41,9 @@ provider erlang {
      * @param s3, string/iolist. D's arg8 is NULL if not given by Erlang
      * @param s4, string/iolist. D's arg9 is NULL if not given by Erlang
      */
-    probe user_trace_i4s4(char *proc, char *user_tag,
-                          int i1, int i2, int i3, int i4,
-			  char *s1, char *s2, char *s3, char *s4);
+    probe user_trace__i4s4(char *proc, char *user_tag,
+                           int i1, int i2, int i3, int i4,
+                           char *s1, char *s2, char *s3, char *s4);
 };
 
 #pragma D attributes Evolving/Evolving/Common provider erlang provider

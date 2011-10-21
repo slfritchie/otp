@@ -217,7 +217,7 @@ static void async_add(ErlAsync* a, AsyncQueue* q, int pool_member)
 	q->len++;
     }
     erts_mtx_unlock(&q->mtx);
-    DTRACE2(async_io_pool_add, pool_member+11000, len + 1);
+    DTRACE2(aio_pool_add, pool_member+11000, len + 1);
     gcc_optimizer_hack++;
 }
 
@@ -250,7 +250,7 @@ static ErlAsync* async_get(AsyncQueue* q)
     pool_member = q->pool_member;
 #endif
     erts_mtx_unlock(&q->mtx);
-    DTRACE2(async_io_pool_get, pool_member+11000, len);
+    DTRACE2(aio_pool_get, pool_member+11000, len);
     return a;
 }
 

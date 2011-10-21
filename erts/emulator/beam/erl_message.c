@@ -464,11 +464,12 @@ erts_queue_message(Process* receiver,
     LINK_MESSAGE(receiver, mp);
 #endif
 
-    if (DTRACE_ENABLED(receive)) {
+    if (DTRACE_ENABLED(message_receive)) {
         char receiver_name[DTRACE_TERM_BUF_SIZE];
 
         dtrace_proc_str(receiver, receiver_name);
-        DTRACE3(receive, receiver_name, size_object(message), receiver->msg.len);
+        DTRACE3(message_receive,
+                receiver_name, size_object(message), receiver->msg.len);
     }
 
     notify_new_message(receiver);
@@ -789,12 +790,12 @@ erts_send_message(Process* sender,
     BM_START_TIMER(send);
 
 
-    if (DTRACE_ENABLED(send)) {
+    if (DTRACE_ENABLED(message_send)) {
         char sender_name[64];
         char receiver_name[64];
         erts_snprintf(sender_name, sizeof(sender_name), "%T", sender->id);
         erts_snprintf(receiver_name, sizeof(receiver_name), "%T", receiver->id);
-        DTRACE3(send, sender_name, receiver_name, size_object(message));
+        DTRACE3(message_send, sender_name, receiver_name, size_object(message));
     }
 
     if (SEQ_TRACE_TOKEN(sender) != NIL && !(flags & ERTS_SND_FLG_NO_SEQ_TRACE)) {
@@ -859,9 +860,9 @@ erts_send_message(Process* sender,
 	LINK_MESSAGE(receiver, mp);
         ACTIVATE(receiver);
 
-	if (DTRACE_ENABLED(send)) {
+	if (DTRACE_ENABLED(message_send)) {
 	    msize = size_object(message);
-	    DTRACE3(send, sender, receiver, (uint32_t)msize);
+	    DTRACE3(message_send, sender, receiver, (uint32_t)msize);
 	}
 
         if (receiver->status == P_WAITING) {
@@ -940,7 +941,7 @@ erts_send_message(Process* sender,
 	msize = size_object(message);
         BM_SWAP_TIMER(size,send);
 
-        DTRACE3(send, sender, receiver, (uint32_t)msize);
+        DTRACE3(message_send, sender, receiver, (uint32_t)msize);
 
 	if (receiver->stop - receiver->htop <= msize) {
             BM_SWAP_TIMER(send,system);
