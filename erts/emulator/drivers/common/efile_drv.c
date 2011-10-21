@@ -2453,7 +2453,6 @@ file_output(ErlDrvData e, char* buf, int count)
 
 	    total               = READDIR_BUFSIZE;
 	    errInfo.posix_errno = 0;
-<<<<<<< HEAD
 	    dir_handle          = NULL;
 	    resbuf[0]           = FILE_RESP_LFNAME;
 
@@ -2486,19 +2485,6 @@ file_output(ErlDrvData e, char* buf, int count)
 		}
 	    } while(res);
 
-=======
-	    dir_handle = NULL;
-	    resbuf[0] = FILE_RESP_FNAME;
-	    resbufsize = RESBUFSIZE;
-            dt_s1 = name;
-            dt_utag = name + strlen(dt_s1) + 1;
-
-	    while (efile_readdir(&errInfo, name, &dir_handle,
-				 resbuf+1, &resbufsize)) {
-		driver_output2(desc->port, resbuf, 1, resbuf+1, resbufsize);
-		resbufsize = RESBUFSIZE;
-	    }
->>>>>>> dtrace-experiment+michal2
 	    if (errInfo.posix_errno != 0) {
 		reply_error(desc, &errInfo);
 		return;
