@@ -32,6 +32,8 @@
 #include "erl_nmgc.h"
 #include "erl_binary.h"
 
+#include "dtrace-wrapper.h"
+
 ERTS_SCHED_PREF_QUICK_ALLOC_IMPL(message,
 				 ErlMessage,
 				 ERL_MESSAGE_BUF_SZ,
@@ -462,12 +464,20 @@ erts_queue_message(Process* receiver,
     LINK_MESSAGE(receiver, mp);
 #endif
 
+    if (DTRACE_ENABLED(message_receive)) {
+        char receiver_name[DTRACE_TERM_BUF_SIZE];
+
+        dtrace_proc_str(receiver, receiver_name);
+        DTRACE3(message_receive,
+                receiver_name, size_object(message), receiver->msg.len);
+    }
+
     notify_new_message(receiver);
 
     if (IS_TRACED_FL(receiver, F_TRACE_RECEIVE)) {
 	trace_receive(receiver, message);
     }
-    
+
 #ifndef ERTS_SMP
     ERTS_HOLE_CHECK(receiver);
 #endif
@@ -779,6 +789,15 @@ erts_send_message(Process* sender,
     BM_MESSAGE(message,sender,receiver);
     BM_START_TIMER(send);
 
+
+    if (DTRACE_ENABLED(message_send)) {
+        char sender_name[64];
+        char receiver_name[64];
+        erts_snprintf(sender_name, sizeof(sender_name), "%T", sender->id);
+        erts_snprintf(receiver_name, sizeof(receiver_name), "%T", receiver->id);
+        DTRACE3(message_send, sender_name, receiver_name, size_object(message));
+    }
+
     if (SEQ_TRACE_TOKEN(sender) != NIL && !(flags & ERTS_SND_FLG_NO_SEQ_TRACE)) {
         Eterm* hp;
 
@@ -840,6 +859,11 @@ erts_send_message(Process* sender,
         mp->next = NULL;
 	LINK_MESSAGE(receiver, mp);
         ACTIVATE(receiver);
+
+	if (DTRACE_ENABLED(message_send)) {
+	    msize = size_object(message);
+	    DTRACE3(message_send, sender, receiver, (uint32_t)msize);
+	}
 
         if (receiver->status == P_WAITING) {
             erts_add_to_runq(receiver);
@@ -916,7 +940,9 @@ erts_send_message(Process* sender,
         BM_SWAP_TIMER(send,size);
 	msize = size_object(message);
         BM_SWAP_TIMER(size,send);
-	
+
+        DTRACE3(message_send, sender, receiver, (uint32_t)msize);
+
 	if (receiver->stop - receiver->htop <= msize) {
             BM_SWAP_TIMER(send,system);
 	    erts_garbage_collect(receiver, msize, receiver->arg_reg, receiver->arity);
