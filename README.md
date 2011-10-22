@@ -81,7 +81,8 @@ include `[dtrace]`.
 Try using this (ugly) DTrace command to watch file I/O probes in use
 (tested on OS X only, sorry):
 
-    dtrace -Z -n 'erlang*:::file_drv_entry {printf("%d %d %s | %d | %s %s , %d %d %d", arg0, arg1, arg2 == NULL ? "" : copyinstr(arg2), arg3, arg4 == NULL ? "" : copyinstr(arg4), arg5 == NULL ? "" : copyinstr(arg5), arg6, arg7, arg8)} erlang*:::file_drv_int* {printf("%d %d %d | %d", arg0, arg1, arg2, arg3);} erlang*:::file_drv_return {printf("%d %d %s | %d | %d %d %d", arg0, arg1, arg2 == NULL ? "" : copyinstr(arg2), arg3, arg4, arg5, arg6 ) ; } erlang*:::xx {printf("%s", arg1 == NULL ? "-null-" : copyinstr(arg1));}'
+    dtrace -Z -n 'erlang*:::efile_drv-entry {printf("%d %d %s | %d | %s %s , %d %d %d", arg0, arg1, arg2 == NULL ? "" : copyinstr(arg2), arg3, arg4 == NULL ? "" : copyinstr(arg4), arg5 == NULL ? "" : copyinstr(arg5), arg6, arg7, arg8)} erlang*:::efile_drv-int* {printf("%d %d %d | %d", arg0, arg1, arg2, arg3);} erlang*:::efile_drv-return {printf("%d %d %s | %d | %d %d %d", arg0, arg1, arg2 == NULL ? "" : copyinstr(arg2), arg3, arg4, arg5, arg6 ) ; }'
+
 Implementation summary
 ----------------------
 
