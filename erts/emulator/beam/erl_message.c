@@ -786,17 +786,16 @@ erts_send_message(Process* sender,
     Eterm token = NIL;
     char sender_name[64];
     char receiver_name[64];
+    Sint tok_label = 0, tok_lastcnt = 0, tok_serial = 0;
 
     BM_STOP_TIMER(system);
     BM_MESSAGE(message,sender,receiver);
     BM_START_TIMER(send);
 
-    if (DTRACE_ENABLED(message_send) || DTRACE_ENABLED(message_send_stt)) {
+    if (DTRACE_ENABLED(message_send)) {
         erts_snprintf(sender_name, sizeof(sender_name), "%T", sender->id);
         erts_snprintf(receiver_name, sizeof(receiver_name), "%T", receiver->id);
-        DTRACE3(message_send, sender_name, receiver_name, size_object(message));
     }
-
     if (SEQ_TRACE_TOKEN(sender) != NIL && !(flags & ERTS_SND_FLG_NO_SEQ_TRACE)) {
         Eterm* hp;
 
@@ -820,15 +819,15 @@ erts_send_message(Process* sender,
         BM_MESSAGE_COPIED(msize);
         BM_SWAP_TIMER(copy,send);
 
-        if (DTRACE_ENABLED(message_send_stt)) {
+        if (DTRACE_ENABLED(message_send)) {
             Eterm token2 = NIL;
 
             token2 = SEQ_TRACE_TOKEN(sender);
-            DTRACE6(message_send_stt, sender_name, receiver_name,
-                    size_object(message),
-                    signed_val(SEQ_TRACE_T_LABEL(token2)),
-                    signed_val(SEQ_TRACE_T_LASTCNT(token2)),
-                    signed_val(SEQ_TRACE_T_SERIAL(token2)));
+            tok_label = signed_val(SEQ_TRACE_T_LABEL(token2));
+            tok_lastcnt = signed_val(SEQ_TRACE_T_LASTCNT(token2));
+            tok_serial = signed_val(SEQ_TRACE_T_SERIAL(token2));
+            DTRACE6(message_send, sender_name, receiver_name,
+                    msize, tok_label, tok_lastcnt, tok_serial);
         }
         erts_queue_message(receiver,
 			   receiver_locks,
@@ -871,7 +870,8 @@ erts_send_message(Process* sender,
 
 	if (DTRACE_ENABLED(message_send)) {
 	    msize = size_object(message);
-	    DTRACE3(message_send, sender, receiver, (uint32_t)msize);
+            DTRACE6(message_send, sender_name, receiver_name,
+                    (uint32_t)msize, tok_label, tok_lastcnt, tok_serial);
 	}
 
         if (receiver->status == P_WAITING) {
@@ -920,6 +920,8 @@ erts_send_message(Process* sender,
 	     * the root set when garbage collecting.
 	     */
 	    
+            DTRACE6(message_send, sender_name, receiver_name,
+                    size_object(message), tok_label, tok_lastcnt, tok_serial);
 	    ERTS_SMP_MSGQ_MV_INQ2PRIVQ(receiver);
 	    LINK_MESSAGE_PRIVQ(receiver, mp);
 
@@ -950,7 +952,8 @@ erts_send_message(Process* sender,
 	msize = size_object(message);
         BM_SWAP_TIMER(size,send);
 
-        DTRACE3(message_send, sender, receiver, (uint32_t)msize);
+        DTRACE6(message_send, sender_name, receiver_name,
+                (uint32_t)msize, tok_label, tok_lastcnt, tok_serial);
 
 	if (receiver->stop - receiver->htop <= msize) {
             BM_SWAP_TIMER(send,system);

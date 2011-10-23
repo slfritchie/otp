@@ -19,11 +19,14 @@
  */
 
 erlang*:::message-send
+/arg3 == 0 && arg4 == 0 && arg5 == 0/
 {
-    printf("send: %s -> %s: %d bytes\n", copyinstr(arg0), copyinstr(arg1), arg2);
+    printf("send: %s -> %s: %d bytes\n", 
+           copyinstr(arg0), copyinstr(arg1), arg2);
 }
 
-erlang*:::message-send_stt
+erlang*:::message-send
+/arg3 != 0 || arg4 != 0 || arg5 != 0/
 {
     printf("send: %s label %d token {%d,%d} -> %s: %d bytes\n",
            copyinstr(arg0),
