@@ -794,10 +794,7 @@ erts_send_message(Process* sender,
     if (DTRACE_ENABLED(message_send) || DTRACE_ENABLED(message_send_stt)) {
         erts_snprintf(sender_name, sizeof(sender_name), "%T", sender->id);
         erts_snprintf(receiver_name, sizeof(receiver_name), "%T", receiver->id);
-        if (DTRACE_ENABLED(message_send)) {
-            DTRACE3(message_send, sender_name, receiver_name,
-                    size_object(message));
-        }
+        DTRACE3(message_send, sender_name, receiver_name, size_object(message));
     }
 
     if (SEQ_TRACE_TOKEN(sender) != NIL && !(flags & ERTS_SND_FLG_NO_SEQ_TRACE)) {
@@ -825,14 +822,13 @@ erts_send_message(Process* sender,
 
         if (DTRACE_ENABLED(message_send_stt)) {
             Eterm token2 = NIL;
-            seq_trace_t sttok;
 
             token2 = SEQ_TRACE_TOKEN(sender);
-            sttok.label = signed_val(SEQ_TRACE_T_LABEL(token2));
-            sttok.serial1 = signed_val(SEQ_TRACE_T_SERIAL(token2));
-            sttok.serial2 = signed_val(SEQ_TRACE_T_LASTCNT(token2));
-            DTRACE4(message_send_stt, sender_name, &sttok, receiver_name,
-                    size_object(message));
+            DTRACE6(message_send_stt, sender_name, receiver_name,
+                    size_object(message),
+                    signed_val(SEQ_TRACE_T_LABEL(token2)),
+                    signed_val(SEQ_TRACE_T_LASTCNT(token2)),
+                    signed_val(SEQ_TRACE_T_SERIAL(token2)));
         }
         erts_queue_message(receiver,
 			   receiver_locks,

@@ -43,12 +43,6 @@
  * but may not have hyphens.
  */
 
-typedef struct {                /* Must match definition in dtrace-wrapper.h */
-    int64_t     label;
-    int64_t     serial1;
-    int64_t     serial2;
-} seq_trace_t;
-
 provider erlang {
     /**
      * Fired when a message is sent from one local process to another.
@@ -63,12 +57,20 @@ provider erlang {
      * Fired when a message is sent from one local process with trace token
      * set to another process.
      *
+     * TODO: Just merge this probe with message__send?  The extra
+     *       overhead of checking the token should be very small.
+     *
      * @param sender the PID (string form) of the sender
      * @param receiver the PID (string form) of the receiver
      * @param size the size of the message being delivered
+     * @param label for the sender's sequential trace token
+     * @param previous count for the sender's sequential trace token
+     * @param current count for the sender's sequential trace token
      */
-    probe message__send_stt(char *sender, seq_trace_t *sender_tok,
-                            char *receiver, uint32_t size);
+    probe message__send_stt(char *sender, char *receiver, uint32_t size,
+                            int token_label,
+                            int token_previous, int token_current);
+                            
 
     /**
      * Fired when a message is delivered to a local process.
