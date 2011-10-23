@@ -784,18 +784,20 @@ erts_send_message(Process* sender,
     Uint msize;
     ErlHeapFragment* bp = NULL;
     Eterm token = NIL;
+    char sender_name[64];
+    char receiver_name[64];
 
     BM_STOP_TIMER(system);
     BM_MESSAGE(message,sender,receiver);
     BM_START_TIMER(send);
 
-
-    if (DTRACE_ENABLED(message_send)) {
-        char sender_name[64];
-        char receiver_name[64];
+    if (DTRACE_ENABLED(message_send) || DTRACE_ENABLED(message_send_stt)) {
         erts_snprintf(sender_name, sizeof(sender_name), "%T", sender->id);
         erts_snprintf(receiver_name, sizeof(receiver_name), "%T", receiver->id);
-        DTRACE3(message_send, sender_name, receiver_name, size_object(message));
+        if (DTRACE_ENABLED(message_send)) {
+            DTRACE3(message_send, sender_name, receiver_name,
+                    size_object(message));
+        }
     }
 
     if (SEQ_TRACE_TOKEN(sender) != NIL && !(flags & ERTS_SND_FLG_NO_SEQ_TRACE)) {
@@ -821,6 +823,17 @@ erts_send_message(Process* sender,
         BM_MESSAGE_COPIED(msize);
         BM_SWAP_TIMER(copy,send);
 
+        if (DTRACE_ENABLED(message_send_stt)) {
+            Eterm token2 = NIL;
+            seq_trace_t sttok;
+
+            token2 = SEQ_TRACE_TOKEN(sender);
+            sttok.label = signed_val(SEQ_TRACE_T_LABEL(token2));
+            sttok.serial1 = signed_val(SEQ_TRACE_T_SERIAL(token2));
+            sttok.serial2 = signed_val(SEQ_TRACE_T_LASTCNT(token2));
+            DTRACE4(message_send_stt, sender_name, &sttok, receiver_name,
+                    size_object(message));
+        }
         erts_queue_message(receiver,
 			   receiver_locks,
 			   bp,

@@ -32,6 +32,12 @@ inline void dtrace_fun_decode(Process *process,
 			      char *process_buf, char *mfa_buf);
 #endif
 
+typedef struct {                /* Must match definition in erlang_dtrace.d */
+    int64_t     label;
+    int64_t     serial1;
+    int64_t     serial2;
+} seq_trace_t;
+
 #ifdef  HAVE_DTRACE
 
 #include "erlang_dtrace.h"

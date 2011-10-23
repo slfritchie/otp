@@ -18,9 +18,24 @@
  * %CopyrightEnd%
  */
 
+typedef struct {                /* Must match definition in dtrace-wrapper.h */
+    int64_t     label;
+    int64_t     serial1;
+    int64_t     serial2;
+} seq_trace_t;
+
 erlang*:::message-send
 {
     printf("send: %s -> %s: %d bytes\n", copyinstr(arg0), copyinstr(arg1), arg2);
+}
+
+erlang*:::message-send_stt
+{
+    sttok = (seq_trace_t *) copyin(arg1, 8*3);
+    printf("send: %s token %d {%d,%d} -> %s: %d bytes\n",
+           copyinstr(arg0),
+           sttok->label, sttok->serial1, sttok->serial2,
+           copyinstr(arg1), arg3);
 }
 
 erlang*:::message-receive
