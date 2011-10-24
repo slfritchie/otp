@@ -337,6 +337,7 @@ erts_queue_dist_message(Process *rcvr,
 			Eterm token)
 {
     ErlMessage* mp;
+    Sint tok_label = 0, tok_lastcnt = 0, tok_serial = 0;
 #ifdef ERTS_SMP
     ErtsProcLocks need_locks;
 #endif
@@ -382,8 +383,14 @@ erts_queue_dist_message(Process *rcvr,
                 char receiver_name[DTRACE_TERM_BUF_SIZE];
 
                 dtrace_proc_str(rcvr, receiver_name);
-                DTRACE3(message_queued,
-                        receiver_name, size_object(msg), rcvr->msg.len);
+                if (token != NIL) {
+                    tok_label = signed_val(SEQ_TRACE_T_LABEL(token));
+                    tok_lastcnt = signed_val(SEQ_TRACE_T_LASTCNT(token));
+                    tok_serial = signed_val(SEQ_TRACE_T_SERIAL(token));
+                }
+                DTRACE6(message_queued,
+                        receiver_name, size_object(msg), rcvr->msg.len,
+                        tok_label, tok_lastcnt, tok_serial);
             }
 	    erts_queue_message(rcvr, rcvr_locks, mbuf, msg, token);
     }
@@ -398,11 +405,17 @@ erts_queue_dist_message(Process *rcvr,
             char receiver_name[DTRACE_TERM_BUF_SIZE];
 
             dtrace_proc_str(rcvr, receiver_name);
+            if (token != NIL) {
+                tok_label = signed_val(SEQ_TRACE_T_LABEL(token));
+                tok_lastcnt = signed_val(SEQ_TRACE_T_LASTCNT(token));
+                tok_serial = signed_val(SEQ_TRACE_T_SERIAL(token));
+            }
             /*
              * TODO: We don't know the real size of the external message here.
              *       -1 will appear to a D script as 4294967295.
              */
-            DTRACE3(message_queued, receiver_name, -1, rcvr->msg.len + 1);
+            DTRACE6(message_queued, receiver_name, -1, rcvr->msg.len + 1,
+                    tok_label, tok_lastcnt, tok_serial);
         }
 	mp->data.dist_ext = dist_ext;
 	LINK_MESSAGE(rcvr, mp);
@@ -483,10 +496,18 @@ erts_queue_message(Process* receiver,
 
     if (DTRACE_ENABLED(message_queued)) {
         char receiver_name[DTRACE_TERM_BUF_SIZE];
+        Sint tok_label = 0, tok_lastcnt = 0, tok_serial = 0;
 
         dtrace_proc_str(receiver, receiver_name);
-        DTRACE3(message_queued,
-                receiver_name, size_object(message), receiver->msg.len);
+        /* TODO: What the heck is so magical about 0x3cb?  Remove the magic. */
+        if (is_not_nil(seq_trace_token) && seq_trace_token != 0x3cb) {
+            tok_label = signed_val(SEQ_TRACE_T_LABEL(seq_trace_token));
+            tok_lastcnt = signed_val(SEQ_TRACE_T_LASTCNT(seq_trace_token));
+            tok_serial = signed_val(SEQ_TRACE_T_SERIAL(seq_trace_token));
+        }
+        DTRACE6(message_queued,
+                receiver_name, size_object(message), receiver->msg.len,
+                tok_label, tok_lastcnt, tok_serial);
     }
 
     notify_new_message(receiver);

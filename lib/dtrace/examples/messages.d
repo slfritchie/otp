@@ -44,8 +44,17 @@ erlang*:::message-send
 }
 
 erlang*:::message-queued
+/arg3 == 0 && arg4 == 0 && arg5 == 0/
 {
     printf("queued: %s: %d bytes, queue len %d\n", copyinstr(arg0), arg1, arg2);
+}
+
+erlang*:::message-queued
+/arg3 != 0 || arg4 != 0 || arg5 != 0/
+{
+    printf("queued: %s label %d token {%d,%d}: %d bytes, queue len %d\n",
+           copyinstr(arg0), arg3, arg4, arg5,
+           arg1, arg2);
 }
 
 erlang*:::message-receive
@@ -59,7 +68,6 @@ erlang*:::message-receive
 /arg3 != 0 || arg4 != 0 || arg5 != 0/
 {
     printf("receive: %s label %d token {%d,%d}: %d bytes, queue len %d\n",
-           copyinstr(arg0),
-           arg3, arg4, arg5,
+           copyinstr(arg0), arg3, arg4, arg5,
            arg1, arg2);
 }

@@ -63,8 +63,12 @@ provider erlang {
      * @param receiver the PID (string form) of the receiver
      * @param size the size of the message being delivered
      * @param queue_len length of the queue of the receiving process
+     * @param token_label for the sender's sequential trace token
+     * @param token_previous count for the sender's sequential trace token
+     * @param token_current count for the sender's sequential trace token
      */
-    probe message__queued(char *receiver, uint32_t size, uint32_t queue_len);
+    probe message__queued(char *receiver, uint32_t size, uint32_t queue_len,
+                        int token_label, int token_previous, int token_current);
 
     /**
      * Fired when a message is 'receive'd by a local process and removed
