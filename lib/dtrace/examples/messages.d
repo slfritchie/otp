@@ -18,12 +18,56 @@
  * %CopyrightEnd%
  */
 
-erlang*:::message-send
+BEGIN
 {
-    printf("send: %s -> %s: %d bytes\n", copyinstr(arg0), copyinstr(arg1), arg2);
+    printf("\n");
+    printf("NOTE: message-queue message size 4294967295 means an external\n");
+    printf("      message that the code isn't smart enough to determine\n");
+    printf("      the actual size.\n");
+    printf("\n");
+}
+
+erlang*:::message-send
+/arg3 == 0 && arg4 == 0 && arg5 == 0/
+{
+    printf("send:   %s -> %s: %d bytes\n",
+           copyinstr(arg0), copyinstr(arg1), arg2);
+}
+
+erlang*:::message-send
+/arg3 != 0 || arg4 != 0 || arg5 != 0/
+{
+    printf("send:   %s label %d token {%d,%d} -> %s: %d bytes\n",
+           copyinstr(arg0),
+           arg3, arg4, arg5,
+           copyinstr(arg1), arg2);
+}
+
+erlang*:::message-queued
+/arg3 == 0 && arg4 == 0 && arg5 == 0/
+{
+    printf("queued: %s: %d bytes, queue len %d\n", copyinstr(arg0), arg1, arg2);
+}
+
+erlang*:::message-queued
+/arg3 != 0 || arg4 != 0 || arg5 != 0/
+{
+    printf("queued: %s label %d token {%d,%d}: %d bytes, queue len %d\n",
+           copyinstr(arg0), arg3, arg4, arg5,
+           arg1, arg2);
 }
 
 erlang*:::message-receive
+/arg3 == 0 && arg4 == 0 && arg5 == 0/
 {
-    printf("recv: %s: %d bytes, queue len %d\n", copyinstr(arg0), arg1, arg2);
+    printf("receive: %s: %d bytes, queue len %d\n",
+           copyinstr(arg0), arg1, arg2);
+}
+
+erlang*:::message-receive
+/arg3 != 0 || arg4 != 0 || arg5 != 0/
+{
+    printf("receive: %s label %d token {%d,%d}: %d bytes, queue len %d\n",
+           copyinstr(arg0), arg3, arg4, arg5,
+           arg1, arg2);
 }

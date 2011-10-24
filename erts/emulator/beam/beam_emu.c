@@ -1930,6 +1930,7 @@ void process_main(void)
 	  * remove it...
 	  */
 	 ASSERT(!msgp->data.attached);
+         /* TODO: Add trace probe for this bad message situation? */
 	 UNLINK_MESSAGE(c_p, msgp);
 	 free_message(msgp);
 	 goto loop_rec__;
@@ -1972,6 +1973,22 @@ void process_main(void)
 	 msg = ERL_MESSAGE_TERM(msgp);
 	 seq_trace_output(SEQ_TRACE_TOKEN(c_p), msg, SEQ_TRACE_RECEIVE, 
 			  c_p->id, c_p);
+     }
+     if (DTRACE_ENABLED(message_receive)) {
+         Eterm token2 = NIL;
+         char receiver_name[DTRACE_TERM_BUF_SIZE];
+         Sint tok_label = 0, tok_lastcnt = 0, tok_serial = 0;
+
+         dtrace_proc_str(c_p, receiver_name);
+         token2 = SEQ_TRACE_TOKEN(c_p);
+         if (token2 != NIL) {
+             tok_label = signed_val(SEQ_TRACE_T_LABEL(token2));
+             tok_lastcnt = signed_val(SEQ_TRACE_T_LASTCNT(token2));
+             tok_serial = signed_val(SEQ_TRACE_T_SERIAL(token2));
+         }
+         DTRACE6(message_receive,
+                 receiver_name, size_object(ERL_MESSAGE_TERM(msgp)),
+                 c_p->msg.len - 1, tok_label, tok_lastcnt, tok_serial);
      }
      UNLINK_MESSAGE(c_p, msgp);
      JOIN_MESSAGE(c_p);
