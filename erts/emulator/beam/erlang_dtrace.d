@@ -58,13 +58,13 @@ provider erlang {
                         int token_label, int token_previous, int token_current);
 
     /**
-     * Fired when a message is delivered to a local process.
+     * Fired when a message is queued to a local process.
      *
      * @param receiver the PID (string form) of the receiver
      * @param size the size of the message being delivered
      * @param queue_len length of the queue of the receiving process
      */
-    probe message__receive(char *receiver, uint32_t size, uint32_t queue_len);
+    probe message__queued(char *receiver, uint32_t size, uint32_t queue_len);
 
     /**
      * Fired when an Eterm structure is being copied.

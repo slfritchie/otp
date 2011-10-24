@@ -378,6 +378,13 @@ erts_queue_dist_message(Process *rcvr,
 	message_free(mp);
 	msg = erts_msg_distext2heap(rcvr, rcvr_locks, &mbuf, &token, dist_ext);
 	if (is_value(msg))
+            if (DTRACE_ENABLED(message_queued)) {
+                char receiver_name[DTRACE_TERM_BUF_SIZE];
+
+                dtrace_proc_str(rcvr, receiver_name);
+                DTRACE3(message_queued,
+                        receiver_name, size_object(msg), rcvr->msg.len);
+            }
 	    erts_queue_message(rcvr, rcvr_locks, mbuf, msg, token);
     }
     else {
@@ -387,6 +394,16 @@ erts_queue_dist_message(Process *rcvr,
 	ERL_MESSAGE_TOKEN(mp) = token;
 	mp->next = NULL;
 
+        if (DTRACE_ENABLED(message_queued)) {
+            char receiver_name[DTRACE_TERM_BUF_SIZE];
+
+            dtrace_proc_str(rcvr, receiver_name);
+            /*
+             * TODO: We don't know the real size of the external message here.
+             *       -1 will appear to a D script as 4294967295.
+             */
+            DTRACE3(message_queued, receiver_name, -1, rcvr->msg.len + 1);
+        }
 	mp->data.dist_ext = dist_ext;
 	LINK_MESSAGE(rcvr, mp);
 
@@ -464,11 +481,11 @@ erts_queue_message(Process* receiver,
     LINK_MESSAGE(receiver, mp);
 #endif
 
-    if (DTRACE_ENABLED(message_receive)) {
+    if (DTRACE_ENABLED(message_queued)) {
         char receiver_name[DTRACE_TERM_BUF_SIZE];
 
         dtrace_proc_str(receiver, receiver_name);
-        DTRACE3(message_receive,
+        DTRACE3(message_queued,
                 receiver_name, size_object(message), receiver->msg.len);
     }
 
