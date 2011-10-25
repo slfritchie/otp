@@ -900,17 +900,13 @@ erts_send_message(Process* sender,
 #endif
         LAZY_COPY(sender,message);
         BM_SWAP_TIMER(copy,send);
+        DTRACE6(message_send, sender_name, receiver_name,
+                size_object(message)msize, tok_label, tok_lastcnt, tok_serial);
         ERL_MESSAGE_TERM(mp) = message;
         ERL_MESSAGE_TOKEN(mp) = NIL;
         mp->next = NULL;
 	LINK_MESSAGE(receiver, mp);
         ACTIVATE(receiver);
-
-	if (DTRACE_ENABLED(message_send)) {
-	    msize = size_object(message);
-            DTRACE6(message_send, sender_name, receiver_name,
-                    (uint32_t)msize, tok_label, tok_lastcnt, tok_serial);
-	}
 
         if (receiver->status == P_WAITING) {
             erts_add_to_runq(receiver);
@@ -945,6 +941,8 @@ erts_send_message(Process* sender,
 	{
 	    ErlMessage* mp = message_alloc();
 
+            DTRACE6(message_send, sender_name, receiver_name,
+                    size_object(message), tok_label, tok_lastcnt, tok_serial);
 	    mp->data.attached = NULL;
 	    ERL_MESSAGE_TERM(mp) = message;
 	    ERL_MESSAGE_TOKEN(mp) = NIL;
@@ -958,8 +956,6 @@ erts_send_message(Process* sender,
 	     * the root set when garbage collecting.
 	     */
 	    
-            DTRACE6(message_send, sender_name, receiver_name,
-                    size_object(message), tok_label, tok_lastcnt, tok_serial);
 	    ERTS_SMP_MSGQ_MV_INQ2PRIVQ(receiver);
 	    LINK_MESSAGE_PRIVQ(receiver, mp);
 
@@ -981,6 +977,8 @@ erts_send_message(Process* sender,
 	message = copy_struct(message, msize, &hp, ohp);
 	BM_MESSAGE_COPIED(msz);
 	BM_SWAP_TIMER(copy,send);
+        DTRACE6(message_send, sender_name, receiver_name,
+                msize, tok_label, tok_lastcnt, tok_serial);
 	erts_queue_message(receiver, receiver_locks, bp, message, token);
         BM_SWAP_TIMER(send,system);
 #else
@@ -989,9 +987,6 @@ erts_send_message(Process* sender,
         BM_SWAP_TIMER(send,size);
 	msize = size_object(message);
         BM_SWAP_TIMER(size,send);
-
-        DTRACE6(message_send, sender_name, receiver_name,
-                (uint32_t)msize, tok_label, tok_lastcnt, tok_serial);
 
 	if (receiver->stop - receiver->htop <= msize) {
             BM_SWAP_TIMER(send,system);
@@ -1004,6 +999,8 @@ erts_send_message(Process* sender,
 	message = copy_struct(message, msize, &hp, &receiver->off_heap);
 	BM_MESSAGE_COPIED(msize);
         BM_SWAP_TIMER(copy,send);
+        DTRACE6(message_send, sender_name, receiver_name,
+                (uint32_t)msize, tok_label, tok_lastcnt, tok_serial);
 	ERL_MESSAGE_TERM(mp) = message;
 	ERL_MESSAGE_TOKEN(mp) = NIL;
 	mp->next = NULL;
