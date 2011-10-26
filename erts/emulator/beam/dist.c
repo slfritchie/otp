@@ -1680,6 +1680,16 @@ dsig_send(ErtsDSigData *dsdp, Eterm ctl, Eterm msg, int force_busy)
 	    if (!(dep->qflgs & ERTS_DE_QFLG_BUSY)) {
 		if (suspended)
 		    resume = 1; /* was busy when we started, but isn't now */
+                if (resume && DTRACE_ENABLED(dist_port_not_busy)) {
+                    char port_str[64];
+                    char remote_str[64];
+
+                    erts_snprintf(port_str, sizeof(port_str), "%T", cid);
+                    erts_snprintf(remote_str, sizeof(remote_str),
+                                  "%T", dep->sysname);
+                    DTRACE3(dist_port_not_busy, erts_this_node_sysname,
+                            port_str, remote_str);
+                }
 	    }
 	    else {
 		/* Enqueue suspended process on dist entry */
@@ -1729,6 +1739,17 @@ dsig_send(ErtsDSigData *dsdp, Eterm ctl, Eterm msg, int force_busy)
     }
 
     if (suspended) {
+        if (!resume && DTRACE_ENABLED(dist_port_busy)) {
+            char port_str[64];
+            char remote_str[64];
+            char pid_str[16];
+
+            erts_snprintf(port_str, sizeof(port_str), "%T", cid);
+            erts_snprintf(remote_str, sizeof(remote_str), "%T", dep->sysname);
+            erts_snprintf(pid_str, sizeof(pid_str), "%T", c_p->id);
+            DTRACE4(dist_port_busy, erts_this_node_sysname,
+                    port_str, remote_str, pid_str);
+        }
 	if (!resume && erts_system_monitor_flags.busy_dist_port)
 	    monitor_generic(c_p, am_busy_dist_port, cid);
 	return ERTS_DSIG_SEND_YIELD;
@@ -2113,6 +2134,16 @@ erts_dist_command(Port *prt, int reds_limit)
 void
 erts_dist_port_not_busy(Port *prt)
 {
+    if (DTRACE_ENABLED(dist_port_not_busy)) {
+        char port_str[64];
+        char remote_str[64];
+
+        erts_snprintf(port_str, sizeof(port_str), "%T", prt->id);
+        erts_snprintf(remote_str, sizeof(remote_str),
+                      "%T", prt->dist_entry->sysname);
+        DTRACE3(dist_port_not_busy, erts_this_node_sysname,
+                port_str, remote_str);
+    }
     erts_schedule_dist_command(prt, NULL);
 }
 
