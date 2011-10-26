@@ -41,6 +41,7 @@
 #include "bif.h"
 #include "external.h"
 #include "erl_binary.h"
+#include "dtrace-wrapper.h"
 
 /* Turn this on to get printouts of all distribution messages
  * which go on the line
@@ -739,6 +740,11 @@ erts_dsig_send_msg(ErtsDSigData *dsdp, Eterm remote, Eterm message)
     Eterm token = NIL;
     Process *sender = dsdp->proc;
     int res;
+    Sint tok_label = 0, tok_lastcnt = 0, tok_serial = 0;
+    Uint msize;
+    char node_name[64];
+    char sender_name[64];
+    char receiver_name[64];
 
     UseTmpHeapNoproc(5);
     if (SEQ_TRACE_TOKEN(sender) != NIL) {
@@ -746,12 +752,27 @@ erts_dsig_send_msg(ErtsDSigData *dsdp, Eterm remote, Eterm message)
 	token = SEQ_TRACE_TOKEN(sender);
 	seq_trace_output(token, message, SEQ_TRACE_SEND, remote, sender);
     }
+    if (DTRACE_ENABLED(message_send) || DTRACE_ENABLED(message_send_remote)) {
+        erts_snprintf(node_name, sizeof(node_name), "%T", dsdp->dep->sysname);
+        erts_snprintf(sender_name, sizeof(sender_name), "%T", sender->id);
+        erts_snprintf(receiver_name, sizeof(receiver_name), "%T", remote);
+        msize = size_object(message);
+        if (token != NIL) {
+            tok_label = signed_val(SEQ_TRACE_T_LABEL(token));
+            tok_lastcnt = signed_val(SEQ_TRACE_T_LASTCNT(token));
+            tok_serial = signed_val(SEQ_TRACE_T_SERIAL(token));
+        }
+    }
 
     if (token != NIL)
 	ctl = TUPLE4(&ctl_heap[0],
 		     make_small(DOP_SEND_TT), am_Cookie, remote, token);
     else
 	ctl = TUPLE3(&ctl_heap[0], make_small(DOP_SEND), am_Cookie, remote);
+    DTRACE6(message_send, sender_name, receiver_name,
+            msize, tok_label, tok_lastcnt, tok_serial);
+    DTRACE7(message_send_remote, sender_name, node_name, receiver_name,
+            msize, tok_label, tok_lastcnt, tok_serial);
     res = dsig_send(dsdp, ctl, message, 0);
     UnUseTmpHeapNoproc(5);
     return res;
@@ -765,12 +786,29 @@ erts_dsig_send_reg_msg(ErtsDSigData *dsdp, Eterm remote_name, Eterm message)
     Eterm token = NIL;
     Process *sender = dsdp->proc;
     int res;
+    Sint tok_label = 0, tok_lastcnt = 0, tok_serial = 0;
+    Uint32 msize;
+    char node_name[64];
+    char sender_name[64];
+    char receiver_name[128];
 
     UseTmpHeapNoproc(6);
     if (SEQ_TRACE_TOKEN(sender) != NIL) {
 	seq_trace_update_send(sender);
 	token = SEQ_TRACE_TOKEN(sender);
 	seq_trace_output(token, message, SEQ_TRACE_SEND, remote_name, sender);
+    }
+    if (DTRACE_ENABLED(message_send) || DTRACE_ENABLED(message_send_remote)) {
+        erts_snprintf(node_name, sizeof(node_name), "%T", dsdp->dep->sysname);
+        erts_snprintf(sender_name, sizeof(sender_name), "%T", sender->id);
+        erts_snprintf(receiver_name, sizeof(receiver_name),
+                      "{%T,%s}", remote_name, node_name);
+        msize = size_object(message);
+        if (token != NIL) {
+            tok_label = signed_val(SEQ_TRACE_T_LABEL(token));
+            tok_lastcnt = signed_val(SEQ_TRACE_T_LASTCNT(token));
+            tok_serial = signed_val(SEQ_TRACE_T_SERIAL(token));
+        }
     }
 
     if (token != NIL)
@@ -779,6 +817,10 @@ erts_dsig_send_reg_msg(ErtsDSigData *dsdp, Eterm remote_name, Eterm message)
     else
 	ctl = TUPLE4(&ctl_heap[0], make_small(DOP_REG_SEND),
 		     sender->id, am_Cookie, remote_name);
+    DTRACE6(message_send, sender_name, receiver_name,
+            msize, tok_label, tok_lastcnt, tok_serial);
+    DTRACE7(message_send_remote, sender_name, node_name, receiver_name,
+            msize, tok_label, tok_lastcnt, tok_serial);
     res = dsig_send(dsdp, ctl, message, 0);
     UnUseTmpHeapNoproc(6);
     return res;
@@ -792,6 +834,12 @@ erts_dsig_send_exit_tt(ErtsDSigData *dsdp, Eterm local, Eterm remote,
     Eterm ctl;
     DeclareTmpHeapNoproc(ctl_heap,6);
     int res;
+    Process *sender = dsdp->proc;
+    Sint tok_label = 0, tok_lastcnt = 0, tok_serial = 0;
+    char node_name[64];
+    char sender_name[64];
+    char remote_name[128];
+    char reason_str[128];
 
     UseTmpHeapNoproc(6);
     if (token != NIL) {	
@@ -802,6 +850,20 @@ erts_dsig_send_exit_tt(ErtsDSigData *dsdp, Eterm local, Eterm remote,
     } else {
 	ctl = TUPLE4(&ctl_heap[0], make_small(DOP_EXIT), local, remote, reason);
     }
+    if (DTRACE_ENABLED(process_exit_signal_remote)) {
+        erts_snprintf(node_name, sizeof(node_name), "%T", dsdp->dep->sysname);
+        erts_snprintf(sender_name, sizeof(sender_name), "%T", sender->id);
+        erts_snprintf(remote_name, sizeof(remote_name),
+                      "{%T,%s}", remote, node_name);
+        erts_snprintf(reason_str, sizeof(reason), "%T", reason);
+        if (token != NIL) {
+            tok_label = signed_val(SEQ_TRACE_T_LABEL(token));
+            tok_lastcnt = signed_val(SEQ_TRACE_T_LASTCNT(token));
+            tok_serial = signed_val(SEQ_TRACE_T_SERIAL(token));
+        }
+    }
+    DTRACE7(process_exit_signal_remote, sender_name, node_name,
+            remote_name, reason_str, tok_label, tok_lastcnt, tok_serial);
     /* forced, i.e ignore busy */
     res = dsig_send(dsdp, ctl, THE_NON_VALUE, 1);
     UnUseTmpHeapNoproc(6);

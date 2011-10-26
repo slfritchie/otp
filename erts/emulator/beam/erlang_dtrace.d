@@ -47,7 +47,7 @@ provider erlang {
     /**
      * Fired when a message is sent from one local process to another.
      *
-     * NOTE: The 'size' parameter is in machine-dependent words and 
+     * NOTE: The 'size' parameter is in machine-dependent words and
      *       that the actual size of any binary terms in the message
      *       are not included.
      *
@@ -59,6 +59,25 @@ provider erlang {
      * @param token_current count for the sender's sequential trace token
      */
     probe message__send(char *sender, char *receiver, uint32_t size,
+                        int token_label, int token_previous, int token_current);
+
+    /**
+     * Fired when a message is sent from a local process to a remote process.
+     *
+     * NOTE: The 'size' parameter is in machine-dependent words and 
+     *       that the actual size of any binary terms in the message
+     *       are not included.
+     *
+     * @param sender the PID (string form) of the sender
+     * @param node_name the Erlang node name (string form) of the receiver
+     * @param receiver the PID/name (string form) of the receiver
+     * @param size the size of the message being delivered (words)
+     * @param token_label for the sender's sequential trace token
+     * @param token_previous count for the sender's sequential trace token
+     * @param token_current count for the sender's sequential trace token
+     */
+    probe message__send__remote(char *sender, char *node_name, char *receiver,
+                                uint32_t size,
                         int token_label, int token_previous, int token_current);
 
     /**
@@ -223,6 +242,21 @@ provider erlang {
      * @param reason the reason for the exit (may be truncated)
      */
     probe process__exit_signal(char *sender, char *receiver, char *reason);
+
+    /**
+     * Fired when exit signal is delivered to a remote process.
+     *
+     * @param sender the PID (string form) of the exiting process
+     * @param node_name the Erlang node name (string form) of the receiver
+     * @param receiver the PID (string form) of the process receiving EXIT signal
+     * @param reason the reason for the exit (may be truncated)
+     * @param token_label for the sender's sequential trace token
+     * @param token_previous count for the sender's sequential trace token
+     * @param token_current count for the sender's sequential trace token
+     */
+     probe process__exit_signal__remote(char *sender, char *node_name,
+                                        char *receiver, char *reason,
+                        int token_label, int token_previous, int token_current);
 
     /**
      * Fired when a process is scheduled.

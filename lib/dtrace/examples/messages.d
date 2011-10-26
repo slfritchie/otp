@@ -43,6 +43,27 @@ erlang*:::message-send
            copyinstr(arg1), arg2);
 }
 
+/*
+ * TODO:
+ * Weird, on my OS X box, beam says arg6 = 0 but this script says 4294967296.
+ */
+
+erlang*:::message-send-remote
+/arg4 == 0 && arg5 == 0 && (arg6 == 0 || arg6 >= 4294967296)/
+{
+    printf("send :  %s -> %s %s: %d words\n",
+           copyinstr(arg0), copyinstr(arg1), copyinstr(arg2), arg3);
+}
+
+erlang*:::message-send-remote
+/arg4 != 0 || arg5 != 0 || arg6 < 4294967296/
+{
+    printf("send :  %s label %d token {%d,%d} -> %s %s: %d words\n",
+           copyinstr(arg0),
+           arg4, arg5, arg6,
+           copyinstr(arg1), copyinstr(arg2), arg3);
+}
+
 erlang*:::message-queued
 /arg3 == 0 && arg4 == 0 && arg5 == 0/
 {
