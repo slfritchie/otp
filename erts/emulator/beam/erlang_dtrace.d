@@ -301,6 +301,20 @@ provider erlang {
     probe process__heap_shrink(char *p, int old_size, int new_size);
 
     /**
+     * Fired when network distribution event monitor events are triggered.
+     *
+     * @param node the name of the reporting node
+     * @param what the type of event, e.g., nodeup, nodedown
+     * @param monitored_node the name of the monitored node
+     * @param type the type of node, e.g., visible, hidden
+     * @param reason the reason term, e.g., normal, connection_closed, term()
+     * @param token_previous count for the sender's sequential trace token
+     * @param token_current count for the sender's sequential trace token
+     */
+    probe dist__monitor(char *node, char *what, char *monitored_node,
+                        char *type, char *reason);
+
+    /**
      * Fired when port_command is issued.
      *
      * @param proces the PID (string form) of the existing process

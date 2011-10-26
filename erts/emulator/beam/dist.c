@@ -3035,10 +3035,22 @@ send_nodes_mon_msgs(Process *c_p, Eterm what, Eterm node, Eterm type, Eterm reas
     ErtsNodesMonitor *nmp;
     ErtsProcLocks rp_locks = 0; /* Init to shut up false warning */
     Process *rp = NULL;
+    char what_str[12];
+    char node_str[64];
+    char type_str[12];
+    char reason_str[64];
 
     ASSERT(is_immed(what));
     ASSERT(is_immed(node));
     ASSERT(is_immed(type));
+    if (DTRACE_ENABLED(dist_monitor)) {
+        erts_snprintf(what_str, sizeof(what_str), "%T", what);
+        erts_snprintf(node_str, sizeof(node_str), "%T", node);
+        erts_snprintf(type_str, sizeof(type_str), "%T", type);
+        erts_snprintf(reason_str, sizeof(reason_str), "%T", reason);
+        DTRACE5(dist_monitor, erts_this_node_sysname,
+                what_str, node_str, type_str, reason_str);
+    }
 
     ERTS_SMP_LC_ASSERT(!c_p
 		       || (erts_proc_lc_my_proc_locks(c_p)
