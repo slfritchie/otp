@@ -33,3 +33,9 @@ erlang*:::process-exit_signal
     printf("sender %s -> pid %s reason %s\n",
 	   copyinstr(arg0), copyinstr(arg1), copyinstr(arg2));
 }
+
+erlang*:::process-exit_signal-remote
+{
+    printf("sender %s -> node %s pid %s reason %s\n",
+	   copyinstr(arg0), copyinstr(arg1), copyinstr(arg2), copyinstr(arg3));
+}

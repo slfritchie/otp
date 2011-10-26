@@ -2388,6 +2388,8 @@ print_port_info(int to, void *arg, int i)
 void
 set_busy_port(ErlDrvPort port_num, int on)
 {
+    char port_str[16];
+
     ERTS_SMP_CHK_NO_PROC_LOCKS;
 
     ERTS_SMP_LC_ASSERT(erts_lc_is_port_locked(&erts_port[port_num]));
@@ -2395,12 +2397,22 @@ set_busy_port(ErlDrvPort port_num, int on)
     if (on) {
         erts_port_status_bor_set(&erts_port[port_num],
 				 ERTS_PORT_SFLG_PORT_BUSY);
+        if (DTRACE_ENABLED(port_busy)) {
+            erts_snprintf(port_str, sizeof(port_str),
+                          "%T", erts_port[port_num].id);
+            DTRACE1(port_busy, port_str);
+        }
     } else {
         ErtsProcList* plp = erts_port[port_num].suspended;
         erts_port_status_band_set(&erts_port[port_num],
 				  ~ERTS_PORT_SFLG_PORT_BUSY);
         erts_port[port_num].suspended = NULL;
 
+        if (DTRACE_ENABLED(port_not_busy)) {
+            erts_snprintf(port_str, sizeof(port_str),
+                          "%T", erts_port[port_num].id);
+            DTRACE1(port_not_busy, port_str);
+        }
 	if (erts_port[port_num].dist_entry) {
 	    /*
 	     * Processes suspended on distribution ports are
@@ -2418,6 +2430,26 @@ set_busy_port(ErlDrvPort port_num, int on)
 	 */
 
         if (plp) {
+            /*
+            ** Hrm, for blocked dist ports, plp always seems to be NULL.
+            ** That's not so fun.
+            ** Well, another way to get the same info is using a D
+            ** script to correlate an earlier process-port_blocked+pid
+            ** event with a later process-scheduled event.  That's
+            ** subject to the multi-CPU races with how events are
+            ** handled, but hey, that way works most of the time.
+            */
+            if (DTRACE_ENABLED(process_port_unblocked)) {
+                char pid_str[16];
+                ErtsProcList* plp2 = plp;
+
+                erts_snprintf(port_str, sizeof(port_str),
+                             "%T", erts_port[port_num]);
+                while (plp2 != NULL) {
+                    erts_snprintf(pid_str, sizeof(pid_str), "%T", plp2->pid);
+                    DTRACE2(process_port_unblocked, pid_str, port_str);
+                }
+            }
             /* First proc should be resumed last */
 	    if (plp->next) {
 		erts_resume_processes(plp->next);

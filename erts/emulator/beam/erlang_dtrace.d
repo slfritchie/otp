@@ -47,9 +47,13 @@ provider erlang {
     /**
      * Fired when a message is sent from one local process to another.
      *
+     * NOTE: The 'size' parameter is in machine-dependent words and
+     *       that the actual size of any binary terms in the message
+     *       are not included.
+     *
      * @param sender the PID (string form) of the sender
      * @param receiver the PID (string form) of the receiver
-     * @param size the size of the message being delivered
+     * @param size the size of the message being delivered (words)
      * @param token_label for the sender's sequential trace token
      * @param token_previous count for the sender's sequential trace token
      * @param token_current count for the sender's sequential trace token
@@ -58,10 +62,34 @@ provider erlang {
                         int token_label, int token_previous, int token_current);
 
     /**
-     * Fired when a message is queued to a local process.
+     * Fired when a message is sent from a local process to a remote process.
+     *
+     * NOTE: The 'size' parameter is in machine-dependent words and 
+     *       that the actual size of any binary terms in the message
+     *       are not included.
+     *
+     * @param sender the PID (string form) of the sender
+     * @param node_name the Erlang node name (string form) of the receiver
+     * @param receiver the PID/name (string form) of the receiver
+     * @param size the size of the message being delivered (words)
+     * @param token_label for the sender's sequential trace token
+     * @param token_previous count for the sender's sequential trace token
+     * @param token_current count for the sender's sequential trace token
+     */
+    probe message__send__remote(char *sender, char *node_name, char *receiver,
+                                uint32_t size,
+                        int token_label, int token_previous, int token_current);
+
+    /**
+     * Fired when a message is queued to a local process.  This probe
+     * will not fire if the sender's pid == receiver's pid.
+     *
+     * NOTE: The 'size' parameter is in machine-dependent words and 
+     *       that the actual size of any binary terms in the message
+     *       are not included.
      *
      * @param receiver the PID (string form) of the receiver
-     * @param size the size of the message being delivered
+     * @param size the size of the message being delivered (words)
      * @param queue_len length of the queue of the receiving process
      * @param token_label for the sender's sequential trace token
      * @param token_previous count for the sender's sequential trace token
@@ -74,8 +102,12 @@ provider erlang {
      * Fired when a message is 'receive'd by a local process and removed
      * from its mailbox.
      *
+     * NOTE: The 'size' parameter is in machine-dependent words and 
+     *       that the actual size of any binary terms in the message
+     *       are not included.
+     *
      * @param receiver the PID (string form) of the receiver
-     * @param size the size of the message being delivered
+     * @param size the size of the message being delivered (words)
      * @param queue_len length of the queue of the receiving process
      * @param token_label for the sender's sequential trace token
      * @param token_previous count for the sender's sequential trace token
@@ -212,6 +244,21 @@ provider erlang {
     probe process__exit_signal(char *sender, char *receiver, char *reason);
 
     /**
+     * Fired when exit signal is delivered to a remote process.
+     *
+     * @param sender the PID (string form) of the exiting process
+     * @param node_name the Erlang node name (string form) of the receiver
+     * @param receiver the PID (string form) of the process receiving EXIT signal
+     * @param reason the reason for the exit (may be truncated)
+     * @param token_label for the sender's sequential trace token
+     * @param token_previous count for the sender's sequential trace token
+     * @param token_current count for the sender's sequential trace token
+     */
+    probe process__exit_signal__remote(char *sender, char *node_name,
+                                       char *receiver, char *reason,
+                        int token_label, int token_previous, int token_current);
+
+    /**
      * Fired when a process is scheduled.
      *
      * @param p the PID (string form) of the newly scheduled process
@@ -236,6 +283,15 @@ provider erlang {
     probe process__hibernate(char *p, char *mfa);
 
     /**
+     * Fired when a process is unblocked after a port has been unblocked.
+     *
+     * @param p the PID (string form) of the process that has been
+     * unscheduled.
+     * @param port the port that is no longer busy (i.e., is now unblocked)
+     */
+    probe process__port_unblocked(char *p, char *port);
+
+    /**
      * Fired when process' heap is growing.
      *
      * @param p the PID (string form) of the existing process
@@ -252,6 +308,60 @@ provider erlang {
      * @param new_size the size of the new heap
      */
     probe process__heap_shrink(char *p, int old_size, int new_size);
+
+    /**
+     * Fired when network distribution event monitor events are triggered.
+     *
+     * @param node the name of the reporting node
+     * @param what the type of event, e.g., nodeup, nodedown
+     * @param monitored_node the name of the monitored node
+     * @param type the type of node, e.g., visible, hidden
+     * @param reason the reason term, e.g., normal, connection_closed, term()
+     * @param token_previous count for the sender's sequential trace token
+     * @param token_current count for the sender's sequential trace token
+     */
+    probe dist__monitor(char *node, char *what, char *monitored_node,
+                        char *type, char *reason);
+
+    /**
+     * Fired when network distribution port is busy (i.e. blocked),
+     * usually due to the remote node not consuming distribution
+     * data quickly enough.
+     *
+     * @param node the name of the reporting node
+     * @param port the port ID of the busy port
+     * @param remote_node the name of the remote node.
+     * @param pid the PID (string form) of the local process that has
+     *        become unschedulable until the port becomes unblocked.
+     */
+    probe dist__port_busy(char *node, char *port, char *remote_node,
+                          char *pid);
+
+    /**
+     * Fired when network distribution port is no longer busy (i.e. blocked).
+     *
+     * NOTE: This probe may fire multiple times after the same single
+     *       dist-port_busy probe firing.
+     *
+     * @param node the name of the reporting node
+     * @param port the port ID of the busy port
+     * @param remote_node the name of the remote node.
+     */
+    probe dist__port_not_busy(char *node, char *port, char *remote_node);
+
+    /**
+     * Fired when a port is busy (i.e. blocked)
+     *
+     * @param port the port ID of the busy port
+     */
+    probe port__busy(char *port);
+
+    /**
+     * Fired when a port is no longer busy (i.e. no longer blocked)
+     *
+     * @param port the port ID of the not busy port
+     */
+    probe port__not_busy(char *port);
 
     /**
      * Fired when port_command is issued.

@@ -30,29 +30,50 @@ BEGIN
 erlang*:::message-send
 /arg3 == 0 && arg4 == 0 && arg5 == 0/
 {
-    printf("send:   %s -> %s: %d bytes\n",
+    printf("send:   %s -> %s: %d words\n",
            copyinstr(arg0), copyinstr(arg1), arg2);
 }
 
 erlang*:::message-send
 /arg3 != 0 || arg4 != 0 || arg5 != 0/
 {
-    printf("send:   %s label %d token {%d,%d} -> %s: %d bytes\n",
+    printf("send:   %s label %d token {%d,%d} -> %s: %d words\n",
            copyinstr(arg0),
            arg3, arg4, arg5,
            copyinstr(arg1), arg2);
 }
 
+/*
+ * TODO:
+ * Weird, on my OS X box, beam says arg6 = 0 but this script says 4294967296.
+ */
+
+erlang*:::message-send-remote
+/arg4 == 0 && arg5 == 0 && (arg6 == 0 || arg6 >= 4294967296)/
+{
+    printf("send :  %s -> %s %s: %d words\n",
+           copyinstr(arg0), copyinstr(arg1), copyinstr(arg2), arg3);
+}
+
+erlang*:::message-send-remote
+/arg4 != 0 || arg5 != 0 || arg6 < 4294967296/
+{
+    printf("send :  %s label %d token {%d,%d} -> %s %s: %d words\n",
+           copyinstr(arg0),
+           arg4, arg5, arg6,
+           copyinstr(arg1), copyinstr(arg2), arg3);
+}
+
 erlang*:::message-queued
 /arg3 == 0 && arg4 == 0 && arg5 == 0/
 {
-    printf("queued: %s: %d bytes, queue len %d\n", copyinstr(arg0), arg1, arg2);
+    printf("queued: %s: %d words, queue len %d\n", copyinstr(arg0), arg1, arg2);
 }
 
 erlang*:::message-queued
 /arg3 != 0 || arg4 != 0 || arg5 != 0/
 {
-    printf("queued: %s label %d token {%d,%d}: %d bytes, queue len %d\n",
+    printf("queued: %s label %d token {%d,%d}: %d words, queue len %d\n",
            copyinstr(arg0), arg3, arg4, arg5,
            arg1, arg2);
 }
@@ -60,14 +81,14 @@ erlang*:::message-queued
 erlang*:::message-receive
 /arg3 == 0 && arg4 == 0 && arg5 == 0/
 {
-    printf("receive: %s: %d bytes, queue len %d\n",
+    printf("receive: %s: %d words, queue len %d\n",
            copyinstr(arg0), arg1, arg2);
 }
 
 erlang*:::message-receive
 /arg3 != 0 || arg4 != 0 || arg5 != 0/
 {
-    printf("receive: %s label %d token {%d,%d}: %d bytes, queue len %d\n",
+    printf("receive: %s label %d token {%d,%d}: %d words, queue len %d\n",
            copyinstr(arg0), arg3, arg4, arg5,
            arg1, arg2);
 }

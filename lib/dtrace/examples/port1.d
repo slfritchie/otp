@@ -18,6 +18,16 @@
  * %CopyrightEnd%
  */
 
+erlang*:::port-busy
+{
+    printf("port busy %s\n", copyinstr(arg0));
+}
+
+erlang*:::port-not_busy
+{
+    printf("port not busy %s\n", copyinstr(arg0));
+}
+
 erlang*:::port-command
 {
     printf("port command pid %s port %s port name %s command type %s\n",
