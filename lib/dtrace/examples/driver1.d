@@ -96,15 +96,21 @@ erlang*:::driver-timeout
 	   copyinstr(arg0), copyinstr(arg1), copyinstr(arg2));
 }
 
+erlang*:::driver-ready_async
+{
+    printf("driver ready_async pid %s port %s port name %s\n",
+	   copyinstr(arg0), copyinstr(arg1), copyinstr(arg2));
+}
+
 erlang*:::driver-process_exit
 {
     printf("driver process_exit pid %s port %s port name %s\n",
 	   copyinstr(arg0), copyinstr(arg1), copyinstr(arg2));
 }
 
-erlang*:::driver-ready_async
+erlang*:::driver-stop_select
 {
-    printf("driver ready_async pid %s port %s port name %s\n",
-	   copyinstr(arg0), copyinstr(arg1), copyinstr(arg2));
+    printf("driver stop_select driver name %s\n", copyinstr(arg0));
 }
+
 

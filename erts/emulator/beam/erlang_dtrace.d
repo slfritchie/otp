@@ -566,6 +566,15 @@ provider erlang {
     probe driver__timeout(char *node, char *port, char *port_name);
 
     /**
+     * Fired when drivers's "ready_async" callback is called.
+     *
+     * @param process the PID (string form) of the existing process
+     * @param port the Port (string form) of the existing port
+     * @param port_name the string used when opening a port
+     */
+    probe driver__ready_async(char *process, char *port, char *port_name);
+
+    /**
      * Fired when driver's "process_exit" callback is called
      *
      * @param process the PID (string form) of the existing process
@@ -575,13 +584,11 @@ provider erlang {
     probe driver__process_exit(char *node, char *port, char *port_name);
 
     /**
-     * Fired when drivers's "ready_async" callback is called.
+     * Fired when driver's "stop_select" callback is called
      *
-     * @param process the PID (string form) of the existing process
-     * @param port the Port (string form) of the existing port
-     * @param port_name the string used when opening a port
+     * @param name the name of the driver
      */
-    probe driver__ready_async(char *process, char *port, char *port_name);
+    probe driver__stop_select(char *name);
 
 
     /* Async driver pool */
