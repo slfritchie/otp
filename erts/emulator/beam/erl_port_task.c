@@ -32,6 +32,7 @@
 #include "global.h"
 #include "erl_port_task.h"
 #include "dist.h"
+#include "dtrace-wrapper.h"
 
 #if defined(DEBUG) && 0
 #define HARD_DEBUG
@@ -852,6 +853,14 @@ erts_port_task_execute(ErtsRunQueue *runq, Port **curr_port_pp)
 	case ERTS_PORT_TASK_INPUT:
 	    reds += ERTS_PORT_REDS_INPUT;
 	    ASSERT((pp->status & ERTS_PORT_SFLGS_DEAD) == 0);
+            if (DTRACE_ENABLED(driver_ready_input)) {
+                char process_str[DTRACE_TERM_BUF_SIZE];
+                char port_str[DTRACE_TERM_BUF_SIZE];
+
+                dtrace_pid_str(pp->connected, process_str);
+                dtrace_port_str(pp, port_str);
+                DTRACE3(driver_ready_input, process_str, port_str, pp->name);
+            }
 	    /* NOTE some windows drivers use ->ready_input for input and output */
 	    (*pp->drv_ptr->ready_input)((ErlDrvData) pp->drv_data, ptp->event);
 	    io_tasks_executed++;
@@ -859,12 +868,28 @@ erts_port_task_execute(ErtsRunQueue *runq, Port **curr_port_pp)
 	case ERTS_PORT_TASK_OUTPUT:
 	    reds += ERTS_PORT_REDS_OUTPUT;
 	    ASSERT((pp->status & ERTS_PORT_SFLGS_DEAD) == 0);
+            if (DTRACE_ENABLED(driver_ready_output)) {
+                char process_str[DTRACE_TERM_BUF_SIZE];
+                char port_str[DTRACE_TERM_BUF_SIZE];
+
+                dtrace_pid_str(pp->connected, process_str);
+                dtrace_port_str(pp, port_str);
+                DTRACE3(driver_ready_output, process_str, port_str, pp->name);
+            }
 	    (*pp->drv_ptr->ready_output)((ErlDrvData) pp->drv_data, ptp->event);
 	    io_tasks_executed++;
 	    break;
 	case ERTS_PORT_TASK_EVENT:
 	    reds += ERTS_PORT_REDS_EVENT;
 	    ASSERT((pp->status & ERTS_PORT_SFLGS_DEAD) == 0);
+            if (DTRACE_ENABLED(driver_event)) {
+                char process_str[DTRACE_TERM_BUF_SIZE];
+                char port_str[DTRACE_TERM_BUF_SIZE];
+
+                dtrace_pid_str(pp->connected, process_str);
+                dtrace_port_str(pp, port_str);
+                DTRACE3(driver_event, process_str, port_str, pp->name);
+            }
 	    (*pp->drv_ptr->event)((ErlDrvData) pp->drv_data, ptp->event, ptp->event_data);
 	    io_tasks_executed++;
 	    break;

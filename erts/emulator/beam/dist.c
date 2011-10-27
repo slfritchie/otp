@@ -1773,6 +1773,16 @@ dist_port_command(Port *prt, ErtsDistOutputBuf *obuf)
 		 "(%beu bytes) passed.\n",
 		 size);
 
+    if (DTRACE_ENABLED(dist_output)) {
+        char port_str[64];
+        char remote_str[64];
+
+        erts_snprintf(port_str, sizeof(port_str), "%T", prt->id);
+        erts_snprintf(remote_str, sizeof(remote_str),
+                      "%T", prt->dist_entry->sysname);
+        DTRACE4(dist_output, erts_this_node_sysname, port_str,
+                remote_str, size);
+    }
     prt->caller = NIL;
     fpe_was_unmasked = erts_block_fpe();
     (*prt->drv_ptr->output)((ErlDrvData) prt->drv_data,
@@ -1815,6 +1825,16 @@ dist_port_commandv(Port *prt, ErtsDistOutputBuf *obuf)
 
     ASSERT(prt->drv_ptr->outputv);
 
+    if (DTRACE_ENABLED(dist_outputv)) {
+        char port_str[64];
+        char remote_str[64];
+
+        erts_snprintf(port_str, sizeof(port_str), "%T", prt->id);
+        erts_snprintf(remote_str, sizeof(remote_str),
+                      "%T", prt->dist_entry->sysname);
+        DTRACE4(dist_outputv, erts_this_node_sysname, port_str,
+                remote_str, size);
+    }
     prt->caller = NIL;
     fpe_was_unmasked = erts_block_fpe();
     (*prt->drv_ptr->outputv)((ErlDrvData) prt->drv_data, &eiov);

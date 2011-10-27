@@ -28,15 +28,28 @@ erlang*:::dist-monitor
 
 erlang*:::dist-port_busy
 {
-    printf("port_busy: node %s, port %s, remote_node %s, blocked pid %s\n",
+    printf("dist port_busy: node %s, port %s, remote_node %s, blocked pid %s\n",
            copyinstr(arg0), copyinstr(arg1), copyinstr(arg2), copyinstr(arg3));
     blocked_procs[copyinstr(arg3)] = timestamp;
 }
 
-erlang*:::dist-port_not_busy
+erlang*:::dist-port_busy
 {
-    printf("port_not_busy: node %s, port %s, remote_node %s\n",
-           copyinstr(arg0), copyinstr(arg1), copyinstr(arg2));
+    printf("dist port_busy: node %s, port %s, remote_node %s, blocked pid %s\n",
+           copyinstr(arg0), copyinstr(arg1), copyinstr(arg2), copyinstr(arg3));
+    blocked_procs[copyinstr(arg3)] = timestamp;
+}
+
+erlang*:::dist-output
+{
+    printf("dist output: node %s, port %s, remote_node %s bytes %d\n",
+           copyinstr(arg0), copyinstr(arg1), copyinstr(arg2), arg3);
+}
+
+erlang*:::dist-outputv
+{
+    printf("port outputv: node %s, port %s, remote_node %s bytes %d\n",
+           copyinstr(arg0), copyinstr(arg1), copyinstr(arg2), arg3);
 }
 
 erlang*:::process-scheduled

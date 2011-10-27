@@ -309,6 +309,8 @@ provider erlang {
      */
     probe process__heap_shrink(char *p, int old_size, int new_size);
 
+    /* network distribution */
+
     /**
      * Fired when network distribution event monitor events are triggered.
      *
@@ -338,6 +340,26 @@ provider erlang {
                           char *pid);
 
     /**
+     * Fired when network distribution's driver's "output" callback is called
+     *
+     * @param node the name of the reporting node
+     * @param port the port ID of the busy port
+     * @param remote_node the name of the remote node.
+     * @param bytes the number of bytes written
+     */
+    probe dist__output(char *node, char *port, char *remote_node, int bytes);
+
+    /**
+     * Fired when network distribution's driver's "outputv" callback is called
+     *
+     * @param node the name of the reporting node
+     * @param port the port ID of the busy port
+     * @param remote_node the name of the remote node.
+     * @param bytes the number of bytes written
+     */
+    probe dist__outputv(char *node, char *port, char *remote_node, int bytes);
+
+    /**
      * Fired when network distribution port is no longer busy (i.e. blocked).
      *
      * NOTE: This probe may fire multiple times after the same single
@@ -348,6 +370,60 @@ provider erlang {
      * @param remote_node the name of the remote node.
      */
     probe dist__port_not_busy(char *node, char *port, char *remote_node);
+
+    /* ports */
+
+    /**
+     * Fired when new port is opened.
+     *
+     * @param process the PID (string form) of the existing process
+     * @param port_name the string used when opening a port
+     * @param port the Port (string form) of the new port
+     */
+    probe port__open(char *process, char *port_name, char *port);
+
+    /**
+     * Fired when port_command is issued.
+     *
+     * @param process the PID (string form) of the existing process
+     * @param port the Port (string form) of the existing port
+     * @param port_name the string used when opening a port
+     * @param command_type type of the issued command, one of: "close", "command" or "connect"
+     */
+    probe port__command(char *process, char *port, char *port_name, char *command_type);
+
+    /**
+     * Fired when port_control is issued.
+     *
+     * @param process the PID (string form) of the existing process
+     * @param port the Port (string form) of the existing port
+     * @param port_name the string used when opening a port
+     * @param command_no command number that has been issued to the port
+     */
+    probe port__control(char *process, char *port, char *port_name, int command_no);
+
+    /**
+     * Fired when port is closed via port_close/1 (reason = 'normal')
+     * or is sent an exit signal.
+     *
+     * @param process the PID (string form) of the existing process
+     * @param port the Port (string form) of the existing port
+     * @param port_name the string used when opening a port
+     * @param reason Erlang term representing the exit signal, e.g. 'normal'
+     */
+    probe port__exit(char *process, char *port, char *port_name,
+                     char *new_process);
+
+    /**
+     * Fired when port_connect is issued.
+     *
+     * @param process the PID (string form) of the current port owner
+     * @param port the Port (string form) of the existing port
+     * @param port_name the string used when opening a port
+     * @param new_process the PID (string form) of the new port owner
+     */
+    probe port__connect(char *process, char *port, char *port_name,
+                        char *new_process);
 
     /**
      * Fired when a port is busy (i.e. blocked)
@@ -363,25 +439,131 @@ provider erlang {
      */
     probe port__not_busy(char *port);
 
-    /**
-     * Fired when port_command is issued.
-     *
-     * @param proces the PID (string form) of the existing process
-     * @param port the Port (string form) of the existing port
-     * @param port_name the string used when opening a port
-     * @param command_type type of the issued command, one of: "close", "command" or "connect"
-     */
-    probe port__command(char *process, char *port, char *port_name, char *command_type);
+    /* drivers */
 
     /**
-     * Fired when port_control is issued.
+     * Fired when drivers's "init" callback is called.
      *
-     * @param proces the PID (string form) of the existing process
+     * @param name the name of the driver
+     * @param major the major version number
+     * @param minor the minor version number
+     * @param flags the flags argument
+     */
+    probe driver__init(char *name, int major, int minor, int flags);
+
+    /**
+     * Fired when drivers's "start" callback is called.
+     *
+     * @param process the PID (string form) of the calling process
+     * @param name the name of the driver
+     * @param port the Port (string form) of the driver's port
+     */
+     probe driver__start(char *process, char *name, char *port);
+
+    /**
+     * Fired when drivers's "stop" callback is called.
+     *
+     * @param process the PID (string form) of the calling process
+     * @param name the name of the driver
+     * @param port the Port (string form) of the driver's port
+     */
+     probe driver__stop(char *process, char *name, char *port);
+
+    /**
+     * Fired when drivers's "finish" callback is called.
+     *
+     * @param name the name of the driver
+     */
+     probe driver__finish(char *name);
+
+    /**
+     * Fired when drivers's "flush" callback is called.
+     *
+     * @param process the PID (string form) of the existing process
      * @param port the Port (string form) of the existing port
      * @param port_name the string used when opening a port
-     * @param command_no command number that has been issued to the port
      */
-    probe port__control(char *process, char *port, char *port_name, int command_no);
+    probe driver__flush(char *process, char *port, char *port_name);
+
+    /**
+     * Fired when driver's "output" callback is called
+     *
+     * @param process the PID (string form) of the existing process
+     * @param port the Port (string form) of the existing port
+     * @param port_name the string used when opening a port
+     * @param bytes the number of bytes written
+     */
+    probe driver__output(char *node, char *port, char *port_name, int bytes);
+
+    /**
+     * Fired when driver's "outputv" callback is called
+     *
+     * @param process the PID (string form) of the existing process
+     * @param port the Port (string form) of the existing port
+     * @param port_name the string used when opening a port
+     * @param bytes the number of bytes written
+     */
+    probe driver__outputv(char *node, char *port, char *port_name, int bytes);
+
+    /**
+     * Fired when driver's "control" callback is called
+     *
+     * @param process the PID (string form) of the existing process
+     * @param port the Port (string form) of the existing port
+     * @param port_name the string used when opening a port
+     * @param command the command #
+     * @param bytes the number of bytes written
+     */
+    probe driver__control(char *node, char *port, char *port_name,
+                          int command, int bytes);
+
+    /**
+     * Fired when driver's "call" callback is called
+     *
+     * @param process the PID (string form) of the existing process
+     * @param port the Port (string form) of the existing port
+     * @param port_name the string used when opening a port
+     * @param command the command #
+     * @param bytes the number of bytes written
+     */
+    probe driver__call(char *node, char *port, char *port_name,
+                       int command, int bytes);
+
+    /**
+     * Fired when driver's "event" callback is called
+     *
+     * @param process the PID (string form) of the existing process
+     * @param port the Port (string form) of the existing port
+     * @param port_name the string used when opening a port
+     */
+    probe driver__event(char *node, char *port, char *port_name);
+
+    /**
+     * Fired when driver's "ready_input" callback is called
+     *
+     * @param process the PID (string form) of the existing process
+     * @param port the Port (string form) of the existing port
+     * @param port_name the string used when opening a port
+     */
+    probe driver__ready_input(char *node, char *port, char *port_name);
+
+    /**
+     * Fired when driver's "event" callback is called
+     *
+     * @param process the PID (string form) of the existing process
+     * @param port the Port (string form) of the existing port
+     * @param port_name the string used when opening a port
+     */
+    probe driver__ready_output(char *node, char *port, char *port_name);
+
+    /**
+     * Fired when drivers's "ready_async" callback is called.
+     *
+     * @param process the PID (string form) of the existing process
+     * @param port the Port (string form) of the existing port
+     * @param port_name the string used when opening a port
+     */
+    probe driver__ready_async(char *process, char *port, char *port_name);
 
 
     /* Async driver pool */
