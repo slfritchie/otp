@@ -4567,6 +4567,14 @@ void erts_fire_port_monitor(Port *prt, Eterm ref)
     ASSERT(callback != NULL);
     ref_to_driver_monitor(ref,&drv_monitor);
     DRV_MONITOR_UNLOCK_PDL(prt);
+    if (DTRACE_ENABLED(driver_process_exit)) {
+        char process_str[DTRACE_TERM_BUF_SIZE];
+        char port_str[DTRACE_TERM_BUF_SIZE];
+
+        dtrace_pid_str(prt->connected, process_str);
+        dtrace_port_str(prt, port_str);
+        DTRACE3(driver_process_exit, process_str, port_str, prt->name);
+    }
     fpe_was_unmasked = erts_block_fpe();
     (*callback)((ErlDrvData) (prt->drv_data), &drv_monitor);
     erts_unblock_fpe(fpe_was_unmasked);

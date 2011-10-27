@@ -90,6 +90,18 @@ erlang*:::driver-ready_output
 	   copyinstr(arg0), copyinstr(arg1), copyinstr(arg2));
 }
 
+erlang*:::driver-timeout
+{
+    printf("driver timeout pid %s port %s port name %s\n",
+	   copyinstr(arg0), copyinstr(arg1), copyinstr(arg2));
+}
+
+erlang*:::driver-process_exit
+{
+    printf("driver process_exit pid %s port %s port name %s\n",
+	   copyinstr(arg0), copyinstr(arg1), copyinstr(arg2));
+}
+
 erlang*:::driver-ready_async
 {
     printf("driver ready_async pid %s port %s port name %s\n",

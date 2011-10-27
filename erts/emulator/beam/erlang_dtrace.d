@@ -548,13 +548,31 @@ provider erlang {
     probe driver__ready_input(char *node, char *port, char *port_name);
 
     /**
-     * Fired when driver's "event" callback is called
+     * Fired when driver's "read_output" callback is called
      *
      * @param process the PID (string form) of the existing process
      * @param port the Port (string form) of the existing port
      * @param port_name the string used when opening a port
      */
     probe driver__ready_output(char *node, char *port, char *port_name);
+
+    /**
+     * Fired when driver's "timeout" callback is called
+     *
+     * @param process the PID (string form) of the existing process
+     * @param port the Port (string form) of the existing port
+     * @param port_name the string used when opening a port
+     */
+    probe driver__timeout(char *node, char *port, char *port_name);
+
+    /**
+     * Fired when driver's "process_exit" callback is called
+     *
+     * @param process the PID (string form) of the existing process
+     * @param port the Port (string form) of the existing port
+     * @param port_name the string used when opening a port
+     */
+    probe driver__process_exit(char *node, char *port, char *port_name);
 
     /**
      * Fired when drivers's "ready_async" callback is called.
