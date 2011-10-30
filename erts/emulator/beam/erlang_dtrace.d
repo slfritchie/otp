@@ -294,7 +294,7 @@ provider erlang {
     /**
      * Fired when process' heap is growing.
      *
-     * @param p the PID (string form) of the existing process
+     * @param p the PID (string form)
      * @param old_size the size of the old heap
      * @param new_size the size of the new heap
      */
@@ -303,7 +303,7 @@ provider erlang {
     /**
      * Fired when process' heap is shrinking.
      *
-     * @param p the PID (string form) of the existing process
+     * @param p the PID (string form)
      * @param old_size the size of the old heap
      * @param new_size the size of the new heap
      */
@@ -376,8 +376,8 @@ provider erlang {
     /**
      * Fired when new port is opened.
      *
-     * @param process the PID (string form) of the existing process
-     * @param port_name the string used when opening a port
+     * @param process the PID (string form)
+     * @param port_name the string used when the port was opened
      * @param port the Port (string form) of the new port
      */
     probe port__open(char *process, char *port_name, char *port);
@@ -385,9 +385,9 @@ provider erlang {
     /**
      * Fired when port_command is issued.
      *
-     * @param process the PID (string form) of the existing process
-     * @param port the Port (string form) of the existing port
-     * @param port_name the string used when opening a port
+     * @param process the PID (string form)
+     * @param port the Port (string form)
+     * @param port_name the string used when the port was opened
      * @param command_type type of the issued command, one of: "close", "command" or "connect"
      */
     probe port__command(char *process, char *port, char *port_name, char *command_type);
@@ -395,9 +395,9 @@ provider erlang {
     /**
      * Fired when port_control is issued.
      *
-     * @param process the PID (string form) of the existing process
-     * @param port the Port (string form) of the existing port
-     * @param port_name the string used when opening a port
+     * @param process the PID (string form)
+     * @param port the Port (string form)
+     * @param port_name the string used when the port was opened
      * @param command_no command number that has been issued to the port
      */
     probe port__control(char *process, char *port, char *port_name, int command_no);
@@ -406,9 +406,9 @@ provider erlang {
      * Fired when port is closed via port_close/1 (reason = 'normal')
      * or is sent an exit signal.
      *
-     * @param process the PID (string form) of the existing process
-     * @param port the Port (string form) of the existing port
-     * @param port_name the string used when opening a port
+     * @param process the PID (string form)
+     * @param port the Port (string form)
+     * @param port_name the string used when the port was opened
      * @param reason Erlang term representing the exit signal, e.g. 'normal'
      */
     probe port__exit(char *process, char *port, char *port_name,
@@ -418,8 +418,8 @@ provider erlang {
      * Fired when port_connect is issued.
      *
      * @param process the PID (string form) of the current port owner
-     * @param port the Port (string form) of the existing port
-     * @param port_name the string used when opening a port
+     * @param port the Port (string form)
+     * @param port_name the string used when the port was opened
      * @param new_process the PID (string form) of the new port owner
      */
     probe port__connect(char *process, char *port, char *port_name,
@@ -479,18 +479,18 @@ provider erlang {
     /**
      * Fired when drivers's "flush" callback is called.
      *
-     * @param process the PID (string form) of the existing process
-     * @param port the Port (string form) of the existing port
-     * @param port_name the string used when opening a port
+     * @param process the PID (string form)
+     * @param port the Port (string form)
+     * @param port_name the string used when the port was opened
      */
     probe driver__flush(char *process, char *port, char *port_name);
 
     /**
      * Fired when driver's "output" callback is called
      *
-     * @param process the PID (string form) of the existing process
-     * @param port the Port (string form) of the existing port
-     * @param port_name the string used when opening a port
+     * @param process the PID (string form)
+     * @param port the Port (string form)
+     * @param port_name the string used when the port was opened
      * @param bytes the number of bytes written
      */
     probe driver__output(char *node, char *port, char *port_name, int bytes);
@@ -498,9 +498,9 @@ provider erlang {
     /**
      * Fired when driver's "outputv" callback is called
      *
-     * @param process the PID (string form) of the existing process
-     * @param port the Port (string form) of the existing port
-     * @param port_name the string used when opening a port
+     * @param process the PID (string form)
+     * @param port the Port (string form)
+     * @param port_name the string used when the port was opened
      * @param bytes the number of bytes written
      */
     probe driver__outputv(char *node, char *port, char *port_name, int bytes);
@@ -508,9 +508,9 @@ provider erlang {
     /**
      * Fired when driver's "control" callback is called
      *
-     * @param process the PID (string form) of the existing process
-     * @param port the Port (string form) of the existing port
-     * @param port_name the string used when opening a port
+     * @param process the PID (string form)
+     * @param port the Port (string form)
+     * @param port_name the string used when the port was opened
      * @param command the command #
      * @param bytes the number of bytes written
      */
@@ -520,9 +520,9 @@ provider erlang {
     /**
      * Fired when driver's "call" callback is called
      *
-     * @param process the PID (string form) of the existing process
-     * @param port the Port (string form) of the existing port
-     * @param port_name the string used when opening a port
+     * @param process the PID (string form)
+     * @param port the Port (string form)
+     * @param port_name the string used when the port was opened
      * @param command the command #
      * @param bytes the number of bytes written
      */
@@ -532,54 +532,54 @@ provider erlang {
     /**
      * Fired when driver's "event" callback is called
      *
-     * @param process the PID (string form) of the existing process
-     * @param port the Port (string form) of the existing port
-     * @param port_name the string used when opening a port
+     * @param process the PID (string form)
+     * @param port the Port (string form)
+     * @param port_name the string used when the port was opened
      */
     probe driver__event(char *node, char *port, char *port_name);
 
     /**
      * Fired when driver's "ready_input" callback is called
      *
-     * @param process the PID (string form) of the existing process
-     * @param port the Port (string form) of the existing port
-     * @param port_name the string used when opening a port
+     * @param process the PID (string form)
+     * @param port the Port (string form)
+     * @param port_name the string used when the port was opened
      */
     probe driver__ready_input(char *node, char *port, char *port_name);
 
     /**
      * Fired when driver's "read_output" callback is called
      *
-     * @param process the PID (string form) of the existing process
-     * @param port the Port (string form) of the existing port
-     * @param port_name the string used when opening a port
+     * @param process the PID (string form)
+     * @param port the Port (string form)
+     * @param port_name the string used when the port was opened
      */
     probe driver__ready_output(char *node, char *port, char *port_name);
 
     /**
      * Fired when driver's "timeout" callback is called
      *
-     * @param process the PID (string form) of the existing process
-     * @param port the Port (string form) of the existing port
-     * @param port_name the string used when opening a port
+     * @param process the PID (string form)
+     * @param port the Port (string form)
+     * @param port_name the string used when the port was opened
      */
     probe driver__timeout(char *node, char *port, char *port_name);
 
     /**
      * Fired when drivers's "ready_async" callback is called.
      *
-     * @param process the PID (string form) of the existing process
-     * @param port the Port (string form) of the existing port
-     * @param port_name the string used when opening a port
+     * @param process the PID (string form)
+     * @param port the Port (string form)
+     * @param port_name the string used when the port was opened
      */
     probe driver__ready_async(char *process, char *port, char *port_name);
 
     /**
      * Fired when driver's "process_exit" callback is called
      *
-     * @param process the PID (string form) of the existing process
-     * @param port the Port (string form) of the existing port
-     * @param port_name the string used when opening a port
+     * @param process the PID (string form)
+     * @param port the Port (string form)
+     * @param port_name the string used when the port was opened
      */
     probe driver__process_exit(char *node, char *port, char *port_name);
 
@@ -600,7 +600,7 @@ provider erlang {
      *       be acquired in order to get the port name safely in an SMP
      *       environment.  The same is true for the aio__pool_get probe.
      *
-     * @param port the Port (string form) of the existing port
+     * @param port the Port (string form)
      * @param new queue length
      */
     probe aio_pool__add(char *, int);
@@ -608,7 +608,7 @@ provider erlang {
     /**
      * Show the post-get length of the async driver thread pool member's queue.
      *
-     * @param port the Port (string form) of the existing port
+     * @param port the Port (string form)
      * @param new queue length
      */
     probe aio_pool__get(char *, int);
