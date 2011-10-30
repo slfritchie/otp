@@ -290,6 +290,7 @@ typedef struct {
 #endif  /* HAVE_DTRACE */
     ErlDrvPDL       q_mtx;    /* Mutex for the driver queue, known by the emulator. Also used for
 				 mutual exclusion when accessing field(s) below. */
+    char            port_str[DTRACE_TERM_BUF_SIZE];
     size_t          write_buffered;
 } file_descriptor;
 
@@ -693,6 +694,7 @@ file_start(ErlDrvPort port, char* command)
     }
     desc->fd = FILE_FD_INVALID;
     desc->port = port;
+    dtrace_drvport_str(port, desc->port_str);
     desc->key = (unsigned int) (UWord) port;
     desc->flags = 0;
     desc->invoke = NULL;
@@ -1943,9 +1945,9 @@ static int flush_write(file_descriptor *desc, int *errp,
                 d->sched_utag[sizeof(d->sched_utag) - 1] = '\0';
             }
         }
-        DTRACE10(efile_drv_entry, dt_priv->thread_num, dt_priv->tag++,
+        DTRACE11(efile_drv_entry, dt_priv->thread_num, dt_priv->tag++,
                  dt_utag, FILE_WRITE,
-                 NULL, NULL, dt_i1, dt_i2, dt_i3, 0);
+                 NULL, NULL, dt_i1, dt_i2, dt_i3, 0, desc->port_str);
     }
 #endif /* HAVE_DTRACE */
     return result;
@@ -2032,9 +2034,9 @@ static int lseek_flush_read(file_descriptor *desc, int *errp,
                     d->sched_utag[sizeof(d->sched_utag) - 1] = '\0';
                 }
             }
-            DTRACE10(efile_drv_entry, dt_priv->thread_num, dt_priv->tag++,
+            DTRACE11(efile_drv_entry, dt_priv->thread_num, dt_priv->tag++,
                      dt_utag, FILE_LSEEK,
-                     NULL, NULL, dt_i1, dt_i2, dt_i3, 0);
+                     NULL, NULL, dt_i1, dt_i2, dt_i3, 0, desc->port_str);
 #endif /* HAVE_DTRACE */
         }
     }
@@ -2475,8 +2477,9 @@ file_output(ErlDrvData e, char* buf, int count)
 		return;
 	    }
 #ifdef HAVE_DTRACE
-            DTRACE10(efile_drv_entry, dt_priv->thread_num, dt_priv->tag++,
-                     dt_utag, command, name, dt_s2, dt_i1, dt_i2, dt_i3, dt_i4);
+            DTRACE11(efile_drv_entry, dt_priv->thread_num, dt_priv->tag++,
+                     dt_utag, command, name, dt_s2,
+                     dt_i1, dt_i2, dt_i3, dt_i4, desc->port_str);
 #endif
 	    TRACE_C('R');
 	    driver_output2(desc->port, resbuf, 1, NULL, 0);
@@ -2708,8 +2711,9 @@ file_output(ErlDrvData e, char* buf, int count)
                 d->sched_utag[sizeof(d->sched_utag) - 1] = '\0';
             }
         }
-        DTRACE10(efile_drv_entry, dt_priv->thread_num, dt_priv->tag++,
-                 dt_utag, command, dt_s1, dt_s2, dt_i1, dt_i2, dt_i3, dt_i4);
+        DTRACE11(efile_drv_entry, dt_priv->thread_num, dt_priv->tag++,
+                 dt_utag, command, dt_s1, dt_s2,
+                 dt_i1, dt_i2, dt_i3, dt_i4, desc->port_str);
 #endif
 	cq_enq(desc, d);
     }
@@ -3589,8 +3593,9 @@ file_outputv(ErlDrvData e, ErlIOVec *ev) {
             strncpy(d->sched_utag, dt_utag, sizeof(d->sched_utag) - 1);
             d->sched_utag[sizeof(d->sched_utag) - 1] = '\0';
         }
-        DTRACE10(efile_drv_entry, dt_priv->thread_num, dt_priv->tag++,
-                 dt_utag, command, dt_s1, NULL, dt_i1, dt_i2, dt_i3, dt_i4);
+        DTRACE11(efile_drv_entry, dt_priv->thread_num, dt_priv->tag++,
+                 dt_utag, command, dt_s1, NULL, dt_i1, dt_i2, dt_i3, dt_i4,
+                 desc->port_str);
 #endif
     }
     cq_execute(desc);

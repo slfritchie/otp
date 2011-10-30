@@ -625,6 +625,12 @@ provider erlang {
      * also contains explanation of the various integer and string
      * arguments that may be present when any particular probe fires.
      *
+     * TODO: Adding the port string, args[10], is a pain.  Making that
+     *       port string available to all the other efile_drv.c probes
+     *       will be more pain.  Is the pain worth it?  If yes, then
+     *       add them everywhere else and grit our teeth.  If no, then
+     *       rip it out.
+     *
      * @param thread-id number of the scheduler Pthread                   arg0
      * @param tag number: {thread-id, tag} uniquely names a driver operation
      * @param user-tag string                                             arg2
@@ -635,9 +641,10 @@ provider erlang {
      * @param integer argument 2                                          arg7
      * @param integer argument 3                                          arg8
      * @param integer argument 4                                          arg9
+     * @param port the port ID of the busy port                       args[10]
      */
     probe efile_drv__entry(int, int, char *, int, char *, char *,
-                           int64_t, int64_t, int64_t, int64_t);
+                           int64_t, int64_t, int64_t, int64_t, char *);
 
     /*     0       1              2       3     */
     /* thread-id, tag, work-thread-id,  command */

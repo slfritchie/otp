@@ -56,6 +56,8 @@ inline void dtrace_fun_decode(Process *process,
     erlang_##name((a0), (a1), (a2), (a3), (a4), (a5), (a6))
 #define DTRACE10(name, a0, a1, a2, a3, a4, a5, a6, a7, a8, a9) \
     erlang_##name((a0), (a1), (a2), (a3), (a4), (a5), (a6), (a7), (a8), (a9))
+#define DTRACE11(name, a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10) \
+    erlang_##name((a0), (a1), (a2), (a3), (a4), (a5), (a6), (a7), (a8), (a9), (a10))
 
 #else   /* HAVE_DTRACE */
 
@@ -70,6 +72,8 @@ inline void dtrace_fun_decode(Process *process,
 #define DTRACE6(name, a0, a1, a2, a3, a4, a5)        do {} while (0)
 #define DTRACE7(name, a0, a1, a2, a3, a4, a5, a6)    do {} while (0)
 #define DTRACE10(name, a0, a1, a2, a3, a4, a5, a6, a7, a8, a9) \
+                                                     do {} while (0)
+#define DTRACE11(name, a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10) \
                                                      do {} while (0)
 #endif  /* HAVE_DTRACE */
 

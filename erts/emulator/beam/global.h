@@ -1055,6 +1055,7 @@ Eterm expand_error_value(Process* c_p, Uint freason, Eterm Value);
 ERTS_INLINE void dtrace_proc_str(Process *process, char *process_buf);
 ERTS_INLINE void dtrace_pid_str(Eterm pid, char *process_buf);
 ERTS_INLINE void dtrace_port_str(Port *port, char *port_buf);
+ERTS_INLINE void dtrace_drvport_str(ErlDrvPort port, char *port_buf);
 ERTS_INLINE void dtrace_fun_decode(Process *process,
                                    Eterm module, Eterm function, int arity,
                                    char *process_buf, char *mfa_buf);

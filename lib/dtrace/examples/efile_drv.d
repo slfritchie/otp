@@ -65,11 +65,13 @@ erlang*:::aio_pool-get
 
 erlang*:::efile_drv-entry
 {
-    printf("efile_drv enter tag={%d,%d} %s | %s (%d) | args: %s %s , %d %d\n",
+    printf("efile_drv enter tag={%d,%d} %s | %s (%d) | args: %s %s , %d %d (port %s)\n",
 	   arg0, arg1, arg2 == NULL ? "" : copyinstr(arg2),
            op_map[arg3], arg3,
 	   arg4 == NULL ? "" : copyinstr(arg4),
-	   arg5 == NULL ? "" : copyinstr(arg5), arg6, arg7)
+	   arg5 == NULL ? "" : copyinstr(arg5), arg6, arg7,
+           /* NOTE: port name in args[10] is experimental */
+           copyinstr((user_addr_t) args[10]))
 }
 
 erlang*:::efile_drv-int*
