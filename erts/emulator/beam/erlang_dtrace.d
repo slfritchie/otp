@@ -596,18 +596,24 @@ provider erlang {
     /**
      * Show the post-add length of the async driver thread pool member's queue.
      *
+     * NOTE: The port name is not available: additional lock(s) must
+     *       be acquired in order to get the port name safely in an SMP
+     *       environment.  The same is true for the aio__pool_get probe.
+     *
+     * @param port the Port (string form) of the existing port
      * @param pool member number
      * @param new queue length
      */
-    probe aio_pool__add(int, int);
+    probe aio_pool__add(char *, int, int);
 
     /**
      * Show the post-get length of the async driver thread pool member's queue.
      *
+     * @param port the Port (string form) of the existing port
      * @param pool member number
      * @param new queue length
      */
-    probe aio_pool__get(int, int);
+    probe aio_pool__get(char *, int, int);
 
     /* Probes for efile_drv.c */
 

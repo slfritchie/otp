@@ -53,12 +53,14 @@ BEGIN
 
 erlang*:::aio_pool-add
 {
-    printf("async I/O pool add thread=%d queue len %d\n", arg0, arg1);
+    printf("async I/O pool port %s add thread=%d queue len %d\n",
+           copyinstr(arg0), arg1, arg2);
 }
 
 erlang*:::aio_pool-get
 {
-    printf("async I/O pool get thread=%d queue len %d\n", arg0, arg1);
+    printf("async I/O pool port %s get thread=%d queue len %d\n",
+           copyinstr(arg0), arg1, arg2);
 }
 
 erlang*:::efile_drv-entry
@@ -72,9 +74,9 @@ erlang*:::efile_drv-entry
 
 erlang*:::efile_drv-int*
 {
-    printf("async I/O worker tag={%d,%d} thread=%d | %s (%d)\n",
+    printf("async I/O worker tag={%d,%d} thread=%d | %s (%d) | %s\n",
            arg0, arg1, arg2,
-           op_map[arg3], arg3);
+           op_map[arg3], arg3, probename);
 }
 
 erlang*:::efile_drv-return

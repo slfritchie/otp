@@ -217,7 +217,12 @@ static void async_add(ErlAsync* a, AsyncQueue* q, int pool_member)
 	q->len++;
     }
     erts_mtx_unlock(&q->mtx);
-    DTRACE2(aio_pool_add, pool_member+11000, len + 1);
+    if (DTRACE_ENABLED(aio_pool_add)) {
+        char port_str[16];
+
+        erts_snprintf(port_str, sizeof(port_str), "%T", a->port);
+        DTRACE3(aio_pool_add, port_str, pool_member+11000, len + 1);
+    }
     gcc_optimizer_hack++;
 }
 
@@ -225,9 +230,7 @@ static ErlAsync* async_get(AsyncQueue* q)
 {
     ErlAsync* a;
     int len;
-#ifdef HAVE_DTRACE
     int pool_member;
-#endif
 
     erts_mtx_lock(&q->mtx);
     while((a = q->tail) == NULL) {
@@ -246,11 +249,14 @@ static ErlAsync* async_get(AsyncQueue* q)
 	q->len--;
     }
     len = q->len;
-#ifdef HAVE_DTRACE
     pool_member = q->pool_member;
-#endif
     erts_mtx_unlock(&q->mtx);
-    DTRACE2(aio_pool_get, pool_member+11000, len);
+    if (DTRACE_ENABLED(aio_pool_get)) {
+        char port_str[16];
+
+        erts_snprintf(port_str, sizeof(port_str), "%T", a->port);
+        DTRACE3(aio_pool_get, port_str, pool_member+11000, len);
+    }
     return a;
 }
 
