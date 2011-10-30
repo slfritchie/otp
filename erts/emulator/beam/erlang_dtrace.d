@@ -601,19 +601,17 @@ provider erlang {
      *       environment.  The same is true for the aio__pool_get probe.
      *
      * @param port the Port (string form) of the existing port
-     * @param pool member number
      * @param new queue length
      */
-    probe aio_pool__add(char *, int, int);
+    probe aio_pool__add(char *, int);
 
     /**
      * Show the post-get length of the async driver thread pool member's queue.
      *
      * @param port the Port (string form) of the existing port
-     * @param pool member number
      * @param new queue length
      */
-    probe aio_pool__get(char *, int, int);
+    probe aio_pool__get(char *, int);
 
     /* Probes for efile_drv.c */
 

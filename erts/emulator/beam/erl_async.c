@@ -180,7 +180,6 @@ int exit_async()
 static void async_add(ErlAsync* a, AsyncQueue* q)
 {
     int len = 0;
-    int no = 0;
 
     if (is_internal_port(a->port)) {
 	ERTS_LC_ASSERT(erts_drvportid2port(a->port));
@@ -203,13 +202,12 @@ static void async_add(ErlAsync* a, AsyncQueue* q)
 	q->len++;
     }
     len = q->len;
-    no = q->no;
     erts_mtx_unlock(&q->mtx);
     if (DTRACE_ENABLED(aio_pool_add)) {
         char port_str[16];
 
         erts_snprintf(port_str, sizeof(port_str), "%T", a->port);
-        DTRACE3(aio_pool_add, port_str, no, len);
+        DTRACE2(aio_pool_add, port_str, len);
     }
     gcc_optimizer_hack++;
 }
@@ -218,7 +216,6 @@ static ErlAsync* async_get(AsyncQueue* q)
 {
     ErlAsync* a;
     int len;
-    int no;
 
     erts_mtx_lock(&q->mtx);
     while((a = q->tail) == NULL) {
@@ -237,13 +234,12 @@ static ErlAsync* async_get(AsyncQueue* q)
 	q->len--;
     }
     len = q->len;
-    no = q->no;
     erts_mtx_unlock(&q->mtx);
     if (DTRACE_ENABLED(aio_pool_get)) {
         char port_str[16];
 
         erts_snprintf(port_str, sizeof(port_str), "%T", a->port);
-        DTRACE3(aio_pool_get, port_str, no, len);
+        DTRACE2(aio_pool_get, port_str, len);
     }
     return a;
 }

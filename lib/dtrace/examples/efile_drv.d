@@ -53,14 +53,12 @@ BEGIN
 
 erlang*:::aio_pool-add
 {
-    printf("async I/O pool port %s add thread=%d queue len %d\n",
-           copyinstr(arg0), arg1, arg2);
+    printf("async I/O pool port %s queue len %d\n", copyinstr(arg0), arg1);
 }
 
 erlang*:::aio_pool-get
 {
-    printf("async I/O pool port %s get thread=%d queue len %d\n",
-           copyinstr(arg0), arg1, arg2);
+    printf("async I/O pool port %s queue len %d\n", copyinstr(arg0), arg1);
 }
 
 erlang*:::efile_drv-entry
