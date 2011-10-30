@@ -51,9 +51,7 @@ typedef struct {
 #ifdef ERTS_ENABLE_LOCK_CHECK
     int no;
 #endif
-#ifdef HAVE_DTRACE
     int pool_member;
-#endif /* HAVE_DTRACE */
 } AsyncQueue;
 
 static erts_smp_spinlock_t async_id_lock;
@@ -149,9 +147,7 @@ int init_async(int hndl)
 #ifdef ERTS_ENABLE_LOCK_CHECK
 	q->no = i;
 #endif
-#ifdef HAVE_DTRACE
 	q->pool_member = i;
-#endif
 	erts_mtx_init(&q->mtx, "asyncq");
 	erts_cnd_init(&q->cv);
 	erts_thr_create(&q->thr, async_main, (void*)q, &thr_opts);
