@@ -118,15 +118,13 @@ static int gcc_optimizer_hack = 0;
 #ifdef  HAVE_DTRACE
 
 #define DTRACE_INVOKE_SETUP(op) \
-    dt_private *dt_priv = get_dt_private(dt_driver_io_worker_base) ; \
-    do { DTRACE4(efile_drv_int_entry, d->sched_i1, d->sched_i2, \
-                 dt_priv->thread_num, op); } while (0)
+    do { DTRACE3(efile_drv_int_entry, d->sched_i1, d->sched_i2, op); } while (0)
 #define DTRACE_INVOKE_SETUP_BY_NAME(op) \
     struct t_data *d = (struct t_data *) data ; \
     DTRACE_INVOKE_SETUP(op)
 #define DTRACE_INVOKE_RETURN(op) \
-    do { DTRACE4(efile_drv_int_return, d->sched_i1, d->sched_i2, \
-                 dt_priv->thread_num, op); } while (0) ; gcc_optimizer_hack++ ;
+    do { DTRACE3(efile_drv_int_return, d->sched_i1, d->sched_i2, \
+                 op); } while (0) ; gcc_optimizer_hack++ ;
 
 int             dt_driver_idnum = 0;
 int             dt_driver_io_worker_base = 5000;
@@ -1612,19 +1610,14 @@ static void free_pwritev(void *data) {
 static void invoke_flstat(void *data)
 {
     struct t_data *d = (struct t_data *) data;
-#ifdef  HAVE_DTRACE
-    dt_private *dt_priv = get_dt_private(dt_driver_io_worker_base);
-#endif
 
-    DTRACE4(efile_drv_int_entry, d->sched_i1, d->sched_i2,
-            dt_priv->thread_num, d->command == FILE_LSTAT ? FILE_LSTAT :
-                                                            FILE_FSTAT);
+    DTRACE3(efile_drv_int_entry, d->sched_i1, d->sched_i2,
+            d->command == FILE_LSTAT ? FILE_LSTAT : FILE_FSTAT);
     d->again = 0;
     d->result_ok = efile_fileinfo(&d->errInfo, &d->info,
 				  d->b, d->command == FILE_LSTAT);
-    DTRACE4(efile_drv_int_entry, d->sched_i1, d->sched_i2,
-            dt_priv->thread_num, d->command == FILE_LSTAT ? FILE_LSTAT :
-                                                            FILE_FSTAT);
+    DTRACE3(efile_drv_int_entry, d->sched_i1, d->sched_i2,
+            d->command == FILE_LSTAT ? FILE_LSTAT : FILE_FSTAT);
     gcc_optimizer_hack++;
 }
 
@@ -2056,7 +2049,6 @@ file_async_ready(ErlDrvData e, ErlDrvThreadData data)
     char header[5];		/* result code + count */
     char resbuf[RESBUFSIZE];	/* Result buffer. */
 #ifdef  HAVE_DTRACE
-    dt_private *dt_priv = get_dt_private(0);
     int sched_i1 = d->sched_i1, sched_i2 = d->sched_i2, command = d->command,
         result_ok = d->result_ok,
         posix_errno = d->result_ok ? 0 : d->errInfo.posix_errno;
@@ -2310,8 +2302,8 @@ file_async_ready(ErlDrvData e, ErlDrvThreadData data)
       default:
 	abort();
     }
-    DTRACE7(efile_drv_return, sched_i1, sched_i2, sched_utag,
-            command, result_ok, posix_errno, dt_priv->thread_num);
+    DTRACE6(efile_drv_return, sched_i1, sched_i2, sched_utag,
+            command, result_ok, posix_errno);
     if (desc->write_buffered != 0 && desc->timer_state == timer_idle) {
 	desc->timer_state = timer_write;
 	driver_set_timer(desc->port, desc->write_delay);

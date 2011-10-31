@@ -644,28 +644,24 @@ provider erlang {
     probe efile_drv__entry(int, int, char *, int, char *, char *,
                            int64_t, int64_t, int64_t, int64_t, char *);
 
-    /*     0       1              2       3     */
-    /* thread-id, tag, work-thread-id,  command */
     /**
      * Entry into the driver's internal work function.  Computation here
      * is performed by a async worker pool Pthread.
      *
      * @param thread-id number
      * @param tag number
-     * @param worker pool thread-id number
      * @param command number
      */
-    probe efile_drv__int_entry(int, int, int, int);
+    probe efile_drv__int_entry(int, int, int);
 
     /**
      * Return from the driver's internal work function.
      *
      * @param thread-id number
      * @param tag number
-     * @param worker pool thread-id number
      * @param command number
      */
-    probe efile_drv__int_return(int, int, int, int);
+    probe efile_drv__int_return(int, int, int);
 
     /**
      * Return from the efile_drv.c file I/O driver
@@ -676,9 +672,8 @@ provider erlang {
      * @param command number                                              arg3
      * @param Success? 1 is success, 0 is failure                         arg4
      * @param If failure, the errno of the error.                         arg5
-     * @param thread-id number of the scheduler Pthread executing now     arg6
      */
-    probe efile_drv__return(int, int, char *, int, int, int, int);
+    probe efile_drv__return(int, int, char *, int, int, int);
 
 /*
  * NOTE:
