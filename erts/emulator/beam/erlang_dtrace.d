@@ -319,8 +319,6 @@ provider erlang {
      * @param monitored_node the name of the monitored node
      * @param type the type of node, e.g., visible, hidden
      * @param reason the reason term, e.g., normal, connection_closed, term()
-     * @param token_previous count for the sender's sequential trace token
-     * @param token_current count for the sender's sequential trace token
      */
     probe dist__monitor(char *node, char *what, char *monitored_node,
                         char *type, char *reason);
