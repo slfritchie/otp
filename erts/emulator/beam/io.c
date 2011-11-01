@@ -640,6 +640,14 @@ erts_open_driver(erts_driver_t* driver,	/* Pointer to driver. */
 	    trace_sched_ports_where(port, am_in, am_start);
 	}
 	port->caller = pid;
+        if (DTRACE_ENABLED(driver_start)) {
+            char process_str[DTRACE_TERM_BUF_SIZE];
+            char port_str[DTRACE_TERM_BUF_SIZE];
+
+            dtrace_pid_str(pid, process_str);
+            dtrace_port_str(port, port_str);
+            DTRACE3(driver_start, process_str, driver->name, port_str);
+        }
 	fpe_was_unmasked = erts_block_fpe();
 	drv_data = (*driver->start)((ErlDrvPort)(port_ix),
 				    name, opts);
@@ -1157,6 +1165,14 @@ int erts_write_to_port(Eterm caller_id, Port *p, Eterm list)
 	ev.size = size;  /* total size */
 	ev.iov = ivp;
 	ev.binv = bvp;
+        if (DTRACE_ENABLED(driver_outputv)) {
+            char process_str[DTRACE_TERM_BUF_SIZE];
+            char port_str[DTRACE_TERM_BUF_SIZE];
+
+            dtrace_pid_str(caller_id, process_str);
+            dtrace_port_str(p, port_str);
+            DTRACE4(driver_outputv, process_str, port_str, p->name, size);
+        }
 	fpe_was_unmasked = erts_block_fpe();
 	(*drv->outputv)((ErlDrvData)p->drv_data, &ev);
 	erts_unblock_fpe(fpe_was_unmasked);
@@ -1176,17 +1192,25 @@ int erts_write_to_port(Eterm caller_id, Port *p, Eterm list)
 	buf = erts_alloc(ERTS_ALC_T_TMP, size+1);
 	r = io_list_to_buf(list, buf, size);
 
-    if(DTRACE_ENABLED(port_command)) {
-        char process_str[DTRACE_TERM_BUF_SIZE];
-        char port_str[DTRACE_TERM_BUF_SIZE];
+	if(DTRACE_ENABLED(port_command)) {
+	    char process_str[DTRACE_TERM_BUF_SIZE];
+	    char port_str[DTRACE_TERM_BUF_SIZE];
 
-        dtrace_pid_str(caller_id, process_str);
-        dtrace_port_str(p, port_str);
-        DTRACE4(port_command, process_str, port_str, p->name, "command");
-    }
+	    dtrace_pid_str(caller_id, process_str);
+	    dtrace_port_str(p, port_str);
+	    DTRACE4(port_command, process_str, port_str, p->name, "command");
+	}
 
 	if (r >= 0) {
 	    size -= r;
+            if (DTRACE_ENABLED(driver_output)) {
+                char process_str[DTRACE_TERM_BUF_SIZE];
+                char port_str[DTRACE_TERM_BUF_SIZE];
+
+                dtrace_pid_str(caller_id, process_str);
+                dtrace_port_str(p, port_str);
+                DTRACE4(driver_output, process_str, port_str, p->name, size);
+            }
 	    fpe_was_unmasked = erts_block_fpe();
 	    (*drv->output)((ErlDrvData)p->drv_data, buf, size);
 	    erts_unblock_fpe(fpe_was_unmasked);
@@ -1210,6 +1234,14 @@ int erts_write_to_port(Eterm caller_id, Port *p, Eterm list)
 	     */
 	    buf = erts_alloc(ERTS_ALC_T_TMP, size+1); 
 	    r = io_list_to_buf(list, buf, size);
+            if (DTRACE_ENABLED(driver_output)) {
+                char process_str[DTRACE_TERM_BUF_SIZE];
+                char port_str[DTRACE_TERM_BUF_SIZE];
+
+                dtrace_pid_str(caller_id, process_str);
+                dtrace_port_str(p, port_str);
+                DTRACE4(driver_output, process_str, port_str, p->name, size);
+            }
 	    fpe_was_unmasked = erts_block_fpe();
 	    (*drv->output)((ErlDrvData)p->drv_data, buf, size);
 	    erts_unblock_fpe(fpe_was_unmasked);
@@ -1805,6 +1837,14 @@ static void flush_port(Port *p)
     ERTS_SMP_LC_ASSERT(erts_lc_is_port_locked(p));
 
     if (p->drv_ptr->flush != NULL) {
+        if (DTRACE_ENABLED(driver_flush)) {
+            char process_str[DTRACE_TERM_BUF_SIZE];
+            char port_str[DTRACE_TERM_BUF_SIZE];
+
+            dtrace_pid_str(p->connected, process_str);
+            dtrace_port_str(p, port_str);
+            DTRACE3(driver_flush, process_str, port_str, p->name);
+        }
         if (IS_TRACED_FL(p, F_TRACE_SCHED_PORTS)) {
 	    trace_sched_ports_where(p, am_in, am_flush);
 	}
@@ -1857,6 +1897,14 @@ terminate_port(Port *prt)
     drv = prt->drv_ptr;
     if ((drv != NULL) && (drv->stop != NULL)) {
 	int fpe_was_unmasked = erts_block_fpe();
+        if (DTRACE_ENABLED(driver_stop)) {
+            char process_str[DTRACE_TERM_BUF_SIZE];
+            char port_str[DTRACE_TERM_BUF_SIZE];
+
+            dtrace_pid_str(prt->connected, process_str);
+            dtrace_port_str(prt, port_str);
+            DTRACE3(driver_stop, process_str, drv->name, port_str);
+        }
 	(*drv->stop)((ErlDrvData)prt->drv_data);
 	erts_unblock_fpe(fpe_was_unmasked);
 #ifdef ERTS_SMP
@@ -2014,6 +2062,17 @@ erts_do_exit_port(Port *p, Eterm from, Eterm reason)
 
    rreason = (reason == am_kill) ? am_killed : reason;
 
+   if (DTRACE_ENABLED(port_exit)) {
+       char from_str[DTRACE_TERM_BUF_SIZE];
+       char port_str[DTRACE_TERM_BUF_SIZE];
+       char rreason_str[64];
+
+       erts_snprintf(from_str, sizeof(from_str), "%T", from);
+       dtrace_port_str(p, port_str);
+       erts_snprintf(rreason_str, sizeof(rreason_str), "%T", rreason);
+       DTRACE4(port_exit, from_str, port_str, p->name, rreason_str);
+   }
+
    if ((p->status & (ERTS_PORT_SFLGS_DEAD
 		     | ERTS_PORT_SFLG_EXITING
 		     | ERTS_PORT_SFLG_IMMORTAL))
@@ -2115,14 +2174,14 @@ void erts_port_command(Process *proc,
 		erts_port_status_bor_set(port, ERTS_PORT_SFLG_SEND_CLOSED);
 		erts_do_exit_port(port, pid, am_normal);
 
-        if(DTRACE_ENABLED(port_command)) {
-            char process_str[DTRACE_TERM_BUF_SIZE];
-            char port_str[DTRACE_TERM_BUF_SIZE];
+		if(DTRACE_ENABLED(port_command)) {
+		    char process_str[DTRACE_TERM_BUF_SIZE];
+		    char port_str[DTRACE_TERM_BUF_SIZE];
 
-            dtrace_proc_str(proc, process_str);
-            dtrace_port_str(port, port_str);
-            DTRACE4(port_command, process_str, port_str, port->name, "close");
-        }
+		    dtrace_proc_str(proc, process_str);
+		    dtrace_port_str(port, port_str);
+		    DTRACE4(port_command, process_str, port_str, port->name, "close");
+		}
 		goto done;
 	    } else if (is_tuple_arity(tp[2], 2)) {
 		tp = tuple_val(tp[2]);
@@ -2130,14 +2189,14 @@ void erts_port_command(Process *proc,
 		    if (erts_write_to_port(caller_id, port, tp[2]) == 0)
 			goto done;
 		} else if ((tp[1] == am_connect) && is_internal_pid(tp[2])) {
-            if(DTRACE_ENABLED(port_command)) {
-                char process_str[DTRACE_TERM_BUF_SIZE];
-                char port_str[DTRACE_TERM_BUF_SIZE];
+		    if(DTRACE_ENABLED(port_command)) {
+			char process_str[DTRACE_TERM_BUF_SIZE];
+			char port_str[DTRACE_TERM_BUF_SIZE];
 
-                dtrace_proc_str(proc, process_str);
-                dtrace_port_str(port, port_str);
-                DTRACE4(port_command, process_str, port_str, port->name, "connect");
-            }
+			dtrace_proc_str(proc, process_str);
+			dtrace_port_str(port, port_str);
+			DTRACE4(port_command, process_str, port_str, port->name, "connect");
+		    }
 		    port->connected = tp[2];
 		    deliver_result(port->id, pid, am_connected);
 		    goto done;
@@ -2239,13 +2298,15 @@ erts_port_control(Process* p, Port* prt, Uint command, Eterm iolist)
     erts_smp_proc_unlock(p, ERTS_PROC_LOCK_MAIN);
     ERTS_SMP_CHK_NO_PROC_LOCKS;
 
-    if(DTRACE_ENABLED(port_control)) {
+    if (DTRACE_ENABLED(port_control) || DTRACE_ENABLED(driver_control)) {
         char process_str[DTRACE_TERM_BUF_SIZE];
         char port_str[DTRACE_TERM_BUF_SIZE];
 
         dtrace_proc_str(p, process_str);
         dtrace_port_str(prt, port_str);
         DTRACE4(port_control, process_str, port_str, prt->name, command);
+        DTRACE5(driver_control, process_str, port_str, prt->name,
+                command, to_len);
     }
 
     /*
@@ -2496,6 +2557,12 @@ void erts_raw_port_command(Port* p, byte* buf, Uint len)
 		 p->drv_ptr->name ? p->drv_ptr->name : "unknown");
 
     p->caller = NIL;
+    if (DTRACE_ENABLED(driver_output)) {
+        char port_str[DTRACE_TERM_BUF_SIZE];
+
+        dtrace_port_str(p, port_str);
+        DTRACE4(driver_output, "-raw-", port_str, p->name, len);
+    }
     fpe_was_unmasked = erts_block_fpe();
     (*p->drv_ptr->output)((ErlDrvData)p->drv_data, (char*) buf, (int) len);
     erts_unblock_fpe(fpe_was_unmasked);
@@ -2511,6 +2578,14 @@ int async_ready(Port *p, void* data)
 	ERTS_SMP_LC_ASSERT(erts_lc_is_port_locked(p));
 	ASSERT(!(p->status & ERTS_PORT_SFLGS_DEAD));
 	if (p->drv_ptr->ready_async != NULL) {
+            if (DTRACE_ENABLED(driver_ready_async)) {
+                char process_str[DTRACE_TERM_BUF_SIZE];
+                char port_str[DTRACE_TERM_BUF_SIZE];
+
+                dtrace_pid_str(p->connected, process_str);
+                dtrace_port_str(p, port_str);
+                DTRACE3(driver_ready_async, process_str, port_str, p->name);
+            }
 	    (*p->drv_ptr->ready_async)((ErlDrvData)p->drv_data, data);
 	    need_free = 0;
 #ifdef ERTS_SMP
@@ -4492,6 +4567,14 @@ void erts_fire_port_monitor(Port *prt, Eterm ref)
     ASSERT(callback != NULL);
     ref_to_driver_monitor(ref,&drv_monitor);
     DRV_MONITOR_UNLOCK_PDL(prt);
+    if (DTRACE_ENABLED(driver_process_exit)) {
+        char process_str[DTRACE_TERM_BUF_SIZE];
+        char port_str[DTRACE_TERM_BUF_SIZE];
+
+        dtrace_pid_str(prt->connected, process_str);
+        dtrace_port_str(prt, port_str);
+        DTRACE3(driver_process_exit, process_str, port_str, prt->name);
+    }
     fpe_was_unmasked = erts_block_fpe();
     (*callback)((ErlDrvData) (prt->drv_data), &drv_monitor);
     erts_unblock_fpe(fpe_was_unmasked);
@@ -4940,6 +5023,8 @@ init_driver(erts_driver_t *drv, ErlDrvEntry *de, DE_Handle *handle)
     else {
 	int res;
 	int fpe_was_unmasked = erts_block_fpe();
+        DTRACE4(driver_init, drv->name, drv->version.major, drv->version.minor,
+                drv->flags);
 	res = (*de->init)();
 	erts_unblock_fpe(fpe_was_unmasked);
 	return res;

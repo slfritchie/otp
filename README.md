@@ -103,38 +103,34 @@ following may be executed in a different Pthread:
 
 **TODO: keep this description up-to-date.**
 
-In the current prototype, probes for a `file:rename("old-name", "new-name")`of the last three steps can be
-formatted like this:
+Example output from `lib/dtrace/examples/efile_drv.d` while executing
+`file:rename("old-name", "new-name")`:
 
-        FUNCTION-NAME:PROBE-NAME     ARGUMENTS
-        ------------------------     ---------
-          file_output:file_drv_entry 0 517 some-user-tag | 12 | old-name new-name
-    invoke_rename:file_drv_int_entry 0 517 5004 | 12
-    invoke_rename:file_drv_int_return 0 517 5004 | 12
-    file_async_ready:file_drv_return 0 517 some-user-tag | 12 | 0 2 5004
+    efile_drv enter tag={3,84} user tag some-user-tag | RENAME (12) | args: old-name new-name , 0 0 (port #Port<0.59>)
+    async I/O worker tag={3,83} | RENAME (12) | efile_drv-int_entry
+    async I/O worker tag={3,83} | RENAME (12) | efile_drv-int_return
+    efile_drv return tag={3,83} user tag  | RENAME (12) | errno 2
 
 ... where the following key can help decipher the output:
 
-* `0 517` is the Erlang scheduler thread number (0) and operation
-  counter number (517) assigned to this I/O operation.  Together,
+* `{3,83}` is the Erlang scheduler thread number (3) and operation
+  counter number (83) assigned to this I/O operation.  Together,
   these two numbers form a unique ID for the I/O operation.
 * `12` is the command number for the rename operation.  See the
-  definition for `FILE_RENAME` in the source code file `efile_drv.c`.
+  definition for `FILE_RENAME` in the source code file `efile_drv.c`
+  or the `BEGIN` section of the D script `lib/dtrace/examples/efile_drv.d`.
 * `old-name` and `new-name` are the two string arguments for the
   source and destination of the `rename(2)` system call.
-* `5004` is the worker pool thread number that will perform the actual
-  I/O work.  (I/O worker pool thread ID numbers start at 5,000 to make
-  it more difficult to confuse them with Erlang scheduler thread
-  numbers.)
-* `0 2` means that the command was not successful (0) and that the
-  POSIX errno value was 2, a.k.a. `ENOENT`, because the file
-  `old-name` does not exist.
-* The `file_drv_return` probe was activated by thread 5004, i.e. the
-  same thread as the `file_drv_int_entry` and `file_drv_int_return`
-  probes.
-* The `file_drv_int_return` probe is provided in case the user is
+  The two integer arguments are unused; the simple formatting code
+  prints the arguments anyway, 0 and 0.
+* The worker pool code was called on behalf of Erlang port `#Port<0.59>`.
+* The system call failed with a POSIX errno value of 2: `ENOENT`,
+  because the path `old-name` does not exist.
+* The `efile_drv-int_entry` and `efile_drv_int_return` probes are
+  provided in case the user is
   interested in measuring only the latency of code executed by
-  `efile_drv` asynchronous functions by I/O worker pool threads.
+  `efile_drv` asynchronous functions by I/O worker pool threads
+  and the OS system call that they encapsulate.
 
 So, where does the `some-user-tag` string come from?
 
@@ -148,91 +144,171 @@ This method of tagging I/O at the Erlang level is subject to change.
 Example DTrace probe specification
 ----------------------------------
 
-     /* Async driver pool */
+    /**
+     * Fired when a message is sent from one local process to another.
+     *
+     * NOTE: The 'size' parameter is in machine-dependent words and
+     *       that the actual size of any binary terms in the message
+     *       are not included.
+     *
+     * @param sender the PID (string form) of the sender
+     * @param receiver the PID (string form) of the receiver
+     * @param size the size of the message being delivered (words)
+     * @param token_label for the sender's sequential trace token
+     * @param token_previous count for the sender's sequential trace token
+     * @param token_current count for the sender's sequential trace token
+     */
+    probe message__send(char *sender, char *receiver, uint32_t size,
+                        int token_label, int token_previous, int token_current);
 
-     /**
-      * Show the post-add length of the async driver thread pool member's queue.
-      *
-      * @param pool member number
-      * @param new queue length
-      */
-     probe async_io_pool_add(int, int);
+    /**
+     * Fired when a message is sent from a local process to a remote process.
+     *
+     * NOTE: The 'size' parameter is in machine-dependent words and 
+     *       that the actual size of any binary terms in the message
+     *       are not included.
+     *
+     * @param sender the PID (string form) of the sender
+     * @param node_name the Erlang node name (string form) of the receiver
+     * @param receiver the PID/name (string form) of the receiver
+     * @param size the size of the message being delivered (words)
+     * @param token_label for the sender's sequential trace token
+     * @param token_previous count for the sender's sequential trace token
+     * @param token_current count for the sender's sequential trace token
+     */
+    probe message__send__remote(char *sender, char *node_name, char *receiver,
+                                uint32_t size,
+                        int token_label, int token_previous, int token_current);
 
-     /**
-      * Show the post-get length of the async driver thread pool member's queue.
-      *
-      * @param pool member number
-      * @param new queue length
-      */
-     probe async_io_pool_get(int, int);
+    /**
+     * Fired when a message is queued to a local process.  This probe
+     * will not fire if the sender's pid == receiver's pid.
+     *
+     * NOTE: The 'size' parameter is in machine-dependent words and 
+     *       that the actual size of any binary terms in the message
+     *       are not included.
+     *
+     * @param receiver the PID (string form) of the receiver
+     * @param size the size of the message being delivered (words)
+     * @param queue_len length of the queue of the receiving process
+     * @param token_label for the sender's sequential trace token
+     * @param token_previous count for the sender's sequential trace token
+     * @param token_current count for the sender's sequential trace token
+     */
+    probe message__queued(char *receiver, uint32_t size, uint32_t queue_len,
+                        int token_label, int token_previous, int token_current);
 
-     /* Probes for efile_drv.c */
+    /**
+     * Fired when a message is 'receive'd by a local process and removed
+     * from its mailbox.
+     *
+     * NOTE: The 'size' parameter is in machine-dependent words and 
+     *       that the actual size of any binary terms in the message
+     *       are not included.
+     *
+     * @param receiver the PID (string form) of the receiver
+     * @param size the size of the message being delivered (words)
+     * @param queue_len length of the queue of the receiving process
+     * @param token_label for the sender's sequential trace token
+     * @param token_previous count for the sender's sequential trace token
+     * @param token_current count for the sender's sequential trace token
+     */
+    probe message__receive(char *receiver, uint32_t size, uint32_t queue_len,
+                        int token_label, int token_previous, int token_current);
 
-     /**
-      * Entry into the efile_drv.c file I/O driver
-      *
-      * For a list of command numbers used by this driver, see the section
-      * "Guide to probe arguments" in ../../../README.md.  That section
-      * also contains explanation of the various integer and string
-      * arguments that may be present when any particular probe fires.
-      *
-      * @param thread-id number of the scheduler Pthread                   arg0
-      * @param tag number: {thread-id, tag} uniquely names a driver operation
-      * @param user-tag string                                             arg2
-      * @param command number                                              arg3
-      * @param string argument 1                                           arg4
-      * @param string argument 2                                           arg5
-      * @param integer argument 1                                          arg6
-      * @param integer argument 2                                          arg7
-      * @param integer argument 3                                          arg8
-      * @param integer argument 4                                          arg9
-      */
-     probe file_drv_entry(int, int, char *, int, char *, char *,
-			  int64_t, int64_t, int64_t, int64_t);
+    /* ... */
 
-     /*     0       1              2       3     */
-     /* thread-id, tag, work-thread-id,  command */
-     /**
-      * Entry into the driver's internal work function.  Computation here
-      * is performed by a async worker pool Pthread.
-      *
-      * @param thread-id number
-      * @param tag number
-      * @param worker pool thread-id number
-      * @param command number
-      */
-     probe file_drv_int_entry(int, int, int, int);
+    /* Async driver pool */
 
-     /**
-      * Return from the driver's internal work function.
-      *
-      * @param thread-id number
-      * @param tag number
-      * @param worker pool thread-id number
-      * @param command number
-      */
-     probe file_drv_int_return(int, int, int, int);
+    /**
+     * Show the post-add length of the async driver thread pool member's queue.
+     *
+     * NOTE: The port name is not available: additional lock(s) must
+     *       be acquired in order to get the port name safely in an SMP
+     *       environment.  The same is true for the aio__pool_get probe.
+     *
+     * @param port the Port (string form)
+     * @param new queue length
+     */
+    probe aio_pool__add(char *, int);
 
-     /**
-      * Return from the efile_drv.c file I/O driver
-      *
-      * @param thread-id number                                            arg0
-      * @param tag number                                                  arg1
-      * @param user-tag string                                             arg2
-      * @param command number                                              arg3
-      * @param Success? 1 is success, 0 is failure                         arg4
-      * @param If failure, the errno of the error.                         arg5
-      * @param thread-id number of the scheduler Pthread executing now     arg6
-      */
-     probe file_drv_return(int, int, char *, int, int, int, int);
+    /**
+     * Show the post-get length of the async driver thread pool member's queue.
+     *
+     * @param port the Port (string form)
+     * @param new queue length
+     */
+    probe aio_pool__get(char *, int);
 
-Guide to probe arguments
-------------------------
+    /* Probes for efile_drv.c */
 
-    /* Driver op code: used by file_drv_entry      arg3 */
-    /*                 used by file_drv_int_entry  arg3 */
-    /*                 used by file_drv_int_return arg3 */
-    /*                 used by file_drv_return     arg3 */
+    /**
+     * Entry into the efile_drv.c file I/O driver
+     *
+     * For a list of command numbers used by this driver, see the section
+     * "Guide to probe arguments" in ../../../README.md.  That section
+     * also contains explanation of the various integer and string
+     * arguments that may be present when any particular probe fires.
+     *
+     * TODO: Adding the port string, args[10], is a pain.  Making that
+     *       port string available to all the other efile_drv.c probes
+     *       will be more pain.  Is the pain worth it?  If yes, then
+     *       add them everywhere else and grit our teeth.  If no, then
+     *       rip it out.
+     *
+     * @param thread-id number of the scheduler Pthread                   arg0
+     * @param tag number: {thread-id, tag} uniquely names a driver operation
+     * @param user-tag string                                             arg2
+     * @param command number                                              arg3
+     * @param string argument 1                                           arg4
+     * @param string argument 2                                           arg5
+     * @param integer argument 1                                          arg6
+     * @param integer argument 2                                          arg7
+     * @param integer argument 3                                          arg8
+     * @param integer argument 4                                          arg9
+     * @param port the port ID of the busy port                       args[10]
+     */
+    probe efile_drv__entry(int, int, char *, int, char *, char *,
+                           int64_t, int64_t, int64_t, int64_t, char *);
+
+    /**
+     * Entry into the driver's internal work function.  Computation here
+     * is performed by a async worker pool Pthread.
+     *
+     * @param thread-id number
+     * @param tag number
+     * @param command number
+     */
+    probe efile_drv__int_entry(int, int, int);
+
+    /**
+     * Return from the driver's internal work function.
+     *
+     * @param thread-id number
+     * @param tag number
+     * @param command number
+     */
+    probe efile_drv__int_return(int, int, int);
+
+    /**
+     * Return from the efile_drv.c file I/O driver
+     *
+     * @param thread-id number                                            arg0
+     * @param tag number                                                  arg1
+     * @param user-tag string                                             arg2
+     * @param command number                                              arg3
+     * @param Success? 1 is success, 0 is failure                         arg4
+     * @param If failure, the errno of the error.                         arg5
+     */
+    probe efile_drv__return(int, int, char *, int, int, int);
+
+Guide to efile_drv.c probe arguments
+------------------------------------
+
+    /* Driver op code: used by efile_drv-entry      arg3 */
+    /*                 used by efile_drv-int_entry  arg3 */
+    /*                 used by efile_drv-int_return arg3 */
+    /*                 used by efile_drv-return     arg3 */
     
     #define FILE_OPEN            1                 (probe arg3)
             probe arg6 = C driver dt_i1 = flags;
@@ -349,20 +425,6 @@ Guide to probe arguments
             probe arg8 = C driver dt_i3 = length;
             probe arg9 = C driver dt_i4 = advise_type;
     
-    /* Return codes: used by file_drv_return arg4 */
-    
-    #define FILE_RESP_OK         0
-    #define FILE_RESP_ERROR      1
-    #define FILE_RESP_DATA       2
-    #define FILE_RESP_NUMBER     3
-    #define FILE_RESP_INFO       4
-    #define FILE_RESP_NUMERR     5
-    #define FILE_RESP_LDATA      6
-    #define FILE_RESP_N2DATA     7
-    #define FILE_RESP_EOF        8
-    #define FILE_RESP_FNAME      9
-    #define FILE_RESP_ALL_DATA  10
-
 
 Erlang/OTP
 ==========

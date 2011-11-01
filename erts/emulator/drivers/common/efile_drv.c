@@ -119,15 +119,13 @@ static int gcc_optimizer_hack = 0;
 #ifdef  HAVE_DTRACE
 
 #define DTRACE_INVOKE_SETUP(op) \
-    dt_private *dt_priv = get_dt_private(dt_driver_io_worker_base) ; \
-    do { DTRACE4(efile_drv_int_entry, d->sched_i1, d->sched_i2, \
-                 dt_priv->thread_num, op); } while (0)
+    do { DTRACE3(efile_drv_int_entry, d->sched_i1, d->sched_i2, op); } while (0)
 #define DTRACE_INVOKE_SETUP_BY_NAME(op) \
     struct t_data *d = (struct t_data *) data ; \
     DTRACE_INVOKE_SETUP(op)
 #define DTRACE_INVOKE_RETURN(op) \
-    do { DTRACE4(efile_drv_int_return, d->sched_i1, d->sched_i2, \
-                 dt_priv->thread_num, op); } while (0) ; gcc_optimizer_hack++ ;
+    do { DTRACE3(efile_drv_int_return, d->sched_i1, d->sched_i2, \
+                 op); } while (0) ; gcc_optimizer_hack++ ;
 
 int             dt_driver_idnum = 0;
 int             dt_driver_io_worker_base = 5000;
@@ -292,6 +290,7 @@ typedef struct {
 #endif  /* HAVE_DTRACE */
     ErlDrvPDL       q_mtx;    /* Mutex for the driver queue, known by the emulator. Also used for
 				 mutual exclusion when accessing field(s) below. */
+    char            port_str[DTRACE_TERM_BUF_SIZE];
     size_t          write_buffered;
 } file_descriptor;
 
@@ -696,6 +695,7 @@ file_start(ErlDrvPort port, char* command)
     }
     desc->fd = FILE_FD_INVALID;
     desc->port = port;
+    dtrace_drvport_str(port, desc->port_str);
     desc->key = (unsigned int) (UWord) port;
     desc->flags = 0;
     desc->invoke = NULL;
@@ -1613,19 +1613,14 @@ static void free_pwritev(void *data) {
 static void invoke_flstat(void *data)
 {
     struct t_data *d = (struct t_data *) data;
-#ifdef  HAVE_DTRACE
-    dt_private *dt_priv = get_dt_private(dt_driver_io_worker_base);
-#endif
 
-    DTRACE4(efile_drv_int_entry, d->sched_i1, d->sched_i2,
-            dt_priv->thread_num, d->command == FILE_LSTAT ? FILE_LSTAT :
-                                                            FILE_FSTAT);
+    DTRACE3(efile_drv_int_entry, d->sched_i1, d->sched_i2,
+            d->command == FILE_LSTAT ? FILE_LSTAT : FILE_FSTAT);
     d->again = 0;
     d->result_ok = efile_fileinfo(&d->errInfo, &d->info,
 				  d->b, d->command == FILE_LSTAT);
-    DTRACE4(efile_drv_int_entry, d->sched_i1, d->sched_i2,
-            dt_priv->thread_num, d->command == FILE_LSTAT ? FILE_LSTAT :
-                                                            FILE_FSTAT);
+    DTRACE3(efile_drv_int_entry, d->sched_i1, d->sched_i2,
+            d->command == FILE_LSTAT ? FILE_LSTAT : FILE_FSTAT);
     gcc_optimizer_hack++;
 }
 
@@ -1938,9 +1933,9 @@ static int flush_write(file_descriptor *desc, int *errp,
                 d->sched_utag[sizeof(d->sched_utag) - 1] = '\0';
             }
         }
-        DTRACE10(efile_drv_entry, dt_priv->thread_num, dt_priv->tag++,
+        DTRACE11(efile_drv_entry, dt_priv->thread_num, dt_priv->tag++,
                  dt_utag, FILE_WRITE,
-                 NULL, NULL, dt_i1, dt_i2, dt_i3, 0);
+                 NULL, NULL, dt_i1, dt_i2, dt_i3, 0, desc->port_str);
     }
 #endif /* HAVE_DTRACE */
     return result;
@@ -2027,9 +2022,9 @@ static int lseek_flush_read(file_descriptor *desc, int *errp,
                     d->sched_utag[sizeof(d->sched_utag) - 1] = '\0';
                 }
             }
-            DTRACE10(efile_drv_entry, dt_priv->thread_num, dt_priv->tag++,
+            DTRACE11(efile_drv_entry, dt_priv->thread_num, dt_priv->tag++,
                      dt_utag, FILE_LSEEK,
-                     NULL, NULL, dt_i1, dt_i2, dt_i3, 0);
+                     NULL, NULL, dt_i1, dt_i2, dt_i3, 0, desc->port_str);
 #endif /* HAVE_DTRACE */
         }
     }
@@ -2049,7 +2044,6 @@ file_async_ready(ErlDrvData e, ErlDrvThreadData data)
     char header[5];		/* result code + count */
     char resbuf[RESBUFSIZE];	/* Result buffer. */
 #ifdef  HAVE_DTRACE
-    dt_private *dt_priv = get_dt_private(0);
     int sched_i1 = d->sched_i1, sched_i2 = d->sched_i2, command = d->command,
         result_ok = d->result_ok,
         posix_errno = d->result_ok ? 0 : d->errInfo.posix_errno;
@@ -2297,8 +2291,8 @@ file_async_ready(ErlDrvData e, ErlDrvThreadData data)
       default:
 	abort();
     }
-    DTRACE7(efile_drv_return, sched_i1, sched_i2, sched_utag,
-            command, result_ok, posix_errno, dt_priv->thread_num);
+    DTRACE6(efile_drv_return, sched_i1, sched_i2, sched_utag,
+            command, result_ok, posix_errno);
     if (desc->write_buffered != 0 && desc->timer_state == timer_idle) {
 	desc->timer_state = timer_write;
 	driver_set_timer(desc->port, desc->write_delay);
@@ -2490,8 +2484,9 @@ file_output(ErlDrvData e, char* buf, int count)
 		return;
 	    }
 #ifdef HAVE_DTRACE
-            DTRACE10(efile_drv_entry, dt_priv->thread_num, dt_priv->tag++,
-                     dt_utag, command, name, dt_s2, dt_i1, dt_i2, dt_i3, dt_i4);
+            DTRACE11(efile_drv_entry, dt_priv->thread_num, dt_priv->tag++,
+                     dt_utag, command, name, dt_s2,
+                     dt_i1, dt_i2, dt_i3, dt_i4, desc->port_str);
 #endif
 	    TRACE_C('R');
 	    driver_output2(desc->port, resbuf, 1, NULL, 0);
@@ -2723,8 +2718,9 @@ file_output(ErlDrvData e, char* buf, int count)
                 d->sched_utag[sizeof(d->sched_utag) - 1] = '\0';
             }
         }
-        DTRACE10(efile_drv_entry, dt_priv->thread_num, dt_priv->tag++,
-                 dt_utag, command, dt_s1, dt_s2, dt_i1, dt_i2, dt_i3, dt_i4);
+        DTRACE11(efile_drv_entry, dt_priv->thread_num, dt_priv->tag++,
+                 dt_utag, command, dt_s1, dt_s2,
+                 dt_i1, dt_i2, dt_i3, dt_i4, desc->port_str);
 #endif
 	cq_enq(desc, d);
     }
@@ -3604,8 +3600,9 @@ file_outputv(ErlDrvData e, ErlIOVec *ev) {
             strncpy(d->sched_utag, dt_utag, sizeof(d->sched_utag) - 1);
             d->sched_utag[sizeof(d->sched_utag) - 1] = '\0';
         }
-        DTRACE10(efile_drv_entry, dt_priv->thread_num, dt_priv->tag++,
-                 dt_utag, command, dt_s1, NULL, dt_i1, dt_i2, dt_i3, dt_i4);
+        DTRACE11(efile_drv_entry, dt_priv->thread_num, dt_priv->tag++,
+                 dt_utag, command, dt_s1, NULL, dt_i1, dt_i2, dt_i3, dt_i4,
+                 desc->port_str);
 #endif
     }
     cq_execute(desc);

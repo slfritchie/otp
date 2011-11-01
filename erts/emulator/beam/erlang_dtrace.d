@@ -294,7 +294,7 @@ provider erlang {
     /**
      * Fired when process' heap is growing.
      *
-     * @param p the PID (string form) of the existing process
+     * @param p the PID (string form)
      * @param old_size the size of the old heap
      * @param new_size the size of the new heap
      */
@@ -303,11 +303,13 @@ provider erlang {
     /**
      * Fired when process' heap is shrinking.
      *
-     * @param p the PID (string form) of the existing process
+     * @param p the PID (string form)
      * @param old_size the size of the old heap
      * @param new_size the size of the new heap
      */
     probe process__heap_shrink(char *p, int old_size, int new_size);
+
+    /* network distribution */
 
     /**
      * Fired when network distribution event monitor events are triggered.
@@ -317,8 +319,6 @@ provider erlang {
      * @param monitored_node the name of the monitored node
      * @param type the type of node, e.g., visible, hidden
      * @param reason the reason term, e.g., normal, connection_closed, term()
-     * @param token_previous count for the sender's sequential trace token
-     * @param token_current count for the sender's sequential trace token
      */
     probe dist__monitor(char *node, char *what, char *monitored_node,
                         char *type, char *reason);
@@ -338,6 +338,26 @@ provider erlang {
                           char *pid);
 
     /**
+     * Fired when network distribution's driver's "output" callback is called
+     *
+     * @param node the name of the reporting node
+     * @param port the port ID of the busy port
+     * @param remote_node the name of the remote node.
+     * @param bytes the number of bytes written
+     */
+    probe dist__output(char *node, char *port, char *remote_node, int bytes);
+
+    /**
+     * Fired when network distribution's driver's "outputv" callback is called
+     *
+     * @param node the name of the reporting node
+     * @param port the port ID of the busy port
+     * @param remote_node the name of the remote node.
+     * @param bytes the number of bytes written
+     */
+    probe dist__outputv(char *node, char *port, char *remote_node, int bytes);
+
+    /**
      * Fired when network distribution port is no longer busy (i.e. blocked).
      *
      * NOTE: This probe may fire multiple times after the same single
@@ -348,6 +368,60 @@ provider erlang {
      * @param remote_node the name of the remote node.
      */
     probe dist__port_not_busy(char *node, char *port, char *remote_node);
+
+    /* ports */
+
+    /**
+     * Fired when new port is opened.
+     *
+     * @param process the PID (string form)
+     * @param port_name the string used when the port was opened
+     * @param port the Port (string form) of the new port
+     */
+    probe port__open(char *process, char *port_name, char *port);
+
+    /**
+     * Fired when port_command is issued.
+     *
+     * @param process the PID (string form)
+     * @param port the Port (string form)
+     * @param port_name the string used when the port was opened
+     * @param command_type type of the issued command, one of: "close", "command" or "connect"
+     */
+    probe port__command(char *process, char *port, char *port_name, char *command_type);
+
+    /**
+     * Fired when port_control is issued.
+     *
+     * @param process the PID (string form)
+     * @param port the Port (string form)
+     * @param port_name the string used when the port was opened
+     * @param command_no command number that has been issued to the port
+     */
+    probe port__control(char *process, char *port, char *port_name, int command_no);
+
+    /**
+     * Fired when port is closed via port_close/1 (reason = 'normal')
+     * or is sent an exit signal.
+     *
+     * @param process the PID (string form)
+     * @param port the Port (string form)
+     * @param port_name the string used when the port was opened
+     * @param reason Erlang term representing the exit signal, e.g. 'normal'
+     */
+    probe port__exit(char *process, char *port, char *port_name,
+                     char *new_process);
+
+    /**
+     * Fired when port_connect is issued.
+     *
+     * @param process the PID (string form) of the current port owner
+     * @param port the Port (string form)
+     * @param port_name the string used when the port was opened
+     * @param new_process the PID (string form) of the new port owner
+     */
+    probe port__connect(char *process, char *port, char *port_name,
+                        char *new_process);
 
     /**
      * Fired when a port is busy (i.e. blocked)
@@ -363,25 +437,156 @@ provider erlang {
      */
     probe port__not_busy(char *port);
 
-    /**
-     * Fired when port_command is issued.
-     *
-     * @param proces the PID (string form) of the existing process
-     * @param port the Port (string form) of the existing port
-     * @param port_name the string used when opening a port
-     * @param command_type type of the issued command, one of: "close", "command" or "connect"
-     */
-    probe port__command(char *process, char *port, char *port_name, char *command_type);
+    /* drivers */
 
     /**
-     * Fired when port_control is issued.
+     * Fired when drivers's "init" callback is called.
      *
-     * @param proces the PID (string form) of the existing process
-     * @param port the Port (string form) of the existing port
-     * @param port_name the string used when opening a port
-     * @param command_no command number that has been issued to the port
+     * @param name the name of the driver
+     * @param major the major version number
+     * @param minor the minor version number
+     * @param flags the flags argument
      */
-    probe port__control(char *process, char *port, char *port_name, int command_no);
+    probe driver__init(char *name, int major, int minor, int flags);
+
+    /**
+     * Fired when drivers's "start" callback is called.
+     *
+     * @param process the PID (string form) of the calling process
+     * @param name the name of the driver
+     * @param port the Port (string form) of the driver's port
+     */
+     probe driver__start(char *process, char *name, char *port);
+
+    /**
+     * Fired when drivers's "stop" callback is called.
+     *
+     * @param process the PID (string form) of the calling process
+     * @param name the name of the driver
+     * @param port the Port (string form) of the driver's port
+     */
+     probe driver__stop(char *process, char *name, char *port);
+
+    /**
+     * Fired when drivers's "finish" callback is called.
+     *
+     * @param name the name of the driver
+     */
+     probe driver__finish(char *name);
+
+    /**
+     * Fired when drivers's "flush" callback is called.
+     *
+     * @param process the PID (string form)
+     * @param port the Port (string form)
+     * @param port_name the string used when the port was opened
+     */
+    probe driver__flush(char *process, char *port, char *port_name);
+
+    /**
+     * Fired when driver's "output" callback is called
+     *
+     * @param process the PID (string form)
+     * @param port the Port (string form)
+     * @param port_name the string used when the port was opened
+     * @param bytes the number of bytes written
+     */
+    probe driver__output(char *node, char *port, char *port_name, int bytes);
+
+    /**
+     * Fired when driver's "outputv" callback is called
+     *
+     * @param process the PID (string form)
+     * @param port the Port (string form)
+     * @param port_name the string used when the port was opened
+     * @param bytes the number of bytes written
+     */
+    probe driver__outputv(char *node, char *port, char *port_name, int bytes);
+
+    /**
+     * Fired when driver's "control" callback is called
+     *
+     * @param process the PID (string form)
+     * @param port the Port (string form)
+     * @param port_name the string used when the port was opened
+     * @param command the command #
+     * @param bytes the number of bytes written
+     */
+    probe driver__control(char *node, char *port, char *port_name,
+                          int command, int bytes);
+
+    /**
+     * Fired when driver's "call" callback is called
+     *
+     * @param process the PID (string form)
+     * @param port the Port (string form)
+     * @param port_name the string used when the port was opened
+     * @param command the command #
+     * @param bytes the number of bytes written
+     */
+    probe driver__call(char *node, char *port, char *port_name,
+                       int command, int bytes);
+
+    /**
+     * Fired when driver's "event" callback is called
+     *
+     * @param process the PID (string form)
+     * @param port the Port (string form)
+     * @param port_name the string used when the port was opened
+     */
+    probe driver__event(char *node, char *port, char *port_name);
+
+    /**
+     * Fired when driver's "ready_input" callback is called
+     *
+     * @param process the PID (string form)
+     * @param port the Port (string form)
+     * @param port_name the string used when the port was opened
+     */
+    probe driver__ready_input(char *node, char *port, char *port_name);
+
+    /**
+     * Fired when driver's "read_output" callback is called
+     *
+     * @param process the PID (string form)
+     * @param port the Port (string form)
+     * @param port_name the string used when the port was opened
+     */
+    probe driver__ready_output(char *node, char *port, char *port_name);
+
+    /**
+     * Fired when driver's "timeout" callback is called
+     *
+     * @param process the PID (string form)
+     * @param port the Port (string form)
+     * @param port_name the string used when the port was opened
+     */
+    probe driver__timeout(char *node, char *port, char *port_name);
+
+    /**
+     * Fired when drivers's "ready_async" callback is called.
+     *
+     * @param process the PID (string form)
+     * @param port the Port (string form)
+     * @param port_name the string used when the port was opened
+     */
+    probe driver__ready_async(char *process, char *port, char *port_name);
+
+    /**
+     * Fired when driver's "process_exit" callback is called
+     *
+     * @param process the PID (string form)
+     * @param port the Port (string form)
+     * @param port_name the string used when the port was opened
+     */
+    probe driver__process_exit(char *node, char *port, char *port_name);
+
+    /**
+     * Fired when driver's "stop_select" callback is called
+     *
+     * @param name the name of the driver
+     */
+    probe driver__stop_select(char *name);
 
 
     /* Async driver pool */
@@ -389,18 +594,22 @@ provider erlang {
     /**
      * Show the post-add length of the async driver thread pool member's queue.
      *
-     * @param pool member number
+     * NOTE: The port name is not available: additional lock(s) must
+     *       be acquired in order to get the port name safely in an SMP
+     *       environment.  The same is true for the aio__pool_get probe.
+     *
+     * @param port the Port (string form)
      * @param new queue length
      */
-    probe aio_pool__add(int, int);
+    probe aio_pool__add(char *, int);
 
     /**
      * Show the post-get length of the async driver thread pool member's queue.
      *
-     * @param pool member number
+     * @param port the Port (string form)
      * @param new queue length
      */
-    probe aio_pool__get(int, int);
+    probe aio_pool__get(char *, int);
 
     /* Probes for efile_drv.c */
 
@@ -412,6 +621,12 @@ provider erlang {
      * also contains explanation of the various integer and string
      * arguments that may be present when any particular probe fires.
      *
+     * TODO: Adding the port string, args[10], is a pain.  Making that
+     *       port string available to all the other efile_drv.c probes
+     *       will be more pain.  Is the pain worth it?  If yes, then
+     *       add them everywhere else and grit our teeth.  If no, then
+     *       rip it out.
+     *
      * @param thread-id number of the scheduler Pthread                   arg0
      * @param tag number: {thread-id, tag} uniquely names a driver operation
      * @param user-tag string                                             arg2
@@ -422,32 +637,29 @@ provider erlang {
      * @param integer argument 2                                          arg7
      * @param integer argument 3                                          arg8
      * @param integer argument 4                                          arg9
+     * @param port the port ID of the busy port                       args[10]
      */
     probe efile_drv__entry(int, int, char *, int, char *, char *,
-                           int64_t, int64_t, int64_t, int64_t);
+                           int64_t, int64_t, int64_t, int64_t, char *);
 
-    /*     0       1              2       3     */
-    /* thread-id, tag, work-thread-id,  command */
     /**
      * Entry into the driver's internal work function.  Computation here
      * is performed by a async worker pool Pthread.
      *
      * @param thread-id number
      * @param tag number
-     * @param worker pool thread-id number
      * @param command number
      */
-    probe efile_drv__int_entry(int, int, int, int);
+    probe efile_drv__int_entry(int, int, int);
 
     /**
      * Return from the driver's internal work function.
      *
      * @param thread-id number
      * @param tag number
-     * @param worker pool thread-id number
      * @param command number
      */
-    probe efile_drv__int_return(int, int, int, int);
+    probe efile_drv__int_return(int, int, int);
 
     /**
      * Return from the efile_drv.c file I/O driver
@@ -458,9 +670,8 @@ provider erlang {
      * @param command number                                              arg3
      * @param Success? 1 is success, 0 is failure                         arg4
      * @param If failure, the errno of the error.                         arg5
-     * @param thread-id number of the scheduler Pthread executing now     arg6
      */
-    probe efile_drv__return(int, int, char *, int, int, int, int);
+    probe efile_drv__return(int, int, char *, int, int, int);
 
 /*
  * NOTE:

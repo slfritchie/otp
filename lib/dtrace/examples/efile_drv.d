@@ -53,46 +53,51 @@ BEGIN
 
 erlang*:::aio_pool-add
 {
-    printf("async I/O pool add thread=%d queue len %d\n", arg0, arg1);
+    printf("async I/O pool port %s queue len %d\n", copyinstr(arg0), arg1);
 }
 
 erlang*:::aio_pool-get
 {
-    printf("async I/O pool get thread=%d queue len %d\n", arg0, arg1);
+    printf("async I/O pool port %s queue len %d\n", copyinstr(arg0), arg1);
 }
 
 erlang*:::efile_drv-entry
 {
-    printf("efile_drv enter tag={%d,%d} %s | %s (%d) | args: %s %s , %d %d\n",
-	   arg0, arg1, arg2 == NULL ? "" : copyinstr(arg2),
+    printf("efile_drv enter tag={%d,%d} %s%s | %s (%d) | args: %s %s , %d %d (port %s)\n",
+	   arg0, arg1,
+           arg2 == NULL ? "" : "user tag ",
+           arg2 == NULL ? "" : copyinstr(arg2),
            op_map[arg3], arg3,
 	   arg4 == NULL ? "" : copyinstr(arg4),
-	   arg5 == NULL ? "" : copyinstr(arg5), arg6, arg7)
+	   arg5 == NULL ? "" : copyinstr(arg5), arg6, arg7,
+           /* NOTE: port name in args[10] is experimental */
+           copyinstr((user_addr_t) args[10]))
 }
 
 erlang*:::efile_drv-int*
 {
-    printf("async I/O worker tag={%d,%d} thread=%d | %s (%d)\n",
-           arg0, arg1, arg2,
-           op_map[arg3], arg3);
+    printf("async I/O worker tag={%d,%d} | %s (%d) | %s\n",
+           arg0, arg1, op_map[arg2], arg2, probename);
 }
 
+/* efile_drv-return error case */
 erlang*:::efile_drv-return
 /arg4 == 0/
 {
-    printf("efile_drv return tag={%d,%d} %s | %s (%d) | errno %d thread=%d\n",
+    printf("efile_drv return tag={%d,%d} %s%s | %s (%d) | errno %d\n",
            arg0, arg1,
+           arg2 == NULL ? "" : "user tag ",
            arg2 == NULL ? "" : copyinstr(arg2),
            op_map[arg3], arg3,
-           arg5, arg6);
+           arg5);
 }
 
+/* efile_drv-return success case */
 erlang*:::efile_drv-return
 /arg4 != 0/
 {
-    printf("efile_drv return tag={%d,%d} %s | %s (%d) | thread=%d\n",
+    printf("efile_drv return tag={%d,%d} %s | %s (%d) ok\n",
            arg0, arg1,
            arg2 == NULL ? "" : copyinstr(arg2),
-           op_map[arg3], arg3,
-           arg6);
+           op_map[arg3], arg3);
 }

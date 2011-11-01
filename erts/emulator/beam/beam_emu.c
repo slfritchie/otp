@@ -1104,6 +1104,15 @@ dtrace_port_str(Port *port, char *port_buf) {
 }
 
 ERTS_INLINE void
+dtrace_drvport_str(ErlDrvPort drvport, char *port_buf) {
+    Port *port = erts_drvport2port(drvport);
+
+    snprintf(port_buf, DTRACE_TERM_BUF_SIZE, "#Port<%lu.%lu>",
+             port_channel_no(port->id),
+             port_number(port->id));
+}
+
+ERTS_INLINE void
 dtrace_fun_decode(Process *process,
                   Eterm module, Eterm function, int arity,
                   char *process_buf, char *mfa_buf) {
