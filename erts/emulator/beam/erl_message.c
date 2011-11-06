@@ -987,7 +987,7 @@ erts_send_message(Process* sender,
         BM_SWAP_TIMER(send,size);
 	msize = size_object(message);
         BM_SWAP_TIMER(size,send);
-
+	
 	if (receiver->stop - receiver->htop <= msize) {
             BM_SWAP_TIMER(send,system);
 	    erts_garbage_collect(receiver, msize, receiver->arg_reg, receiver->arity);

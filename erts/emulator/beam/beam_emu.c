@@ -1964,7 +1964,7 @@ void process_main(void)
 	  * remove it...
 	  */
 	 ASSERT(!msgp->data.attached);
-         /* TODO: Add trace probe for this bad message situation? */
+         /* TODO: Add DTrace probe for this bad message situation? */
 	 UNLINK_MESSAGE(c_p, msgp);
 	 free_message(msgp);
 	 goto loop_rec__;
@@ -6641,7 +6641,7 @@ call_fun(Process* p,		/* Current process. */
 	} else {
 	    /*
 	     * Wrong arity. First build a list of the arguments.
-	     */
+	     */  
 
 	    if (is_non_value(args)) {
 		args = NIL;

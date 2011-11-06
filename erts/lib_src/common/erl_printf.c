@@ -181,7 +181,7 @@ write_sn(void *vwsnap, char* buf, size_t len)
 	size_t sz = len;
 	if (sz >= wsnap->len)
 	    sz = wsnap->len;
-        rv = (int)sz;
+	rv = (int)sz;
 	memcpy((void *) wsnap->buf, (void *) buf, sz);
 	wsnap->buf += sz;
 	wsnap->len -= sz;

@@ -382,13 +382,13 @@ erts_garbage_collect(Process* p, int need, Eterm* objv, int nobj)
      */
     while (!done) {
 	if ((FLAGS(p) & F_NEED_FULLSWEEP) != 0) {
-            DTRACE2(gc_major_start, pidbuf, need);
+	    DTRACE2(gc_major_start, pidbuf, need);
 	    done = major_collection(p, need, objv, nobj, &reclaimed_now);
-            DTRACE2(gc_major_end, pidbuf, reclaimed_now);
+	    DTRACE2(gc_major_end, pidbuf, reclaimed_now);
 	} else {
-            DTRACE2(gc_minor_start, pidbuf, need);
+	    DTRACE2(gc_minor_start, pidbuf, need);
 	    done = minor_collection(p, need, objv, nobj, &reclaimed_now);
-            DTRACE2(gc_minor_end, pidbuf, reclaimed_now);
+	    DTRACE2(gc_minor_end, pidbuf, reclaimed_now);
 	}
     }
 
