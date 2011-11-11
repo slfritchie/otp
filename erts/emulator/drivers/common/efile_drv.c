@@ -283,13 +283,13 @@ typedef struct {
     unsigned long   write_delay;
     int             write_error;
     Efile_error     write_errInfo;
-#ifdef  HAVE_DTRACE
-    int             idnum;      /* Unique ID # for this driver thread/desc */
-#endif  /* HAVE_DTRACE */
     ErlDrvPDL       q_mtx;    /* Mutex for the driver queue, known by the emulator. Also used for
 				 mutual exclusion when accessing field(s) below. */
-    char            port_str[DTRACE_TERM_BUF_SIZE];
     size_t          write_buffered;
+#ifdef HAVE_DTRACE
+    int             idnum;      /* Unique ID # for this driver thread/desc */
+    char            port_str[DTRACE_TERM_BUF_SIZE];
+#endif
 } file_descriptor;
 
 
@@ -692,7 +692,6 @@ file_start(ErlDrvPort port, char* command)
     }
     desc->fd = FILE_FD_INVALID;
     desc->port = port;
-    dtrace_drvport_str(port, desc->port_str);
     desc->key = (unsigned int) (UWord) port;
     desc->flags = 0;
     desc->invoke = NULL;
@@ -711,6 +710,7 @@ file_start(ErlDrvPort port, char* command)
     MUTEX_INIT(desc->q_mtx, port); /* Refc is one, referenced by emulator now */
     desc->write_buffered = 0;
 #ifdef  HAVE_DTRACE
+    dtrace_drvport_str(port, desc->port_str);
     get_dt_private(0);           /* throw away return value */
 #endif  /* HAVE_DTRACE */
     return (ErlDrvData) desc;
