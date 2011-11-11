@@ -1079,13 +1079,11 @@ do_minor(Process *p, Uint new_sz, Eterm* objv, int nobj)
     sys_memcpy(n_heap + new_sz - n, p->stop, n * sizeof(Eterm));
     p->stop = n_heap + new_sz - n;
 
-    if(HEAP_SIZE(p) != new_sz) {
+    if (HEAP_SIZE(p) != new_sz && DTRACE_ENABLED(process_heap_grow)) {
         char pidbuf[DTRACE_TERM_BUF_SIZE];
 
-        if(DTRACE_ENABLED(process_heap_grow)) {
-            dtrace_proc_str(p, pidbuf);
-	    DTRACE3(process_heap_grow, pidbuf, HEAP_SIZE(p), new_sz);
-	}
+        dtrace_proc_str(p, pidbuf);
+        DTRACE3(process_heap_grow, pidbuf, HEAP_SIZE(p), new_sz);
     }
 
     ERTS_HEAP_FREE(ERTS_ALC_T_HEAP,
@@ -1309,13 +1307,11 @@ major_collection(Process* p, int need, Eterm* objv, int nobj, Uint *recl)
     sys_memcpy(n_heap + new_sz - n, p->stop, n * sizeof(Eterm));
     p->stop = n_heap + new_sz - n;
 
-    if(HEAP_SIZE(p) != new_sz) {
+    if (HEAP_SIZE(p) != new_sz && DTRACE_ENABLED(process_heap_grow)) {
         char pidbuf[DTRACE_TERM_BUF_SIZE];
 
-        if(DTRACE_ENABLED(process_heap_grow)) {
-            dtrace_proc_str(p, pidbuf);
-	    DTRACE3(process_heap_grow, pidbuf, HEAP_SIZE(p), new_sz);
-	}
+        dtrace_proc_str(p, pidbuf);
+        DTRACE3(process_heap_grow, pidbuf, HEAP_SIZE(p), new_sz);
     }
 
     ERTS_HEAP_FREE(ERTS_ALC_T_HEAP,
@@ -1989,7 +1985,7 @@ grow_new_heap(Process *p, Uint new_sz, Eterm* objv, int nobj)
         HEAP_START(p) = new_heap;
     }
 
-    if(DTRACE_ENABLED(process_heap_grow)) {
+    if (DTRACE_ENABLED(process_heap_grow)) {
 	char pidbuf[DTRACE_TERM_BUF_SIZE];
 
         dtrace_proc_str(p, pidbuf);
@@ -2035,7 +2031,7 @@ shrink_new_heap(Process *p, Uint new_sz, Eterm *objv, int nobj)
         HEAP_START(p) = new_heap;
     }
 
-    if(DTRACE_ENABLED(process_heap_shrink)) {
+    if (DTRACE_ENABLED(process_heap_shrink)) {
 	char pidbuf[DTRACE_TERM_BUF_SIZE];
 
         dtrace_proc_str(p, pidbuf);

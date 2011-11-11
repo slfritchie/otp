@@ -36,7 +36,6 @@
 #include "beam_bp.h"
 #include "erl_db_util.h"
 #include "register.h"
-#include "dtrace-wrapper.h"
 
 static Export* flush_monitor_message_trap = NULL;
 static Export* set_cpu_topology_trap = NULL;
