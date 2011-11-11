@@ -42,7 +42,7 @@ Sint erts_no_of_not_connected_dist_entries;
 
 DistEntry *erts_this_dist_entry;
 ErlNode *erts_this_node;
-char erts_this_node_sysname[DTRACE_TERM_BUF_SIZE];
+char erts_this_node_sysname[256]; /* must match erl_node_tables.h */
 
 static Uint node_entries;
 static Uint dist_entries;
