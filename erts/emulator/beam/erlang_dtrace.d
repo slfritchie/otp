@@ -88,6 +88,12 @@ provider erlang {
      *       that the actual size of any binary terms in the message
      *       are not included.
      *
+     * NOTE: In cases of messages in external format (i.e. from another
+     *       Erlang node), we probably don't know the message size
+     *       without performing substantial extra computation.  To
+     *       avoid the extra CPU overhead, the message size may be
+     *       reported as -1, which can appear to a D script as 4294967295.
+     *
      * @param receiver the PID (string form) of the receiver
      * @param size the size of the message being delivered (words)
      * @param queue_len length of the queue of the receiving process

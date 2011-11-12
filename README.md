@@ -11,9 +11,9 @@ History
 -------
 
 The first implementation of DTrace probes for the Erlang virtual
-machine was presented at the [2008 Erlang User Conference] [4].  Most
-of the source from that effort has been lost.  If you have a copy of
-that work, please contact **slfritchie**.
+machine was presented at the [2008 Erlang User Conference] [4].  That
+work, based on the Erlang/OTP R12 release, was discontinued due to
+what appears to be miscommunication with the original developers.
 
 Several users have created Erlang port drivers, linked-in drivers, or
 NIFs that allow Erlang code to try to activate a probe,

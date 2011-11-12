@@ -5712,7 +5712,6 @@ Process *schedule(Process *p, int calls)
 	p->fcalls = reds;
 	ASSERT(IS_ACTIVE(p));
 	ERTS_SMP_CHK_HAVE_ONLY_MAIN_PROC_LOCK(p);
-
 	return p;
     }
 }

@@ -75,6 +75,17 @@ inline void dtrace_fun_decode(Process *process,
                                                      do {} while (0)
 #define DTRACE11(name, a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10) \
                                                      do {} while (0)
+
+#if defined(_SDT_PROBE) && !defined(STAP_PROBE11)
+/* work arround for missing STAP macro */
+#define STAP_PROBE11(provider,name,arg1,arg2,arg3,arg4,arg5,arg6,arg7,arg8,arg9,arg10,arg11) \
+  _SDT_PROBE(provider, name, 11, \
+             (arg1,arg2,arg3,arg4,arg5,arg6,arg7,arg8,arg9,arg10,arg11))
+#define _SDT_ASM_OPERANDS_11(arg1,arg2,arg3,arg4,arg5,arg6,arg7,arg8,arg9,arg10,arg11) \
+  _SDT_ASM_OPERANDS_10(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9,arg10), \
+    _SDT_ARG(11, arg11)
+#endif
+
 #endif  /* HAVE_DTRACE */
 
 #endif  /* __DTRACE_WRAPPER_H */

@@ -499,8 +499,7 @@ erts_queue_message(Process* receiver,
         Sint tok_label = 0, tok_lastcnt = 0, tok_serial = 0;
 
         dtrace_proc_str(receiver, receiver_name);
-        /* TODO: What the heck is so magical about 0x3cb?  Remove the magic. */
-        if (is_not_nil(seq_trace_token) && seq_trace_token != 0x3cb) {
+        if (seq_trace_token != NIL && is_tuple(seq_trace_token)) {
             tok_label = signed_val(SEQ_TRACE_T_LABEL(seq_trace_token));
             tok_lastcnt = signed_val(SEQ_TRACE_T_LASTCNT(seq_trace_token));
             tok_serial = signed_val(SEQ_TRACE_T_SERIAL(seq_trace_token));
@@ -987,7 +986,7 @@ erts_send_message(Process* sender,
         BM_SWAP_TIMER(send,size);
 	msize = size_object(message);
         BM_SWAP_TIMER(size,send);
-
+	
 	if (receiver->stop - receiver->htop <= msize) {
             BM_SWAP_TIMER(send,system);
 	    erts_garbage_collect(receiver, msize, receiver->arg_reg, receiver->arity);

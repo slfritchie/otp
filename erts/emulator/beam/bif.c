@@ -36,7 +36,6 @@
 #include "beam_bp.h"
 #include "erl_db_util.h"
 #include "register.h"
-#include "dtrace-wrapper.h"
 
 static Export* flush_monitor_message_trap = NULL;
 static Export* set_cpu_topology_trap = NULL;
@@ -56,7 +55,6 @@ BIF_RETTYPE spawn_3(BIF_ALIST_3)
     Eterm pid;
 
     so.flags = 0;
-    
     pid = erl_create_process(BIF_P, BIF_ARG_1, BIF_ARG_2, BIF_ARG_3, &so);
     if (is_non_value(pid)) {
 	BIF_ERROR(BIF_P, so.error_code);
