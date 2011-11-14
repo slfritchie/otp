@@ -59,6 +59,24 @@ inline void dtrace_fun_decode(Process *process,
 #define DTRACE11(name, a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10) \
     erlang_##name((a0), (a1), (a2), (a3), (a4), (a5), (a6), (a7), (a8), (a9), (a10))
 
+#if defined(_SDT_PROBE) && !defined(STAP_PROBE11)
+/* SLF: This is Ubuntu 11-style SystemTap hackery */
+/* work arround for missing STAP macro */
+#define STAP_PROBE11(provider,name,arg1,arg2,arg3,arg4,arg5,arg6,arg7,arg8,arg9,arg10,arg11) \
+  _SDT_PROBE(provider, name, 11, \
+             (arg1,arg2,arg3,arg4,arg5,arg6,arg7,arg8,arg9,arg10,arg11))
+#define _SDT_ASM_OPERANDS_11(arg1,arg2,arg3,arg4,arg5,arg6,arg7,arg8,arg9,arg10,arg11) \
+  _SDT_ASM_OPERANDS_10(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9,arg10), \
+    _SDT_ARG(11, arg11)
+#endif
+
+#ifdef STAP_PROBE_ADDR
+/* SLF: This is CentOS 5-style SystemTap hackery */
+/* SystemTap compat mode cannot support 11 args. We'll ignore the 11th */
+#define STAP_PROBE11(provider,probe,parm1,parm2,parm3,parm4,parm5,parm6,parm7,parm8,parm9,parm10,parm11) \
+    STAP_PROBE10(provider,probe,(parm1),(parm2),(parm3),(parm4),(parm5),(parm6),(parm7),(parm8),(parm9),(parm10))
+#endif /* STAP_PROBE_ADDR */
+
 #else   /* HAVE_DTRACE */
 
 /* Render all macros to do nothing */
@@ -75,16 +93,6 @@ inline void dtrace_fun_decode(Process *process,
                                                      do {} while (0)
 #define DTRACE11(name, a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10) \
                                                      do {} while (0)
-
-#if defined(_SDT_PROBE) && !defined(STAP_PROBE11)
-/* work arround for missing STAP macro */
-#define STAP_PROBE11(provider,name,arg1,arg2,arg3,arg4,arg5,arg6,arg7,arg8,arg9,arg10,arg11) \
-  _SDT_PROBE(provider, name, 11, \
-             (arg1,arg2,arg3,arg4,arg5,arg6,arg7,arg8,arg9,arg10,arg11))
-#define _SDT_ASM_OPERANDS_11(arg1,arg2,arg3,arg4,arg5,arg6,arg7,arg8,arg9,arg10,arg11) \
-  _SDT_ASM_OPERANDS_10(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9,arg10), \
-    _SDT_ARG(11, arg11)
-#endif
 
 #endif  /* HAVE_DTRACE */
 

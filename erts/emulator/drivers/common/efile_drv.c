@@ -114,7 +114,7 @@ void erl_exit(int n, char *fmt, ...);
 static ErlDrvSysInfo sys_info;
 
 /* For explanation of this var, see comment for same var in erl_async.c */
-static int gcc_optimizer_hack = 0;
+static unsigned gcc_optimizer_hack = 0;
 
 #ifdef  HAVE_DTRACE
 
@@ -127,6 +127,7 @@ static int gcc_optimizer_hack = 0;
     do { DTRACE3(efile_drv_int_return, d->sched_i1, d->sched_i2, \
                  op); } while (0) ; gcc_optimizer_hack++ ;
 
+/* Assign human-friendlier id numbers to scheduler & I/O worker threads */
 int             dt_driver_idnum = 0;
 int             dt_driver_io_worker_base = 5000;
 erts_mtx_t      dt_driver_mutex;
@@ -2678,22 +2679,22 @@ file_output(ErlDrvData e, char* buf, int count)
 
     case FILE_FADVISE:
     {
-	d = EF_SAFE_ALLOC(sizeof(struct t_data));
+        d = EF_SAFE_ALLOC(sizeof(struct t_data));
 
-	d->fd = fd;
-	dt_i1 = d->fd;
-	d->command = command;
-	d->invoke = invoke_fadvise;
-	d->free = free_data;
-	d->level = 2;
-	d->c.fadvise.offset = get_int64((uchar*) buf);
-	dt_i2 = d->c.fadvise.offset;
-	d->c.fadvise.length = get_int64(((uchar*) buf) + sizeof(Sint64));
-	dt_i3 = d->c.fadvise.length;
-	d->c.fadvise.advise = get_int32(((uchar*) buf) + 2 * sizeof(Sint64));
-	dt_i4 = d->c.fadvise.advise;
-	dt_utag = buf + 3 * sizeof(Sint64);
-	goto done;
+        d->fd = fd;
+        dt_i1 = d->fd;
+        d->command = command;
+        d->invoke = invoke_fadvise;
+        d->free = free_data;
+        d->level = 2;
+        d->c.fadvise.offset = get_int64((uchar*) buf);
+        dt_i2 = d->c.fadvise.offset;
+        d->c.fadvise.length = get_int64(((uchar*) buf) + sizeof(Sint64));
+        dt_i3 = d->c.fadvise.length;
+        d->c.fadvise.advise = get_int32(((uchar*) buf) + 2 * sizeof(Sint64));
+        dt_i4 = d->c.fadvise.advise;
+        dt_utag = buf + 3 * sizeof(Sint64);
+        goto done;
     }
 
     }

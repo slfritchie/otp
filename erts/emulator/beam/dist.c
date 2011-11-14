@@ -741,7 +741,7 @@ erts_dsig_send_msg(ErtsDSigData *dsdp, Eterm remote, Eterm message)
     Process *sender = dsdp->proc;
     int res;
     Sint tok_label = 0, tok_lastcnt = 0, tok_serial = 0;
-    Uint msize;
+    Uint msize = 0;
     char node_name[64];
     char sender_name[64];
     char receiver_name[64];
@@ -787,7 +787,7 @@ erts_dsig_send_reg_msg(ErtsDSigData *dsdp, Eterm remote_name, Eterm message)
     Process *sender = dsdp->proc;
     int res;
     Sint tok_label = 0, tok_lastcnt = 0, tok_serial = 0;
-    Uint32 msize;
+    Uint32 msize = 0;
     char node_name[64];
     char sender_name[64];
     char receiver_name[128];
