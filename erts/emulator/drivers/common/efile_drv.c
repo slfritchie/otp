@@ -2663,22 +2663,22 @@ file_output(ErlDrvData e, char* buf, int count)
 
     case FILE_FADVISE:
     {
-	d = EF_SAFE_ALLOC(sizeof(struct t_data));
+        d = EF_SAFE_ALLOC(sizeof(struct t_data));
 
-	d->fd = fd;
-	dt_i1 = d->fd;
-	d->command = command;
-	d->invoke = invoke_fadvise;
-	d->free = free_data;
-	d->level = 2;
-	d->c.fadvise.offset = get_int64((uchar*) buf);
-	dt_i2 = d->c.fadvise.offset;
-	d->c.fadvise.length = get_int64(((uchar*) buf) + sizeof(Sint64));
-	dt_i3 = d->c.fadvise.length;
-	d->c.fadvise.advise = get_int32(((uchar*) buf) + 2 * sizeof(Sint64));
-	dt_i4 = d->c.fadvise.advise;
-	dt_utag = buf + 3 * sizeof(Sint64);
-	goto done;
+        d->fd = fd;
+        dt_i1 = d->fd;
+        d->command = command;
+        d->invoke = invoke_fadvise;
+        d->free = free_data;
+        d->level = 2;
+        d->c.fadvise.offset = get_int64((uchar*) buf);
+        dt_i2 = d->c.fadvise.offset;
+        d->c.fadvise.length = get_int64(((uchar*) buf) + sizeof(Sint64));
+        dt_i3 = d->c.fadvise.length;
+        d->c.fadvise.advise = get_int32(((uchar*) buf) + 2 * sizeof(Sint64));
+        dt_i4 = d->c.fadvise.advise;
+        dt_utag = buf + 3 * sizeof(Sint64);
+        goto done;
     }
 
     }
