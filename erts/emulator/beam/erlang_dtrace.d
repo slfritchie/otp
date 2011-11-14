@@ -627,6 +627,10 @@ provider erlang {
      * also contains explanation of the various integer and string
      * arguments that may be present when any particular probe fires.
      *
+     * NOTE: Not all Linux platforms (using SystemTap) can support
+     *       arguments beyond arg9.
+     *
+     *
      * TODO: Adding the port string, args[10], is a pain.  Making that
      *       port string available to all the other efile_drv.c probes
      *       will be more pain.  Is the pain worth it?  If yes, then
