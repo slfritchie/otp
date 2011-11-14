@@ -113,7 +113,7 @@ void erl_exit(int n, char *fmt, ...);
 static ErlDrvSysInfo sys_info;
 
 /* For explanation of this var, see comment for same var in erl_async.c */
-static int gcc_optimizer_hack = 0;
+static unsigned gcc_optimizer_hack = 0;
 
 #ifdef  HAVE_DTRACE
 

@@ -60,7 +60,7 @@ static long async_id = 0;
  * Many thanks to Trond Norbye, via:
  * https://github.com/memcached/memcached/commit/6298b3978687530bc9d219b6ac707a1b681b2a46
  */
-static int gcc_optimizer_hack = 0;
+static unsigned gcc_optimizer_hack = 0;
 
 #ifndef ERTS_SMP
 
