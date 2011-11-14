@@ -126,6 +126,7 @@ static unsigned gcc_optimizer_hack = 0;
     do { DTRACE3(efile_drv_int_return, d->sched_i1, d->sched_i2, \
                  op); } while (0) ; gcc_optimizer_hack++ ;
 
+/* Assign human-friendlier id numbers to scheduler & I/O worker threads */
 int             dt_driver_idnum = 0;
 int             dt_driver_io_worker_base = 5000;
 erts_mtx_t      dt_driver_mutex;
