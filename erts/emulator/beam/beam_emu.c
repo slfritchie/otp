@@ -1084,12 +1084,14 @@ init_emulator(void)
 #endif
 
 ERTS_INLINE void
-dtrace_proc_str(Process *process, char *process_buf) {
+dtrace_proc_str(Process *process, char *process_buf)
+{
     dtrace_pid_str(process->id, process_buf);
 }
 
 ERTS_INLINE void
-dtrace_pid_str(Eterm pid, char *process_buf) {
+dtrace_pid_str(Eterm pid, char *process_buf)
+{
     snprintf(process_buf, DTRACE_TERM_BUF_SIZE, "<%lu.%lu.%lu>",
              pid_channel_no(pid),
              pid_number(pid),
@@ -1097,14 +1099,16 @@ dtrace_pid_str(Eterm pid, char *process_buf) {
 }
 
 ERTS_INLINE void
-dtrace_port_str(Port *port, char *port_buf) {
+dtrace_port_str(Port *port, char *port_buf)
+{
     snprintf(port_buf, DTRACE_TERM_BUF_SIZE, "#Port<%lu.%lu>",
              port_channel_no(port->id),
              port_number(port->id));
 }
 
 ERTS_INLINE void
-dtrace_drvport_str(ErlDrvPort drvport, char *port_buf) {
+dtrace_drvport_str(ErlDrvPort drvport, char *port_buf)
+{
     Port *port = erts_drvport2port(drvport);
 
     snprintf(port_buf, DTRACE_TERM_BUF_SIZE, "#Port<%lu.%lu>",
@@ -1115,7 +1119,8 @@ dtrace_drvport_str(ErlDrvPort drvport, char *port_buf) {
 ERTS_INLINE void
 dtrace_fun_decode(Process *process,
                   Eterm module, Eterm function, int arity,
-                  char *process_buf, char *mfa_buf) {
+                  char *process_buf, char *mfa_buf)
+{
     char funbuf[DTRACE_TERM_BUF_SIZE];
     char *funptr = funbuf;
     char *p = NULL;
@@ -1125,10 +1130,12 @@ dtrace_fun_decode(Process *process,
     }
 
     erts_snprintf(funbuf, sizeof(funbuf), "%T", function);
-    /* I'm not quite sure how these function names are synthesized,
-       but they almost always seem to be in the form of
-       '-name/arity-fun-0-' so I'm chopping them up when it's -fun-0-
-       (which seems to be the toplevel) */
+    /*
+     * I'm not quite sure how these function names are synthesized,
+     *  but they almost always seem to be in the form of
+     *  '-name/arity-fun-0-' so I'm chopping them up when it's -fun-0-
+     *  (which seems to be the toplevel)
+     */
     if (funbuf[0] == '\'' && funbuf[1] == '-'
         && strlen(funbuf) > 3 && funbuf[strlen(funbuf) - 3] == '0') {
         p = strchr(funbuf, '/');

@@ -5179,7 +5179,7 @@ Process *schedule(Process *p, int calls)
     int actual_reds;
     int reds;
 
-    if (DTRACE_ENABLED(process_unscheduled)) {
+    if (p != NULL && DTRACE_ENABLED(process_unscheduled)) {
         char process_buf[DTRACE_TERM_BUF_SIZE];
         dtrace_proc_str(p, process_buf);
         DTRACE1(process_unscheduled, process_buf);
