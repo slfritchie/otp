@@ -27,7 +27,9 @@
 #include "sys.h"
 #define DTRACE_DRIVER_SKIP_FUNC_DECLARATIONS
 #include "dtrace-wrapper.h"
+#ifdef  HAVE_DTRACE
 #include "dtrace_user.h"
+#endif
 
 void dtrace_nifenv_str(ErlNifEnv *env, char *process_buf);
 void get_string_maybe(ErlNifEnv *env, const ERL_NIF_TERM term, char **ptr, char *buf, int bufsiz);
