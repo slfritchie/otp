@@ -2465,14 +2465,14 @@ set_busy_port(ErlDrvPort port_num, int on)
 
         if (plp) {
             /*
-            ** Hrm, for blocked dist ports, plp always seems to be NULL.
-            ** That's not so fun.
-            ** Well, another way to get the same info is using a D
-            ** script to correlate an earlier process-port_blocked+pid
-            ** event with a later process-scheduled event.  That's
-            ** subject to the multi-CPU races with how events are
-            ** handled, but hey, that way works most of the time.
-            */
+             * Hrm, for blocked dist ports, plp always seems to be NULL.
+             * That's not so fun.
+             * Well, another way to get the same info is using a D
+             * script to correlate an earlier process-port_blocked+pid
+             * event with a later process-scheduled event.  That's
+             * subject to the multi-CPU races with how events are
+             * handled, but hey, that way works most of the time.
+             */
             if (DTRACE_ENABLED(process_port_unblocked)) {
                 char pid_str[16];
                 ErtsProcList* plp2 = plp;

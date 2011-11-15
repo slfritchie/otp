@@ -3058,15 +3058,15 @@ file_outputv(ErlDrvData e, ErlIOVec *ev) {
 	skip += strlen(dt_utag) + 1;
 	size = ev->size - skip;
 	/*
-	** SLF: Interesting dependency on using port # for key to async
-	**	I/O worker pool thread: lseek_flush_read() can enqueue a
-	**	lseek() op.  If that lseek() were scheduled on a different
-	**	thread than the write that we'll enqueue later in this case,
-	**	then Bad Things could happen.  This DTrace work is probably
-	**	well worthwhile to get a sense of how often there's head-of-
-	**	line blocking/unfairness during busy file I/O because of the
-	**	mapping of port #/key -> thread.
-	*/
+	 * Interesting dependency on using port # for key to async
+	 * I/O worker pool thread: lseek_flush_read() can enqueue a
+	 * lseek() op.  If that lseek() were scheduled on a different
+	 * thread than the write that we'll enqueue later in this case,
+	 * then Bad Things could happen.  This DTrace work is probably
+	 * well worthwhile to get a sense of how often there's head-of-
+	 * line blocking/unfairness during busy file I/O because of the
+	 * mapping of port #/key -> thread.
+	 */
 	if (lseek_flush_read(desc, &err, dt_priv, dt_utag) < 0) {
 	    reply_posix_error(desc, err);
 	    goto done;
@@ -3571,14 +3571,14 @@ file_outputv(ErlDrvData e, ErlIOVec *ev) {
     if (d != NULL) {
 #ifdef HAVE_DTRACE
 	/*
-	** If d == NULL, then either:
-	**    1). There was an error of some sort, or
-	**    2). The command given to us is actually implemented
-	**	  by file_output() instead.
-	**
-	** Case #1 is probably a TODO item, perhaps?
-	** Case #2 we definitely don't want to activate a probe.
-	*/
+	 * If d == NULL, then either:
+	 *    1). There was an error of some sort, or
+	 *    2). The command given to us is actually implemented
+	 *	  by file_output() instead.
+	 *
+	 * Case #1 is probably a TODO item, perhaps?
+	 * Case #2 we definitely don't want to activate a probe.
+	 */
 	d->sched_i1 = dt_priv->thread_num;
 	d->sched_i2 = dt_priv->tag;
 	d->sched_utag[0] = '\0';
