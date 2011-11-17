@@ -2727,7 +2727,8 @@ file_flush(ErlDrvData e) {
 
     TRACE_C('f');
 
-    r = flush_write(desc, NULL, dt_priv, desc->d->sched_utag);
+    r = flush_write(desc, NULL, dt_priv,
+                    (desc->d == NULL) ? NULL : desc->d->sched_utag);
     /* Only possible reason for bad return value is ENOMEM, and 
      * there is nobody to tell...
      */
@@ -2780,7 +2781,8 @@ file_timeout(ErlDrvData e) {
 	driver_async(desc->port, KEY(desc), desc->invoke, desc->d, desc->free);
 	break;
     case timer_write: {
-	int r = flush_write(desc, NULL, dt_priv, desc->d->sched_utag);
+	int r = flush_write(desc, NULL, dt_priv,
+                            (desc->d == NULL) ? NULL : desc->d->sched_utag);
 	/* Only possible reason for bad return value is ENOMEM, and 
 	 * there is nobody to tell...
 	 */
