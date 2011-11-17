@@ -36,7 +36,7 @@
 %% Specialized file operations
 -export([open/1]).
 -export([read_file/1, read_file/2, read_file/3, write_file/2, write_file/3]).
--export([ipread_s32bu_p32bu/3]).
+-export([ipread_s32bu_p32bu/3, ipread_s32bu_p32bu/4]).
 
 
 
@@ -536,7 +536,6 @@ copy(#file_descriptor{module = ?MODULE} = Source,
        is_atom(Length),
        (is_list(DTraceUtag) orelse is_binary(DTraceUtag)) ->
     %% XXX Should be moved down to the driver for optimization.
-io:format(user, "YO line ~p: ~p -> ~p\n", [?LINE, Source, Dest]),
     file:copy_opened(Source, Dest, Length, DTraceUtag).
 
 

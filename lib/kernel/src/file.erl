@@ -429,8 +429,11 @@ close(_) ->
 advise(File, Offset, Length, Advise) when is_pid(File) ->
     R = file_request(File, {advise, Offset, Length, Advise}),
     wait_file_reply(File, R);
-advise(#file_descriptor{module = Module} = Handle, Offset, Length, Advise) ->
+advise(#file_descriptor{module = prim_file = Module} = Handle, Offset, Length, Advise) ->
     Module:advise(Handle, Offset, Length, Advise, get_dtrace_utag());
+advise(#file_descriptor{module = Module} = Handle, Offset, Length, Advise) ->
+    %% DTrace TODO: ram_file and other file drivers not yet DTrace'ified.
+    Module:advise(Handle, Offset, Length, Advise);
 advise(_, _, _, _) ->
     {error, badarg}.
 
@@ -451,9 +454,13 @@ read(File, Sz, _DTraceUtag)
 	Other ->
 	    Other
     end;
-read(#file_descriptor{module = Module} = Handle, Sz, DTraceUtag) 
+read(#file_descriptor{module = prim_file = Module} = Handle, Sz, DTraceUtag)
   when is_integer(Sz), Sz >= 0 ->
     Module:read(Handle, Sz, DTraceUtag);
+read(#file_descriptor{module = Module} = Handle, Sz, _DTraceUtag)
+  when is_integer(Sz), Sz >= 0 ->
+    %% DTrace TODO: ram_file and other file drivers not yet DTrace'ified.
+    Module:read(Handle, Sz);
 read(_, _, _) ->
     {error, badarg}.
 
@@ -469,8 +476,11 @@ read_line(File) when (is_pid(File) orelse is_atom(File)) ->
 	Other ->
 	    Other
     end;
-read_line(#file_descriptor{module = Module} = Handle) ->
+read_line(#file_descriptor{module = prim_file = Module} = Handle) ->
     Module:read_line(Handle, get_dtrace_utag());
+read_line(#file_descriptor{module = Module} = Handle) ->
+    %% DTrace TODO: ram_file and other file drivers not yet DTrace'ified.
+    Module:read_line(Handle);
 read_line(_) ->
     {error, badarg}.
 
@@ -483,8 +493,11 @@ read_line(_) ->
 
 pread(File, L) when is_pid(File), is_list(L) ->
     pread_int(File, L, []);
-pread(#file_descriptor{module = Module} = Handle, L) when is_list(L) ->
+pread(#file_descriptor{module = prim_file = Module} = Handle, L) when is_list(L) ->
     Module:pread(Handle, L, get_dtrace_utag());
+pread(#file_descriptor{module = Module} = Handle, L) when is_list(L) ->
+    %% DTrace TODO: ram_file and other file drivers not yet DTrace'ified.
+    Module:pread(Handle, L);
 pread(_, _) ->
     {error, badarg}.
 
@@ -515,6 +528,7 @@ pread(File, At, Sz) when is_pid(File), is_integer(Sz), Sz >= 0 ->
     wait_file_reply(File, R);
 pread(#file_descriptor{module = Module} = Handle, Offs, Sz) 
   when is_integer(Sz), Sz >= 0 ->
+    %% DTrace TODO: ram_file and other file drivers not yet DTrace'ified.
     Module:pread(Handle, Offs, Sz);
 pread(_, _, _) ->
     {error, badarg}.
@@ -534,8 +548,11 @@ write(File, Bytes, _DTraceUtag) when (is_pid(File) orelse is_atom(File)) ->
 	Error ->
 	    Error
     end;
-write(#file_descriptor{module = Module} = Handle, Bytes, DTraceUtag) ->
+write(#file_descriptor{module = prim_file = Module} = Handle, Bytes, DTraceUtag) ->
     Module:write(Handle, Bytes, DTraceUtag);
+write(#file_descriptor{module = Module} = Handle, Bytes, _DTraceUtag) ->
+    %% DTrace TODO: ram_file and other file drivers not yet DTrace'ified.
+    Module:write(Handle, Bytes);
 write(_, _, _) ->
     {error, badarg}.
 
@@ -547,8 +564,11 @@ write(_, _, _) ->
 
 pwrite(File, L) when is_pid(File), is_list(L) ->
     pwrite_int(File, L, 0);
-pwrite(#file_descriptor{module = Module} = Handle, L) when is_list(L) ->
+pwrite(#file_descriptor{module = prim_file = Module} = Handle, L) when is_list(L) ->
     Module:pwrite(Handle, L, get_dtrace_utag());
+pwrite(#file_descriptor{module = Module} = Handle, L) when is_list(L) ->
+    %% DTrace TODO: ram_file and other file drivers not yet DTrace'ified.
+    Module:pwrite(Handle, L);
 pwrite(_, _) ->
     {error, badarg}.
 
@@ -574,6 +594,7 @@ pwrite(File, At, Bytes) when is_pid(File) ->
     R = file_request(File, {pwrite, At, Bytes}),
     wait_file_reply(File, R);
 pwrite(#file_descriptor{module = Module} = Handle, Offs, Bytes) ->
+    %% DTrace TODO: ram_file and other file drivers not yet DTrace'ified.
     Module:pwrite(Handle, Offs, Bytes);
 pwrite(_, _, _) ->
     {error, badarg}.
@@ -585,8 +606,11 @@ pwrite(_, _, _) ->
 datasync(File) when is_pid(File) ->
     R = file_request(File, datasync),
     wait_file_reply(File, R);
-datasync(#file_descriptor{module = Module} = Handle) ->
+datasync(#file_descriptor{module = prim_file = Module} = Handle) ->
     Module:datasync(Handle, get_dtrace_utag());
+datasync(#file_descriptor{module = Module} = Handle) ->
+    %% DTrace TODO: ram_file and other file drivers not yet DTrace'ified.
+    Module:datasync(Handle);
 datasync(_) ->
     {error, badarg}.
 
@@ -597,8 +621,11 @@ datasync(_) ->
 sync(File) when is_pid(File) ->
     R = file_request(File, sync),
     wait_file_reply(File, R);
-sync(#file_descriptor{module = Module} = Handle) ->
+sync(#file_descriptor{module = prim_file = Module} = Handle) ->
     Module:sync(Handle, get_dtrace_utag());
+sync(#file_descriptor{module = Module} = Handle) ->
+    %% DTrace TODO: ram_file and other file drivers not yet DTrace'ified.
+    Module:sync(Handle);
 sync(_) ->
     {error, badarg}.
 
@@ -611,8 +638,11 @@ sync(_) ->
 position(File, At) when is_pid(File) ->
     R = file_request(File, {position,At}),
     wait_file_reply(File, R);
-position(#file_descriptor{module = Module} = Handle, At) ->
+position(#file_descriptor{module = prim_file = Module} = Handle, At) ->
     Module:position(Handle, At, get_dtrace_utag());
+position(#file_descriptor{module = Module} = Handle, At) ->
+    %% DTrace TODO: ram_file and other file drivers not yet DTrace'ified.
+    Module:position(Handle, At);
 position(_, _) ->
     {error, badarg}.
 
@@ -623,8 +653,11 @@ position(_, _) ->
 truncate(File) when is_pid(File) ->
     R = file_request(File, truncate),
     wait_file_reply(File, R);
-truncate(#file_descriptor{module = Module} = Handle) ->
+truncate(#file_descriptor{module = prim_file = Module} = Handle) ->
     Module:truncate(Handle, get_dtrace_utag());
+truncate(#file_descriptor{module = Module} = Handle) ->
+    %% DTrace TODO: ram_file and other file drivers not yet DTrace'ified.
+    Module:truncate(Handle);
 truncate(_) ->
     {error, badarg}.
 
@@ -664,7 +697,7 @@ copy_int(Source, Dest, Length)
   when is_pid(Source), is_pid(Dest);
        is_pid(Source), is_record(Dest, file_descriptor);
        is_record(Source, file_descriptor), is_pid(Dest) ->
-    copy_opened_int(Source, Dest, Length, 0);
+    copy_opened_int(Source, Dest, Length, get_dtrace_utag());
 %% Copy between open raw files, both handled by the same module
 copy_int(#file_descriptor{module = Module} = Source,
 	 #file_descriptor{module = Module} = Dest,
@@ -673,7 +706,7 @@ copy_int(#file_descriptor{module = Module} = Source,
 %% Copy between open raw files of different modules
 copy_int(#file_descriptor{} = Source, 
 	 #file_descriptor{} = Dest, Length) ->
-    copy_opened_int(Source, Dest, Length, 0);
+    copy_opened_int(Source, Dest, Length, get_dtrace_utag());
 %% Copy between filenames, let the server do the copy
 copy_int({SourceName, SourceOpts}, {DestName, DestOpts}, Length) 
   when is_list(SourceOpts), is_list(DestOpts) ->
@@ -691,7 +724,8 @@ copy_int({SourceName, SourceOpts}, Dest, Length)
 	Source ->
 	    case open(Source, [read | SourceOpts]) of
 		{ok, Handle} ->
-		    Result = copy_opened_int(Handle, Dest, Length, 0),
+		    Result = copy_opened_int(Handle, Dest, Length,
+                                             get_dtrace_utag()),
 		    close(Handle),
 		    Result;
 		{error, _} = Error ->
@@ -708,7 +742,8 @@ copy_int(Source, {DestName, DestOpts}, Length)
 	Dest ->
 	    case open(Dest, [write | DestOpts]) of
 		{ok, Handle} ->
-		    Result = copy_opened_int(Source, Handle, Length, 0),
+		    Result = copy_opened_int(Source, Handle, Length,
+                                             get_dtrace_utag()),
 		    close(Handle),
 		    Result;
 		{error, _} = Error ->
@@ -813,6 +848,8 @@ copy_opened_int(Source, Dest, Length, Copied, DTraceUtag) ->
 
 ipread_s32bu_p32bu(File, Pos, MaxSize) when is_pid(File) ->
     ipread_s32bu_p32bu_int(File, Pos, MaxSize);
+ipread_s32bu_p32bu(#file_descriptor{module = prim_file = Module} = Handle, Pos, MaxSize) ->
+    Module:ipread_s32bu_p32bu(Handle, Pos, MaxSize, get_dtrace_utag());
 ipread_s32bu_p32bu(#file_descriptor{module = Module} = Handle, Pos, MaxSize) ->
     Module:ipread_s32bu_p32bu(Handle, Pos, MaxSize);
 ipread_s32bu_p32bu(_, _, _) ->
