@@ -30,7 +30,6 @@
 #include "big.h"
 #include "erl_binary.h"
 #include "erl_bits.h"
-
 #include "dtrace-wrapper.h"
 
 #ifdef HYBRID
@@ -62,7 +61,8 @@ copy_object(Eterm obj, Process* to)
     Eterm res;
 
     if (DTRACE_ENABLED(copy_object)) {
-        char proc_name[64];
+        DTRACE_CHARBUF(proc_name, 64);
+
         erts_snprintf(proc_name, sizeof(proc_name), "%T", to->id);
         DTRACE2(copy_object, proc_name, size);
     }

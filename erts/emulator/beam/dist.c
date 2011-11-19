@@ -742,9 +742,9 @@ erts_dsig_send_msg(ErtsDSigData *dsdp, Eterm remote, Eterm message)
     int res;
     Sint tok_label = 0, tok_lastcnt = 0, tok_serial = 0;
     Uint msize = 0;
-    char node_name[64];
-    char sender_name[64];
-    char receiver_name[64];
+    DTRACE_CHARBUF(node_name, 64);
+    DTRACE_CHARBUF(sender_name, 64);
+    DTRACE_CHARBUF(receiver_name, 64);
 
     UseTmpHeapNoproc(5);
     if (SEQ_TRACE_TOKEN(sender) != NIL) {
@@ -788,9 +788,9 @@ erts_dsig_send_reg_msg(ErtsDSigData *dsdp, Eterm remote_name, Eterm message)
     int res;
     Sint tok_label = 0, tok_lastcnt = 0, tok_serial = 0;
     Uint32 msize = 0;
-    char node_name[64];
-    char sender_name[64];
-    char receiver_name[128];
+    DTRACE_CHARBUF(node_name, 64);
+    DTRACE_CHARBUF(sender_name, 64);
+    DTRACE_CHARBUF(receiver_name, 128);
 
     UseTmpHeapNoproc(6);
     if (SEQ_TRACE_TOKEN(sender) != NIL) {
@@ -836,10 +836,10 @@ erts_dsig_send_exit_tt(ErtsDSigData *dsdp, Eterm local, Eterm remote,
     int res;
     Process *sender = dsdp->proc;
     Sint tok_label = 0, tok_lastcnt = 0, tok_serial = 0;
-    char node_name[64];
-    char sender_name[64];
-    char remote_name[128];
-    char reason_str[128];
+    DTRACE_CHARBUF(node_name, 64);
+    DTRACE_CHARBUF(sender_name, 64);
+    DTRACE_CHARBUF(remote_name, 128);
+    DTRACE_CHARBUF(reason_str, 128);
 
     UseTmpHeapNoproc(6);
     if (token != NIL) {	
@@ -1681,8 +1681,8 @@ dsig_send(ErtsDSigData *dsdp, Eterm ctl, Eterm msg, int force_busy)
 		if (suspended)
 		    resume = 1; /* was busy when we started, but isn't now */
                 if (resume && DTRACE_ENABLED(dist_port_not_busy)) {
-                    char port_str[64];
-                    char remote_str[64];
+                    DTRACE_CHARBUF(port_str, 64);
+                    DTRACE_CHARBUF(remote_str, 64);
 
                     erts_snprintf(port_str, sizeof(port_str), "%T", cid);
                     erts_snprintf(remote_str, sizeof(remote_str),
@@ -1740,9 +1740,9 @@ dsig_send(ErtsDSigData *dsdp, Eterm ctl, Eterm msg, int force_busy)
 
     if (suspended) {
         if (!resume && DTRACE_ENABLED(dist_port_busy)) {
-            char port_str[64];
-            char remote_str[64];
-            char pid_str[16];
+            DTRACE_CHARBUF(port_str, 64);
+            DTRACE_CHARBUF(remote_str, 64);
+            DTRACE_CHARBUF(pid_str, 16);
 
             erts_snprintf(port_str, sizeof(port_str), "%T", cid);
             erts_snprintf(remote_str, sizeof(remote_str), "%T", dep->sysname);
@@ -1774,8 +1774,8 @@ dist_port_command(Port *prt, ErtsDistOutputBuf *obuf)
 		 size);
 
     if (DTRACE_ENABLED(dist_output)) {
-        char port_str[64];
-        char remote_str[64];
+        DTRACE_CHARBUF(port_str, 64);
+        DTRACE_CHARBUF(remote_str, 64);
 
         erts_snprintf(port_str, sizeof(port_str), "%T", prt->id);
         erts_snprintf(remote_str, sizeof(remote_str),
@@ -1826,8 +1826,8 @@ dist_port_commandv(Port *prt, ErtsDistOutputBuf *obuf)
     ASSERT(prt->drv_ptr->outputv);
 
     if (DTRACE_ENABLED(dist_outputv)) {
-        char port_str[64];
-        char remote_str[64];
+        DTRACE_CHARBUF(port_str, 64);
+        DTRACE_CHARBUF(remote_str, 64);
 
         erts_snprintf(port_str, sizeof(port_str), "%T", prt->id);
         erts_snprintf(remote_str, sizeof(remote_str),
@@ -2155,8 +2155,8 @@ void
 erts_dist_port_not_busy(Port *prt)
 {
     if (DTRACE_ENABLED(dist_port_not_busy)) {
-        char port_str[64];
-        char remote_str[64];
+        DTRACE_CHARBUF(port_str, 64);
+        DTRACE_CHARBUF(remote_str, 64);
 
         erts_snprintf(port_str, sizeof(port_str), "%T", prt->id);
         erts_snprintf(remote_str, sizeof(remote_str),
@@ -3086,10 +3086,10 @@ send_nodes_mon_msgs(Process *c_p, Eterm what, Eterm node, Eterm type, Eterm reas
     ErtsNodesMonitor *nmp;
     ErtsProcLocks rp_locks = 0; /* Init to shut up false warning */
     Process *rp = NULL;
-    char what_str[12];
-    char node_str[64];
-    char type_str[12];
-    char reason_str[64];
+    DTRACE_CHARBUF(what_str, 12);
+    DTRACE_CHARBUF(node_str, 64);
+    DTRACE_CHARBUF(type_str, 12);
+    DTRACE_CHARBUF(reason_str, 64);
 
     ASSERT(is_immed(what));
     ASSERT(is_immed(node));

@@ -1153,8 +1153,8 @@ dtrace_fun_decode(Process *process,
 
 #define DTRACE_CALL(p, m, f, a)                                 \
     if (DTRACE_ENABLED(function_entry)) {                       \
-        char process_name[DTRACE_TERM_BUF_SIZE];                \
-        char mfa[DTRACE_TERM_BUF_SIZE];                         \
+        DTRACE_CHARBUF(process_name, DTRACE_TERM_BUF_SIZE);     \
+        DTRACE_CHARBUF(mfa, DTRACE_TERM_BUF_SIZE);              \
         int depth = (STACK_START(p) - STACK_TOP(p))             \
             / sizeof(Eterm*);                                   \
         dtrace_fun_decode(p, m, f, a,                           \
@@ -1164,8 +1164,8 @@ dtrace_fun_decode(Process *process,
 
 #define DTRACE_RETURN(p, m, f, a)                               \
     if (DTRACE_ENABLED(function_return)) {                      \
-        char process_name[DTRACE_TERM_BUF_SIZE];                \
-        char mfa[DTRACE_TERM_BUF_SIZE];                         \
+        DTRACE_CHARBUF(process_name, DTRACE_TERM_BUF_SIZE);     \
+        DTRACE_CHARBUF(mfa, DTRACE_TERM_BUF_SIZE);              \
         int depth = (STACK_START(p) - STACK_TOP(p))             \
             / sizeof(Eterm*);                                   \
         dtrace_fun_decode(p, m, f, a,                           \
@@ -1175,8 +1175,8 @@ dtrace_fun_decode(Process *process,
 
 #define DTRACE_BIF_ENTRY(p, m, f, a)                \
     if (DTRACE_ENABLED(bif_entry)) {                \
-        char process_name[DTRACE_TERM_BUF_SIZE];    \
-        char mfa[DTRACE_TERM_BUF_SIZE];             \
+        DTRACE_CHARBUF(process_name, DTRACE_TERM_BUF_SIZE);     \
+        DTRACE_CHARBUF(mfa, DTRACE_TERM_BUF_SIZE);              \
         dtrace_fun_decode(p, m, f, a,               \
                           process_name, mfa);       \
         DTRACE2(bif_entry, process_name, mfa);	\
@@ -1184,8 +1184,8 @@ dtrace_fun_decode(Process *process,
 
 #define DTRACE_BIF_RETURN(p, m, f, a)               \
     if (DTRACE_ENABLED(bif_return)) {               \
-        char process_name[DTRACE_TERM_BUF_SIZE];    \
-        char mfa[DTRACE_TERM_BUF_SIZE];             \
+        DTRACE_CHARBUF(process_name, DTRACE_TERM_BUF_SIZE);     \
+        DTRACE_CHARBUF(mfa, DTRACE_TERM_BUF_SIZE);              \
         dtrace_fun_decode(p, m, f, a,               \
                           process_name, mfa);       \
         DTRACE2(bif_return, process_name, mfa);	    \
@@ -1193,8 +1193,8 @@ dtrace_fun_decode(Process *process,
 
 #define DTRACE_NIF_ENTRY(p, m, f, a)                \
     if (DTRACE_ENABLED(nif_entry)) {                \
-        char process_name[DTRACE_TERM_BUF_SIZE];    \
-        char mfa[DTRACE_TERM_BUF_SIZE];             \
+        DTRACE_CHARBUF(process_name, DTRACE_TERM_BUF_SIZE);     \
+        DTRACE_CHARBUF(mfa, DTRACE_TERM_BUF_SIZE);              \
         dtrace_fun_decode(p, m, f, a,               \
                           process_name, mfa);       \
         DTRACE2(nif_entry, process_name, mfa);	    \
@@ -1202,8 +1202,8 @@ dtrace_fun_decode(Process *process,
 
 #define DTRACE_NIF_RETURN(p, m, f, a)               \
     if (DTRACE_ENABLED(nif_return)) {               \
-        char process_name[DTRACE_TERM_BUF_SIZE];    \
-        char mfa[DTRACE_TERM_BUF_SIZE];             \
+        DTRACE_CHARBUF(process_name, DTRACE_TERM_BUF_SIZE);     \
+        DTRACE_CHARBUF(mfa, DTRACE_TERM_BUF_SIZE);              \
         dtrace_fun_decode(p, m, f, a,               \
                           process_name, mfa);       \
         DTRACE2(nif_return, process_name, mfa);	    \
@@ -1418,8 +1418,8 @@ void process_main(void)
 	ASSERT(VALID_INSTR(next));
 
         if (DTRACE_ENABLED(process_scheduled)) {
-            char process_buf[DTRACE_TERM_BUF_SIZE];
-            char fun_buf[DTRACE_TERM_BUF_SIZE];
+            DTRACE_CHARBUF(process_buf, DTRACE_TERM_BUF_SIZE);
+            DTRACE_CHARBUF(fun_buf, DTRACE_TERM_BUF_SIZE);
             dtrace_proc_str(c_p, process_buf);
 
             if (ERTS_PROC_IS_EXITING(c_p)) {
@@ -2017,7 +2017,7 @@ void process_main(void)
      }
      if (DTRACE_ENABLED(message_receive)) {
          Eterm token2 = NIL;
-         char receiver_name[DTRACE_TERM_BUF_SIZE];
+         DTRACE_CHARBUF(receiver_name, DTRACE_TERM_BUF_SIZE);
          Sint tok_label = 0, tok_lastcnt = 0, tok_serial = 0;
 
          dtrace_proc_str(c_p, receiver_name);
@@ -6461,8 +6461,8 @@ erts_hibernate(Process* c_p, Eterm module, Eterm function, Eterm args, Eterm* re
     }
 
     if (DTRACE_ENABLED(process_hibernate)) {
-        char process_name[DTRACE_TERM_BUF_SIZE];
-        char mfa[DTRACE_TERM_BUF_SIZE];
+        DTRACE_CHARBUF(process_name, DTRACE_TERM_BUF_SIZE);
+        DTRACE_CHARBUF(mfa, DTRACE_TERM_BUF_SIZE);
         dtrace_fun_decode(c_p, module, function, arity,
                           process_name, mfa);
         DTRACE2(process_hibernate, process_name, mfa);

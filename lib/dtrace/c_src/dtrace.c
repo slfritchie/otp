@@ -94,7 +94,7 @@ static ERL_NIF_TERM user_trace_s1(ErlNifEnv* env, int argc, const ERL_NIF_TERM a
 {
 #ifdef	HAVE_DTRACE
     ErlNifBinary message_bin;
-    char messagebuf[MESSAGE_BUFSIZ + 1];
+    DTRACE_CHARBUF(messagebuf, MESSAGE_BUFSIZ + 1);
 
     if (DTRACE_ENABLED(user_trace_s1)) {
 	if (!enif_inspect_iolist_as_binary(env, argv[0], &message_bin) ||
@@ -132,14 +132,14 @@ get_string_maybe(ErlNifEnv *env,
 static ERL_NIF_TERM user_trace_i4s4(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 {
 #ifdef	HAVE_DTRACE
-    char procbuf[32 + 1];
-    char user_tagbuf[MESSAGE_BUFSIZ + 1];
+    DTRACE_CHARBUF(procbuf, 32 + 1);
+    DTRACE_CHARBUF(user_tagbuf, MESSAGE_BUFSIZ + 1);
     char *utbuf = NULL;
     ErlNifSInt64 i1, i2, i3, i4;
-    char messagebuf1[MESSAGE_BUFSIZ + 1];
-    char messagebuf2[MESSAGE_BUFSIZ + 1];
-    char messagebuf3[MESSAGE_BUFSIZ + 1];
-    char messagebuf4[MESSAGE_BUFSIZ + 1];
+    DTRACE_CHARBUF(messagebuf1, MESSAGE_BUFSIZ + 1);
+    DTRACE_CHARBUF(messagebuf2, MESSAGE_BUFSIZ + 1);
+    DTRACE_CHARBUF(messagebuf3, MESSAGE_BUFSIZ + 1);
+    DTRACE_CHARBUF(messagebuf4, MESSAGE_BUFSIZ + 1);
     char *mbuf1 = NULL, *mbuf2 = NULL, *mbuf3 = NULL, *mbuf4 = NULL;
 
     if (DTRACE_ENABLED(user_trace_i4s4)) {

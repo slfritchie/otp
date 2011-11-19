@@ -338,8 +338,8 @@ BIF_RETTYPE port_call_3(BIF_ALIST_3)
     }
     erts_smp_proc_unlock(BIF_P, ERTS_PROC_LOCK_MAIN);
     if (DTRACE_ENABLED(driver_call)) {
-        char process_str[DTRACE_TERM_BUF_SIZE];
-        char port_str[DTRACE_TERM_BUF_SIZE];
+        DTRACE_CHARBUF(process_str, DTRACE_TERM_BUF_SIZE);
+        DTRACE_CHARBUF(port_str, DTRACE_TERM_BUF_SIZE);
 
         dtrace_pid_str(p->connected, process_str);
         dtrace_port_str(p, port_str);
@@ -542,9 +542,9 @@ BIF_RETTYPE port_connect_2(BIF_ALIST_2)
     prt->connected = pid; /* internal pid */
     erts_smp_port_unlock(prt);
     if (DTRACE_ENABLED(port_connect)) {
-        char process_str[DTRACE_TERM_BUF_SIZE];
-        char port_str[DTRACE_TERM_BUF_SIZE];
-        char newprocess_str[DTRACE_TERM_BUF_SIZE];
+        DTRACE_CHARBUF(process_str, DTRACE_TERM_BUF_SIZE);
+        DTRACE_CHARBUF(port_str, DTRACE_TERM_BUF_SIZE);
+        DTRACE_CHARBUF(newprocess_str, DTRACE_TERM_BUF_SIZE);
 
         dtrace_pid_str(prt->connected, process_str);
         erts_snprintf(port_str, sizeof(port_str), "%T", prt->id);
@@ -917,8 +917,8 @@ open_port(Process* p, Eterm name, Eterm settings, int *err_nump)
 
     port_num = erts_open_driver(driver, p->id, name_buf, &opts, err_nump);
     if (port_num >= 0 && DTRACE_ENABLED(port_open)) {
-        char process_str[DTRACE_TERM_BUF_SIZE];
-        char port_str[DTRACE_TERM_BUF_SIZE];
+        DTRACE_CHARBUF(process_str, DTRACE_TERM_BUF_SIZE);
+        DTRACE_CHARBUF(port_str, DTRACE_TERM_BUF_SIZE);
 
         dtrace_proc_str(p, process_str);
         erts_snprintf(port_str, sizeof(port_str), "%T", erts_port[port_num].id);

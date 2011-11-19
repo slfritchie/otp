@@ -494,7 +494,7 @@ ERTS_CIO_EXPORT(driver_select)(ErlDrvPort ix,
     ErtsDrvEventState *state;
     int wake_poller;
     int ret;
-    char name[64];
+    DTRACE_CHARBUF(name, 64);
     
     ERTS_SMP_LC_ASSERT(erts_drvport2port(ix)
 		       && erts_lc_is_port_locked(erts_drvport2port(ix)));

@@ -2053,7 +2053,7 @@ file_async_ready(ErlDrvData e, ErlDrvThreadData data)
     int sched_i1 = d->sched_i1, sched_i2 = d->sched_i2, command = d->command,
         result_ok = d->result_ok,
         posix_errno = d->result_ok ? 0 : d->errInfo.posix_errno;
-    char sched_utag[128+1];
+    DTRACE_CHARBUF(sched_utag, 128+1);
 
     sched_utag[0] = '\0';
     if (DTRACE_ENABLED(efile_drv_return)) {

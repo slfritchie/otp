@@ -64,8 +64,8 @@ do {					\
 
 #define DTRACE_DRIVER(PROBE_NAME, PP)                              \
     if (DTRACE_ENABLED(driver_ready_input)) {                      \
-        char process_str[DTRACE_TERM_BUF_SIZE];                    \
-        char port_str[DTRACE_TERM_BUF_SIZE];                       \
+        DTRACE_CHARBUF(process_str, DTRACE_TERM_BUF_SIZE);         \
+        DTRACE_CHARBUF(port_str, DTRACE_TERM_BUF_SIZE);            \
                                                                    \
         dtrace_pid_str(PP->connected, process_str);                \
         dtrace_port_str(PP, port_str);                             \

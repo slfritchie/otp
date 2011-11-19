@@ -42,7 +42,6 @@
 #include "erl_bits.h"
 #include "erl_version.h"
 #include "error.h"
-
 #include "dtrace-wrapper.h"
 
 extern ErlDrvEntry fd_driver_entry;
@@ -182,14 +181,14 @@ typedef struct line_buf_context {
 #define LINEBUF_INITIAL 100
 
 #define DTRACE_FORMAT_COMMON_PID_AND_PORT(PID, PORT)         \
-    char process_str[DTRACE_TERM_BUF_SIZE];                  \
-    char port_str[DTRACE_TERM_BUF_SIZE];                     \
+    DTRACE_CHARBUF(process_str, DTRACE_TERM_BUF_SIZE);       \
+    DTRACE_CHARBUF(port_str, DTRACE_TERM_BUF_SIZE);          \
                                                              \
     dtrace_pid_str((PID), process_str);                      \
     dtrace_port_str((PORT), port_str);
 #define DTRACE_FORMAT_COMMON_PROC_AND_PORT(PID, PORT)        \
-    char process_str[DTRACE_TERM_BUF_SIZE];                  \
-    char port_str[DTRACE_TERM_BUF_SIZE];                     \
+    DTRACE_CHARBUF(process_str, DTRACE_TERM_BUF_SIZE);       \
+    DTRACE_CHARBUF(port_str, DTRACE_TERM_BUF_SIZE);          \
                                                              \
     dtrace_proc_str((PID), process_str);                     \
     dtrace_port_str((PORT), port_str);
@@ -2048,9 +2047,9 @@ erts_do_exit_port(Port *p, Eterm from, Eterm reason)
    rreason = (reason == am_kill) ? am_killed : reason;
 
    if (DTRACE_ENABLED(port_exit)) {
-       char from_str[DTRACE_TERM_BUF_SIZE];
-       char port_str[DTRACE_TERM_BUF_SIZE];
-       char rreason_str[64];
+       DTRACE_CHARBUF(from_str, DTRACE_TERM_BUF_SIZE);
+       DTRACE_CHARBUF(port_str, DTRACE_TERM_BUF_SIZE);
+       DTRACE_CHARBUF(rreason_str, 64);
 
        erts_snprintf(from_str, sizeof(from_str), "%T", from);
        dtrace_port_str(p, port_str);
@@ -2422,7 +2421,7 @@ print_port_info(int to, void *arg, int i)
 void
 set_busy_port(ErlDrvPort port_num, int on)
 {
-    char port_str[16];
+    DTRACE_CHARBUF(port_str, 16);
 
     ERTS_SMP_CHK_NO_PROC_LOCKS;
 
@@ -2474,7 +2473,7 @@ set_busy_port(ErlDrvPort port_num, int on)
              * handled, but hey, that way works most of the time.
              */
             if (DTRACE_ENABLED(process_port_unblocked)) {
-                char pid_str[16];
+                DTRACE_CHARBUF(pid_str, 16);
                 ErtsProcList* plp2 = plp;
 
                 erts_snprintf(port_str, sizeof(port_str),
@@ -2531,7 +2530,7 @@ void erts_raw_port_command(Port* p, byte* buf, Uint len)
 
     p->caller = NIL;
     if (DTRACE_ENABLED(driver_output)) {
-        char port_str[DTRACE_TERM_BUF_SIZE];
+        DTRACE_CHARBUF(port_str, DTRACE_TERM_BUF_SIZE);
 
         dtrace_port_str(p, port_str);
         DTRACE4(driver_output, "-raw-", port_str, p->name, len);

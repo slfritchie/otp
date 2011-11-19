@@ -31,7 +31,6 @@
 #include "erl_process.h"
 #include "erl_nmgc.h"
 #include "erl_binary.h"
-
 #include "dtrace-wrapper.h"
 
 ERTS_SCHED_PREF_QUICK_ALLOC_IMPL(message,
@@ -380,7 +379,7 @@ erts_queue_dist_message(Process *rcvr,
 	msg = erts_msg_distext2heap(rcvr, rcvr_locks, &mbuf, &token, dist_ext);
 	if (is_value(msg))
             if (DTRACE_ENABLED(message_queued)) {
-                char receiver_name[DTRACE_TERM_BUF_SIZE];
+                DTRACE_CHARBUF(receiver_name, DTRACE_TERM_BUF_SIZE);
 
                 dtrace_proc_str(rcvr, receiver_name);
                 if (token != NIL) {
@@ -402,7 +401,7 @@ erts_queue_dist_message(Process *rcvr,
 	mp->next = NULL;
 
         if (DTRACE_ENABLED(message_queued)) {
-            char receiver_name[DTRACE_TERM_BUF_SIZE];
+            DTRACE_CHARBUF(receiver_name, DTRACE_TERM_BUF_SIZE);
 
             dtrace_proc_str(rcvr, receiver_name);
             if (token != NIL) {
@@ -495,7 +494,7 @@ erts_queue_message(Process* receiver,
 #endif
 
     if (DTRACE_ENABLED(message_queued)) {
-        char receiver_name[DTRACE_TERM_BUF_SIZE];
+        DTRACE_CHARBUF(receiver_name, DTRACE_TERM_BUF_SIZE);
         Sint tok_label = 0, tok_lastcnt = 0, tok_serial = 0;
 
         dtrace_proc_str(receiver, receiver_name);
@@ -821,8 +820,8 @@ erts_send_message(Process* sender,
     Uint msize;
     ErlHeapFragment* bp = NULL;
     Eterm token = NIL;
-    char sender_name[64];
-    char receiver_name[64];
+    DTRACE_CHARBUF(sender_name, 64);
+    DTRACE_CHARBUF(receiver_name, 64);
     Sint tok_label = 0, tok_lastcnt = 0, tok_serial = 0;
 
     BM_STOP_TIMER(system);
