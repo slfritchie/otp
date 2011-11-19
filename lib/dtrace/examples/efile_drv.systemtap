@@ -61,17 +61,17 @@ probe begin
     op_map[31] = "FADVISE";
 }
 
-probe process("beam").mark("aio_pool__add")
+probe process("beam").mark("aio_pool-add")
 {
     printf("async I/O pool port %s queue len %d\n", user_string($arg1), $arg2);
 }
 
-probe process("beam").mark("aio_pool__get")
+probe process("beam").mark("aio_pool-get")
 {
     printf("async I/O pool port %s queue len %d\n", user_string($arg1), $arg2);
 }
 
-probe process("beam").mark("efile_drv__entry")
+probe process("beam").mark("efile_drv-entry")
 {
     printf("efile_drv enter tag={%d,%d} %s%s | %s (%d) | args: %s %s , %d %d (port %s)\n",
 	   $arg1, $arg2,
@@ -84,13 +84,13 @@ probe process("beam").mark("efile_drv__entry")
            user_string($arg11))
 }
 
-probe process("beam").mark("efile_drv__int*")
+probe process("beam").mark("efile_drv-int*")
 {
     printf("async I/O worker tag={%d,%d} | %s (%d) | %s\n",
            $arg1, $arg2, op_map[$arg3], $arg3, probefunc());
 }
 
-probe process("beam").mark("efile_drv__return")
+probe process("beam").mark("efile_drv-return")
 {
     if ($arg5 == 0) {
        /* efile_drv-return error case */

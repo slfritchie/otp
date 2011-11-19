@@ -32,6 +32,25 @@ inline void dtrace_fun_decode(Process *process,
 			      char *process_buf, char *mfa_buf);
 #endif
 
+/*
+ * Some varieties of SystemTap macros do not like statically-sized
+ * char[N] buffers.  (For example, CentOS 6's macros.)
+ * So, we'll play a game to humor them.
+ *
+ * The code necessary to play nice with CentOS 6's SystemTap looks
+ * stupid to a C programmer's eyes, so we hide the ugliness with this
+ * macro, which expands:
+ *
+ *    DTRACE_CHARBUF(proc_name, 64);
+ *
+ * to become:
+ *
+ *    char proc_name_BUFFER[64], *proc_name = proc_name_BUFFER;
+ */
+
+#define DTRACE_CHARBUF(name, size) \
+    char name##_BUFFER[size], *name = name##_BUFFER
+
 #ifdef  HAVE_DTRACE
 
 #include "erlang_dtrace.h"

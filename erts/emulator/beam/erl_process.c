@@ -39,7 +39,6 @@
 #include "erl_binary.h"
 #include "beam_bp.h"
 #include "erl_cpu_topology.h"
-
 #include "dtrace-wrapper.h"
 
 #define ERTS_RUNQ_CHECK_BALANCE_REDS_PER_SCHED (2000*CONTEXT_REDS)
@@ -5180,7 +5179,8 @@ Process *schedule(Process *p, int calls)
     int reds;
 
     if (p != NULL && DTRACE_ENABLED(process_unscheduled)) {
-        char process_buf[DTRACE_TERM_BUF_SIZE];
+        DTRACE_CHARBUF(process_buf, DTRACE_TERM_BUF_SIZE);
+
         dtrace_proc_str(p, process_buf);
         DTRACE1(process_unscheduled, process_buf);
     }
@@ -6392,8 +6392,9 @@ erl_create_process(Process* parent, /* Parent of process (default group leader).
     VERBOSE(DEBUG_PROCESSES, ("Created a new process: %T\n",p->id));
 
     if (DTRACE_ENABLED(process_spawn)) {
-        char process_name[DTRACE_TERM_BUF_SIZE];
-        char mfa[DTRACE_TERM_BUF_SIZE];
+        DTRACE_CHARBUF(process_name, DTRACE_TERM_BUF_SIZE);
+        DTRACE_CHARBUF(mfa, DTRACE_TERM_BUF_SIZE);
+
         dtrace_fun_decode(p, mod, func, arity, process_name, mfa);
         DTRACE2(process_spawn, process_name, mfa);
     }
@@ -6967,9 +6968,9 @@ send_exit_signal(Process *c_p,		/* current process if and only
     ASSERT(reason != THE_NON_VALUE);
 
     if(DTRACE_ENABLED(process_exit_signal) && is_pid(from)) {
-        char sender_str[DTRACE_TERM_BUF_SIZE];
-        char receiver_str[DTRACE_TERM_BUF_SIZE];
-        char reason_buf[DTRACE_TERM_BUF_SIZE];
+        DTRACE_CHARBUF(sender_str, DTRACE_TERM_BUF_SIZE);
+        DTRACE_CHARBUF(receiver_str, DTRACE_TERM_BUF_SIZE);
+        DTRACE_CHARBUF(reason_buf, DTRACE_TERM_BUF_SIZE);
 
         dtrace_pid_str(from, sender_str);
         dtrace_proc_str(rp, receiver_str);
@@ -7414,8 +7415,9 @@ erts_do_exit_process(Process* p, Eterm reason)
     p->fvalue = reason;
 
     if (DTRACE_ENABLED(process_exit)) {
-        char process_buf[DTRACE_TERM_BUF_SIZE];
-        char reason_buf[256];
+        DTRACE_CHARBUF(process_buf, DTRACE_TERM_BUF_SIZE);
+        DTRACE_CHARBUF(reason_buf, 256);
+
         dtrace_proc_str(p, process_buf);
         erts_snprintf(reason_buf, sizeof(reason_buf) - 1, "%T", reason);
         DTRACE2(process_exit, process_buf, reason_buf);

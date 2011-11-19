@@ -204,7 +204,7 @@ static void async_add(ErlAsync* a, AsyncQueue* q)
     len = q->len;
     erts_mtx_unlock(&q->mtx);
     if (DTRACE_ENABLED(aio_pool_add)) {
-        char port_str[16];
+        DTRACE_CHARBUF(port_str, 16);
 
         erts_snprintf(port_str, sizeof(port_str), "%T", a->port);
         DTRACE2(aio_pool_add, port_str, len);
@@ -236,7 +236,7 @@ static ErlAsync* async_get(AsyncQueue* q)
     len = q->len;
     erts_mtx_unlock(&q->mtx);
     if (DTRACE_ENABLED(aio_pool_get)) {
-        char port_str[16];
+        DTRACE_CHARBUF(port_str, 16);
 
         erts_snprintf(port_str, sizeof(port_str), "%T", a->port);
         DTRACE2(aio_pool_get, port_str, len);

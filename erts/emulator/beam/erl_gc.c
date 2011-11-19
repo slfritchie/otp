@@ -35,7 +35,6 @@
 #include "hipe_stack.h"
 #include "hipe_mode_switch.h"
 #endif
-
 #include "dtrace-wrapper.h"
 
 #define ERTS_INACT_WR_PB_LEAVE_MUCH_LIMIT 1
@@ -346,7 +345,7 @@ erts_garbage_collect(Process* p, int need, Eterm* objv, int nobj)
     Uint reclaimed_now = 0;
     int done = 0;
     Uint ms1, s1, us1;
-    char pidbuf[DTRACE_TERM_BUF_SIZE];
+    DTRACE_CHARBUF(pidbuf, DTRACE_TERM_BUF_SIZE);
 
     if (IS_TRACED_FL(p, F_TRACE_GC)) {
         trace_gc(p, am_gc_start);
@@ -369,7 +368,7 @@ erts_garbage_collect(Process* p, int need, Eterm* objv, int nobj)
         FLAGS(p) |= F_NEED_FULLSWEEP;
     }
 
-    pidbuf[0] = '\0';
+    *pidbuf = '\0';
     if (DTRACE_ENABLED(gc_major_start)
         || DTRACE_ENABLED(gc_major_end)
         || DTRACE_ENABLED(gc_minor_start)
@@ -1080,7 +1079,7 @@ do_minor(Process *p, Uint new_sz, Eterm* objv, int nobj)
     p->stop = n_heap + new_sz - n;
 
     if (HEAP_SIZE(p) != new_sz && DTRACE_ENABLED(process_heap_grow)) {
-        char pidbuf[DTRACE_TERM_BUF_SIZE];
+        DTRACE_CHARBUF(pidbuf, DTRACE_TERM_BUF_SIZE);
 
         dtrace_proc_str(p, pidbuf);
         DTRACE3(process_heap_grow, pidbuf, HEAP_SIZE(p), new_sz);
@@ -1308,7 +1307,7 @@ major_collection(Process* p, int need, Eterm* objv, int nobj, Uint *recl)
     p->stop = n_heap + new_sz - n;
 
     if (HEAP_SIZE(p) != new_sz && DTRACE_ENABLED(process_heap_grow)) {
-        char pidbuf[DTRACE_TERM_BUF_SIZE];
+        DTRACE_CHARBUF(pidbuf, DTRACE_TERM_BUF_SIZE);
 
         dtrace_proc_str(p, pidbuf);
         DTRACE3(process_heap_grow, pidbuf, HEAP_SIZE(p), new_sz);
@@ -1986,7 +1985,7 @@ grow_new_heap(Process *p, Uint new_sz, Eterm* objv, int nobj)
     }
 
     if (DTRACE_ENABLED(process_heap_grow)) {
-	char pidbuf[DTRACE_TERM_BUF_SIZE];
+	DTRACE_CHARBUF(pidbuf, DTRACE_TERM_BUF_SIZE);
 
         dtrace_proc_str(p, pidbuf);
 	DTRACE3(process_heap_grow, pidbuf, HEAP_SIZE(p), new_sz);
@@ -2032,7 +2031,7 @@ shrink_new_heap(Process *p, Uint new_sz, Eterm *objv, int nobj)
     }
 
     if (DTRACE_ENABLED(process_heap_shrink)) {
-	char pidbuf[DTRACE_TERM_BUF_SIZE];
+	DTRACE_CHARBUF(pidbuf, DTRACE_TERM_BUF_SIZE);
 
         dtrace_proc_str(p, pidbuf);
 	DTRACE3(process_heap_shrink, pidbuf, HEAP_SIZE(p), new_sz);
