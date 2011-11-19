@@ -752,6 +752,7 @@ erts_dsig_send_msg(ErtsDSigData *dsdp, Eterm remote, Eterm message)
 	token = SEQ_TRACE_TOKEN(sender);
 	seq_trace_output(token, message, SEQ_TRACE_SEND, remote, sender);
     }
+    *node_name = *sender_name = *reciever_name = '\0';
     if (DTRACE_ENABLED(message_send) || DTRACE_ENABLED(message_send_remote)) {
         erts_snprintf(node_name, sizeof(node_name), "%T", dsdp->dep->sysname);
         erts_snprintf(sender_name, sizeof(sender_name), "%T", sender->id);
@@ -798,6 +799,7 @@ erts_dsig_send_reg_msg(ErtsDSigData *dsdp, Eterm remote_name, Eterm message)
 	token = SEQ_TRACE_TOKEN(sender);
 	seq_trace_output(token, message, SEQ_TRACE_SEND, remote_name, sender);
     }
+    *node_name = *sender_name = *reciever_name = '\0';
     if (DTRACE_ENABLED(message_send) || DTRACE_ENABLED(message_send_remote)) {
         erts_snprintf(node_name, sizeof(node_name), "%T", dsdp->dep->sysname);
         erts_snprintf(sender_name, sizeof(sender_name), "%T", sender->id);
@@ -850,6 +852,7 @@ erts_dsig_send_exit_tt(ErtsDSigData *dsdp, Eterm local, Eterm remote,
     } else {
 	ctl = TUPLE4(&ctl_heap[0], make_small(DOP_EXIT), local, remote, reason);
     }
+    *node_name = *sender_name = *reciever_name = '\0';
     if (DTRACE_ENABLED(process_exit_signal_remote)) {
         erts_snprintf(node_name, sizeof(node_name), "%T", dsdp->dep->sysname);
         erts_snprintf(sender_name, sizeof(sender_name), "%T", sender->id);
@@ -3086,15 +3089,16 @@ send_nodes_mon_msgs(Process *c_p, Eterm what, Eterm node, Eterm type, Eterm reas
     ErtsNodesMonitor *nmp;
     ErtsProcLocks rp_locks = 0; /* Init to shut up false warning */
     Process *rp = NULL;
-    DTRACE_CHARBUF(what_str, 12);
-    DTRACE_CHARBUF(node_str, 64);
-    DTRACE_CHARBUF(type_str, 12);
-    DTRACE_CHARBUF(reason_str, 64);
 
     ASSERT(is_immed(what));
     ASSERT(is_immed(node));
     ASSERT(is_immed(type));
     if (DTRACE_ENABLED(dist_monitor)) {
+        DTRACE_CHARBUF(what_str, 12);
+        DTRACE_CHARBUF(node_str, 64);
+        DTRACE_CHARBUF(type_str, 12);
+        DTRACE_CHARBUF(reason_str, 64);
+
         erts_snprintf(what_str, sizeof(what_str), "%T", what);
         erts_snprintf(node_str, sizeof(node_str), "%T", node);
         erts_snprintf(type_str, sizeof(type_str), "%T", type);

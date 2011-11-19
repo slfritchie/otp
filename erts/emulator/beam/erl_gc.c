@@ -368,7 +368,7 @@ erts_garbage_collect(Process* p, int need, Eterm* objv, int nobj)
         FLAGS(p) |= F_NEED_FULLSWEEP;
     }
 
-    pidbuf[0] = '\0';
+    *pidbuf = '\0';
     if (DTRACE_ENABLED(gc_major_start)
         || DTRACE_ENABLED(gc_major_end)
         || DTRACE_ENABLED(gc_minor_start)

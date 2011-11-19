@@ -1159,7 +1159,7 @@ dtrace_fun_decode(Process *process,
             / sizeof(Eterm*);                                   \
         dtrace_fun_decode(p, m, f, a,                           \
                           process_name, mfa);                   \
-        DTRACE3(function_entry, process_name, mfa, depth);	\
+        DTRACE3(function_entry, process_name, mfa, depth);      \
     }
 
 #define DTRACE_RETURN(p, m, f, a)                               \
@@ -1170,43 +1170,43 @@ dtrace_fun_decode(Process *process,
             / sizeof(Eterm*);                                   \
         dtrace_fun_decode(p, m, f, a,                           \
                           process_name, mfa);                   \
-        DTRACE3(function_return, process_name, mfa, depth);	\
+        DTRACE3(function_return, process_name, mfa, depth);     \
     }
 
-#define DTRACE_BIF_ENTRY(p, m, f, a)                \
-    if (DTRACE_ENABLED(bif_entry)) {                \
+#define DTRACE_BIF_ENTRY(p, m, f, a)                            \
+    if (DTRACE_ENABLED(bif_entry)) {                            \
         DTRACE_CHARBUF(process_name, DTRACE_TERM_BUF_SIZE);     \
         DTRACE_CHARBUF(mfa, DTRACE_TERM_BUF_SIZE);              \
-        dtrace_fun_decode(p, m, f, a,               \
-                          process_name, mfa);       \
-        DTRACE2(bif_entry, process_name, mfa);	\
+        dtrace_fun_decode(p, m, f, a,                           \
+                          process_name, mfa);                   \
+        DTRACE2(bif_entry, process_name, mfa);                  \
     }
 
-#define DTRACE_BIF_RETURN(p, m, f, a)               \
-    if (DTRACE_ENABLED(bif_return)) {               \
+#define DTRACE_BIF_RETURN(p, m, f, a)                           \
+    if (DTRACE_ENABLED(bif_return)) {                           \
         DTRACE_CHARBUF(process_name, DTRACE_TERM_BUF_SIZE);     \
         DTRACE_CHARBUF(mfa, DTRACE_TERM_BUF_SIZE);              \
-        dtrace_fun_decode(p, m, f, a,               \
-                          process_name, mfa);       \
-        DTRACE2(bif_return, process_name, mfa);	    \
+        dtrace_fun_decode(p, m, f, a,                           \
+                          process_name, mfa);                   \
+        DTRACE2(bif_return, process_name, mfa);                 \
     }
 
-#define DTRACE_NIF_ENTRY(p, m, f, a)                \
-    if (DTRACE_ENABLED(nif_entry)) {                \
+#define DTRACE_NIF_ENTRY(p, m, f, a)                            \
+    if (DTRACE_ENABLED(nif_entry)) {                            \
         DTRACE_CHARBUF(process_name, DTRACE_TERM_BUF_SIZE);     \
         DTRACE_CHARBUF(mfa, DTRACE_TERM_BUF_SIZE);              \
-        dtrace_fun_decode(p, m, f, a,               \
-                          process_name, mfa);       \
-        DTRACE2(nif_entry, process_name, mfa);	    \
+        dtrace_fun_decode(p, m, f, a,                           \
+                          process_name, mfa);                   \
+        DTRACE2(nif_entry, process_name, mfa);                  \
     }
 
-#define DTRACE_NIF_RETURN(p, m, f, a)               \
-    if (DTRACE_ENABLED(nif_return)) {               \
+#define DTRACE_NIF_RETURN(p, m, f, a)                           \
+    if (DTRACE_ENABLED(nif_return)) {                           \
         DTRACE_CHARBUF(process_name, DTRACE_TERM_BUF_SIZE);     \
         DTRACE_CHARBUF(mfa, DTRACE_TERM_BUF_SIZE);              \
-        dtrace_fun_decode(p, m, f, a,               \
-                          process_name, mfa);       \
-        DTRACE2(nif_return, process_name, mfa);	    \
+        dtrace_fun_decode(p, m, f, a,                           \
+                          process_name, mfa);                   \
+        DTRACE2(nif_return, process_name, mfa);                 \
     }
 
 #else /* HAVE_DTRACE */
