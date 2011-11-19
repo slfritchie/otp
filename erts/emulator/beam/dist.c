@@ -752,7 +752,7 @@ erts_dsig_send_msg(ErtsDSigData *dsdp, Eterm remote, Eterm message)
 	token = SEQ_TRACE_TOKEN(sender);
 	seq_trace_output(token, message, SEQ_TRACE_SEND, remote, sender);
     }
-    *node_name = *sender_name = *reciever_name = '\0';
+    *node_name = *sender_name = *receiver_name = '\0';
     if (DTRACE_ENABLED(message_send) || DTRACE_ENABLED(message_send_remote)) {
         erts_snprintf(node_name, sizeof(node_name), "%T", dsdp->dep->sysname);
         erts_snprintf(sender_name, sizeof(sender_name), "%T", sender->id);
@@ -799,7 +799,7 @@ erts_dsig_send_reg_msg(ErtsDSigData *dsdp, Eterm remote_name, Eterm message)
 	token = SEQ_TRACE_TOKEN(sender);
 	seq_trace_output(token, message, SEQ_TRACE_SEND, remote_name, sender);
     }
-    *node_name = *sender_name = *reciever_name = '\0';
+    *node_name = *sender_name = *receiver_name = '\0';
     if (DTRACE_ENABLED(message_send) || DTRACE_ENABLED(message_send_remote)) {
         erts_snprintf(node_name, sizeof(node_name), "%T", dsdp->dep->sysname);
         erts_snprintf(sender_name, sizeof(sender_name), "%T", sender->id);
@@ -852,7 +852,7 @@ erts_dsig_send_exit_tt(ErtsDSigData *dsdp, Eterm local, Eterm remote,
     } else {
 	ctl = TUPLE4(&ctl_heap[0], make_small(DOP_EXIT), local, remote, reason);
     }
-    *node_name = *sender_name = *reciever_name = '\0';
+    *node_name = *sender_name = *remote_name = '\0';
     if (DTRACE_ENABLED(process_exit_signal_remote)) {
         erts_snprintf(node_name, sizeof(node_name), "%T", dsdp->dep->sysname);
         erts_snprintf(sender_name, sizeof(sender_name), "%T", sender->id);
