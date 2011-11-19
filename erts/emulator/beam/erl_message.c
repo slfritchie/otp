@@ -828,7 +828,7 @@ erts_send_message(Process* sender,
     BM_MESSAGE(message,sender,receiver);
     BM_START_TIMER(send);
 
-    *sender_name = receiver_name = '\0';
+    *sender_name = *receiver_name = '\0';
     if (DTRACE_ENABLED(message_send)) {
         erts_snprintf(sender_name, sizeof(sender_name), "%T", sender->id);
         erts_snprintf(receiver_name, sizeof(receiver_name), "%T", receiver->id);
