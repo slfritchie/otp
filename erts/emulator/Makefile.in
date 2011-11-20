@@ -838,19 +838,18 @@ endif
 
 BASE_OBJS = $(RUN_OBJS) $(EMU_OBJS) $(OS_OBJS) $(EXTRA_BASE_OBJS)
 
-OBJS =	$(BASE_OBJS) $(DRV_OBJS)
+before_DTrace_OBJS =	$(BASE_OBJS) $(DRV_OBJS)
 
+DTRACE_OBJS =
 ifdef DTRACE_ENABLED_2STEP
-OBJS += $(OBJDIR)/erlang_dtrace.o
-$(OBJDIR)/erlang_dtrace.o: $(OBJS) $(TARGET)/erlang_dtrace.h
-	touch $(OBJDIR)/erlang_dtrace.c
-	$(CC) $(CFLAGS) -c -o $@ $(OBJDIR)/erlang_dtrace.c
-	# The object file created above is immediately clobbered below.
-	# But creating it above avoids chicken-and-egg problem with OBJS
+DTRACE_OBJS = $(OBJDIR)/erlang_dtrace.o
+$(OBJDIR)/erlang_dtrace.o: $(before_DTrace_OBJS) $(TARGET)/erlang_dtrace.h
 	dtrace -G -C -Ibeam \
 	  -s beam/erlang_dtrace.d \
-	  -o $@ $(OBJS)
+	  -o $@ $(before_DTrace_OBJS)
 endif
+
+OBJS = $(before_DTrace_OBJS) $(DTRACE_OBJS)
 
 ########################################
 # HiPE section
