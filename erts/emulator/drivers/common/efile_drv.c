@@ -2750,7 +2750,7 @@ file_flush(ErlDrvData e) {
 #ifdef DEBUG
     r = 
 #endif
-    r = flush_write(desc, NULL, dt_priv,
+         flush_write(desc, NULL, dt_priv,
                     (desc->d == NULL) ? NULL : desc->d->sched_utag);
     /* Only possible reason for bad return value is ENOMEM, and 
      * there is nobody to tell...
@@ -2815,7 +2815,7 @@ file_timeout(ErlDrvData e) {
 #ifdef DEBUG
 	int r = 
 #endif
-	int r = flush_write(desc, NULL, dt_priv,
+	         flush_write(desc, NULL, dt_priv,
                             (desc->d == NULL) ? NULL : desc->d->sched_utag);
 	/* Only possible reason for bad return value is ENOMEM, and 
 	 * there is nobody to tell...
