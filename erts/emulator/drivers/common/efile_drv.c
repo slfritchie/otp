@@ -139,6 +139,7 @@ typedef struct {
 dt_private *get_dt_private(int);
 #else  /* HAVE_DTRACE */
 typedef struct {
+    char        dummy;          /* Unused except to quiet some compilers */
 } dt_private;
 
 #define DTRACE_INVOKE_SETUP(op)            do {} while (0)
