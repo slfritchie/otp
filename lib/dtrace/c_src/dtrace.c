@@ -25,7 +25,6 @@
 #include "erl_nif.h"
 #include "config.h"
 #include "sys.h"
-#define DTRACE_DRIVER_SKIP_FUNC_DECLARATIONS
 #include "dtrace-wrapper.h"
 #ifdef  HAVE_DTRACE
 #include "dtrace_user.h"

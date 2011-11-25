@@ -103,7 +103,6 @@
 #include "erl_threads.h"
 #include "zlib.h"
 #include "gzio.h"
-#define DTRACE_DRIVER_SKIP_FUNC_DECLARATIONS
 #include "dtrace-wrapper.h"
 #include <ctype.h>
 #include <sys/types.h>
