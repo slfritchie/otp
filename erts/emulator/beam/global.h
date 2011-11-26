@@ -1960,10 +1960,10 @@ erts_alloc_message_heap(Uint size,
 ERTS_GLB_INLINE void
 dtrace_pid_str(Eterm pid, char *process_buf)
 {
-    snprintf(process_buf, DTRACE_TERM_BUF_SIZE, "<%lu.%lu.%lu>",
-             pid_channel_no(pid),
-             pid_number(pid),
-             pid_serial(pid));
+    erts_snprintf(process_buf, DTRACE_TERM_BUF_SIZE, "<%lu.%lu.%lu>",
+                  pid_channel_no(pid),
+                  pid_number(pid),
+                  pid_serial(pid));
 }
 
 ERTS_GLB_INLINE void
@@ -1975,9 +1975,9 @@ dtrace_proc_str(Process *process, char *process_buf)
 ERTS_GLB_INLINE void
 dtrace_port_str(Port *port, char *port_buf)
 {
-    snprintf(port_buf, DTRACE_TERM_BUF_SIZE, "#Port<%lu.%lu>",
-             port_channel_no(port->id),
-             port_number(port->id));
+    erts_snprintf(port_buf, DTRACE_TERM_BUF_SIZE, "#Port<%lu.%lu>",
+                  port_channel_no(port->id),
+                  port_number(port->id));
 }
 
 ERTS_GLB_INLINE void

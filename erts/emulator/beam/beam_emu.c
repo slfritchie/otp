@@ -1157,9 +1157,9 @@ dtrace_drvport_str(ErlDrvPort drvport, char *port_buf)
 {
     Port *port = erts_drvport2port(drvport);
 
-    snprintf(port_buf, DTRACE_TERM_BUF_SIZE, "#Port<%lu.%lu>",
-             port_channel_no(port->id),
-             port_number(port->id));
+    erts_snprintf(port_buf, DTRACE_TERM_BUF_SIZE, "#Port<%lu.%lu>",
+                  port_channel_no(port->id),
+                  port_number(port->id));
 }
 
 /*
@@ -1373,7 +1373,8 @@ void process_main(void)
                                       (Eterm)fptr[1], (Uint)fptr[2],
                                       NULL, fun_buf);
                 } else {
-                    snprintf(fun_buf, sizeof(fun_buf), "<unknown/%p>", next);
+                    erts_snprintf(fun_buf, sizeof(fun_buf),
+                                  "<unknown/%p>", next);
                 }
             }
 
