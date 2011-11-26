@@ -177,7 +177,12 @@ p(I1, I2, I3, I4, S1, S2, S3, S4) when is_integer(I1), is_integer(I2), is_intege
 
 user_trace_int(I1, I2, I3, I4, S1, S2, S3, S4) ->
     UTag = prim_file:get_dtrace_utag(),
-    user_trace_i4s4(UTag, I1, I2, I3, I4, S1, S2, S3, S4).
+    try
+        user_trace_i4s4(UTag, I1, I2, I3, I4, S1, S2, S3, S4)
+    catch
+        error:nif_not_loaded ->
+            false
+    end.
 
 %% Scaffolding to write tedious code: quick brute force and not 100% correct.
 
