@@ -1368,19 +1368,15 @@ reverse(L, T) -> lists:reverse(L, T).
 pathname(File) ->
     (catch prim_file:internal_name2native(File)).
 
-%% TODO: Duplicate code!
 get_dtrace_utag() ->
-    case get(dtrace_utag) of
-        X when is_list(X) ->
-            X;
-        _ ->
-            ""
+    %% We cannot call dtrace:get_utag() because this is prim_file.erl.
+    %% We must reimplement it here.
+    case get('_dtrace_utag_@_@') of
+        undefined ->
+            <<>>;
+        X ->
+            X
     end.
 
-%% TODO: Measure if it's worth checking (re:run()?) for NUL byte first?
-enc_utag([0|Cs]) ->
-    enc_utag(Cs);
-enc_utag([C|Cs]) ->
-    [C|enc_utag(Cs)];
-enc_utag([]) ->
-    [0].
+enc_utag(UTag) ->
+    [UTag, 0].

@@ -1326,4 +1326,4 @@ wait_file_reply(From, Ref) ->
     end.
 
 get_dtrace_utag() ->
-    prim_file:get_dtrace_utag().
+    dtrace:get_utag().
