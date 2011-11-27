@@ -116,6 +116,8 @@ static unsigned gcc_optimizer_hack = 0;
 
 #ifdef  HAVE_DTRACE
 
+#define DTRACE_EFILE_BUFSIZ 128
+
 #define DTRACE_INVOKE_SETUP(op) \
     do { DTRACE3(efile_drv_int_entry, d->sched_i1, d->sched_i2, op); } while (0)
 #define DTRACE_INVOKE_SETUP_BY_NAME(op) \
@@ -380,7 +382,7 @@ struct t_data
 #ifdef  HAVE_DTRACE
     int               sched_i1;
     Uint64            sched_i2;
-    char              sched_utag[128+1];
+    char              sched_utag[DTRACE_EFILE_BUFSIZ+1];
 #else
     char              sched_utag[1];
 #endif
@@ -2053,12 +2055,12 @@ file_async_ready(ErlDrvData e, ErlDrvThreadData data)
     int sched_i1 = d->sched_i1, sched_i2 = d->sched_i2, command = d->command,
         result_ok = d->result_ok,
         posix_errno = d->result_ok ? 0 : d->errInfo.posix_errno;
-    DTRACE_CHARBUF(sched_utag, 128+1);
+    DTRACE_CHARBUF(sched_utag, DTRACE_EFILE_BUFSIZ+1);
 
     sched_utag[0] = '\0';
     if (DTRACE_ENABLED(efile_drv_return)) {
-        strncpy(sched_utag, d->sched_utag, sizeof(sched_utag) - 1);
-        sched_utag[sizeof(sched_utag) - 1] = '\0';
+        strncpy(sched_utag, d->sched_utag, DTRACE_EFILE_BUFSIZ);
+        sched_utag[DTRACE_EFILE_BUFSIZ] = '\0';
     }
 #endif  /* HAVE_DTRACE */
 
