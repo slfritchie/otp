@@ -113,6 +113,9 @@ static char erts_system_version[] = ("Erlang " ERLANG_OTP_RELEASE
 #ifdef VALGRIND
 				     " [valgrind-compiled]"
 #endif
+#ifdef HAVE_DTRACE
+				     " [dtrace]"
+#endif
 				     "\n");
 
 #define ASIZE(a) (sizeof(a)/sizeof(a[0]))
