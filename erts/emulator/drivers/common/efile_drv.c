@@ -2318,12 +2318,12 @@ file_output(ErlDrvData e, char* buf, int count)
     char* name;			/* Points to the filename in buf. */
     int command;
     struct t_data *d = NULL;
-    ERTS_DECLARE_DUMMY(char *dt_utag = NULL);
+    ERTS_DECLARE_DUMMY(char *dt_utag) = NULL;
     char *dt_s1 = NULL, *dt_s2 = NULL;
-    ERTS_DECLARE_DUMMY(Sint64 dt_i1 = 0);
-    ERTS_DECLARE_DUMMY(Sint64 dt_i2 = 0);
-    ERTS_DECLARE_DUMMY(Sint64 dt_i3 = 0);
-    ERTS_DECLARE_DUMMY(Sint64 dt_i4 = 0);
+    ERTS_DECLARE_DUMMY(Sint64 dt_i1) = 0;
+    ERTS_DECLARE_DUMMY(Sint64 dt_i2) = 0;
+    ERTS_DECLARE_DUMMY(Sint64 dt_i3) = 0;
+    ERTS_DECLARE_DUMMY(Sint64 dt_i4) = 0;
 #ifdef  HAVE_DTRACE
     dt_private *dt_priv = get_dt_private(0);
 #endif  /* HAVE_DTRACE */
@@ -2845,9 +2845,9 @@ file_outputv(ErlDrvData e, ErlIOVec *ev) {
     int err;
     struct t_data *d = NULL;
     Sint64 dt_i1 = 0, dt_i2 = 0, dt_i3 = 0;
-    ERTS_DECLARE_DUMMY(Sint64 dt_i4 = 0);
+    ERTS_DECLARE_DUMMY(Sint64 dt_i4) = 0;
     char *dt_utag = NULL;
-    ERTS_DECLARE_DUMMY(char *dt_s1 = NULL);
+    ERTS_DECLARE_DUMMY(char *dt_s1) = NULL;
 #ifdef  HAVE_DTRACE
     dt_private *dt_priv = get_dt_private(dt_driver_io_worker_base);
 #else

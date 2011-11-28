@@ -1906,9 +1906,9 @@ void process_main(void)
      if (DTRACE_ENABLED(message_receive)) {
          Eterm token2 = NIL;
          DTRACE_CHARBUF(receiver_name, DTRACE_TERM_BUF_SIZE);
-         ERTS_DECLARE_DUMMY(Sint tok_label = 0);
-         ERTS_DECLARE_DUMMY(Sint tok_lastcnt = 0);
-         ERTS_DECLARE_DUMMY(Sint tok_serial = 0);
+         ERTS_DECLARE_DUMMY(Sint tok_label) = 0;
+         ERTS_DECLARE_DUMMY(Sint tok_lastcnt) = 0;
+         ERTS_DECLARE_DUMMY(Sint tok_serial) = 0;
 
          dtrace_proc_str(c_p, receiver_name);
          token2 = SEQ_TRACE_TOKEN(c_p);

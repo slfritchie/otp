@@ -336,9 +336,9 @@ erts_queue_dist_message(Process *rcvr,
 			Eterm token)
 {
     ErlMessage* mp;
-    ERTS_DECLARE_DUMMY(Sint tok_label = 0);
-    ERTS_DECLARE_DUMMY(Sint tok_lastcnt = 0);
-    ERTS_DECLARE_DUMMY(Sint tok_serial = 0);
+    ERTS_DECLARE_DUMMY(Sint tok_label) = 0;
+    ERTS_DECLARE_DUMMY(Sint tok_lastcnt) = 0;
+    ERTS_DECLARE_DUMMY(Sint tok_serial) = 0;
 #ifdef ERTS_SMP
     ErtsProcLocks need_locks;
 #endif
@@ -497,9 +497,9 @@ erts_queue_message(Process* receiver,
 
     if (DTRACE_ENABLED(message_queued)) {
         DTRACE_CHARBUF(receiver_name, DTRACE_TERM_BUF_SIZE);
-        ERTS_DECLARE_DUMMY(Sint tok_label = 0);
-        ERTS_DECLARE_DUMMY(Sint tok_lastcnt = 0);
-        ERTS_DECLARE_DUMMY(Sint tok_serial = 0);
+        ERTS_DECLARE_DUMMY(Sint tok_label) = 0;
+        ERTS_DECLARE_DUMMY(Sint tok_lastcnt) = 0;
+        ERTS_DECLARE_DUMMY(Sint tok_serial) = 0;
 
         dtrace_proc_str(receiver, receiver_name);
         if (seq_trace_token != NIL && is_tuple(seq_trace_token)) {
@@ -826,9 +826,9 @@ erts_send_message(Process* sender,
     Eterm token = NIL;
     DTRACE_CHARBUF(sender_name, 64);
     DTRACE_CHARBUF(receiver_name, 64);
-    ERTS_DECLARE_DUMMY(Sint tok_label = 0);
-    ERTS_DECLARE_DUMMY(Sint tok_lastcnt = 0);
-    ERTS_DECLARE_DUMMY(Sint tok_serial = 0);
+    ERTS_DECLARE_DUMMY(Sint tok_label) = 0;
+    ERTS_DECLARE_DUMMY(Sint tok_lastcnt) = 0;
+    ERTS_DECLARE_DUMMY(Sint tok_serial) = 0;
 
     BM_STOP_TIMER(system);
     BM_MESSAGE(message,sender,receiver);
