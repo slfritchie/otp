@@ -31,8 +31,15 @@ Supported platforms
   but I haven't personally tested it.
 * Solaris 10.  I have done limited testing on Solaris 11 and
   OpenIndiana release 151a, and both appear to work.
-* FreeBSD 9.0, though please see the "FreeBSD 9.0 Release Notes"
-  section below!
+* FreeBSD 9.0, with the following limitations:
+  * FreeBSD 9.0RC1 and 9.0RC2 require a workaround to allow
+    DTrace probes from Erlang code to work correctly.  See
+    http://www.snookles.com/slf-blog/2011/11/26/dtrace-freebsd-9-0-and-erlang/
+    for details.
+  * It looks like a fix for this problem has been been applied to
+    the FreeBSD stable/9 source code, so we hope that the workaround
+    described in Scott's blog posting above will not be required when
+    FreeBSD 9.0-RELEASE is available (December 2011 or later).
 * Linux via SystemTap compatibility.  Please see the file
   `README.systemtap.md` for more details.
 
