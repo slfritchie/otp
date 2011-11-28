@@ -120,7 +120,7 @@ So, where does the `some-user-tag` string come from?
 
 At the moment, the user tag comes from code like the following:
 
-    put(dtrace_utag, "some-user-tag"),
+    dtrace:put_utag("some-user-tag"),
     file:rename("old-name", "new-name").
 
 This method of tagging I/O at the Erlang level is subject to change.
