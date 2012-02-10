@@ -65,6 +65,10 @@
 -export_type([date_time/0, fd/0, file_info/0, filename/0, io_device/0,
 	      name/0, posix/0]).
 
+%% Exports for DTrace-related functions.  They are defined here to avoid
+%% critical dependencies outside of the 'kernel' OTP application.
+-export([put_dtrace_utag/1, get_dtrace_utag/0]).
+
 %%% Includes and defines
 -include("file.hrl").
 
@@ -73,6 +77,8 @@
 -define(FILE_SERVER, file_server_2).   % Registered name
 -define(PRIM_FILE, prim_file).         % Module
 -define(RAM_FILE, ram_file).           % Module
+
+-define(DTRACE_UT_KEY, '_dtrace_utag_@_@'). % Match prim_file:get_dtrace_utag()!
 
 %% data types
 -type filename()  :: string() | binary().
@@ -330,7 +336,7 @@ raw_write_file_info(Name, #file_info{} = Info) ->
     case check_args(Args) of
 	ok ->
 	    [FileName] = Args,
-	    ?PRIM_FILE:write_file_info(FileName, Info, get_dtrace_utag());
+	    ?PRIM_FILE:write_file_info(FileName, Info);
 	Error ->
 	    Error
     end.
@@ -1325,5 +1331,23 @@ wait_file_reply(From, Ref) ->
 	    {error, terminated}
     end.
 
+-spec put_dtrace_utag(undefined | iolist() | binary()) -> ok.
+
+put_dtrace_utag(undefined) ->
+    put_dtrace_utag(<<>>);
+put_dtrace_utag(T) when is_binary(T) ->
+    put(?DTRACE_UT_KEY, T),
+    ok;
+put_dtrace_utag(T) when is_list(T) ->
+    put(?DTRACE_UT_KEY, iolist_to_binary(T)),
+    ok.
+
+-spec get_dtrace_utag() -> binary().
+
 get_dtrace_utag() ->
-    dtrace:get_utag().
+    case get(?DTRACE_UT_KEY) of
+        undefined ->
+            <<>>;
+        X ->
+            X
+    end.

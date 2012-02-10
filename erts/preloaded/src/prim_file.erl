@@ -1369,7 +1369,7 @@ pathname(File) ->
     (catch prim_file:internal_name2native(File)).
 
 get_dtrace_utag() ->
-    %% We cannot call dtrace:get_utag() because this is prim_file.erl.
+    %% We cannot call file:get_dtrace_utag() because this is prim_file.erl.
     %% We must reimplement it here.
     case get('_dtrace_utag_@_@') of
         undefined ->
