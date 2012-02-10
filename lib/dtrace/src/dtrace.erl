@@ -35,8 +35,6 @@
 %%% then the driver will ignore the user's input and use a default
 %%% value of 0 or NULL, respectively.
 
--define(DTRACE_UT_KEY, '_dtrace_utag_@_@'). % Match prim_file:get_dtrace_utag()!
-
 -export([init/0, available/0,
          user_trace_s1/1, % TODO: unify with pid & tag args like user_trace_i4s4
          p/0, p/1, p/2, p/3, p/4, p/5, p/6, p/7, p/8]).
@@ -180,31 +178,12 @@ p(I1, I2, I3, I4, S1, S2, S3, S4) when is_integer(I1), is_integer(I2), is_intege
       true | false | error | badarg.
 
 user_trace_int(I1, I2, I3, I4, S1, S2, S3, S4) ->
-    UTag = get_utag(),
+    Utag = get_utag(),
     try
-        user_trace_i4s4(UTag, I1, I2, I3, I4, S1, S2, S3, S4)
+        user_trace_i4s4(Utag, I1, I2, I3, I4, S1, S2, S3, S4)
     catch
         error:nif_not_loaded ->
             false
-    end.
-
--spec put_utag(undefined | iolist()) -> ok.
-
-put_utag(undefined) ->
-    put_utag(<<>>);
-put_utag(T) when is_binary(T) ->
-    put(?DTRACE_UT_KEY, T),
-    ok;
-put_utag(T) when is_list(T) ->
-    put(?DTRACE_UT_KEY, list_to_binary(T)),
-    ok.
-
-get_utag() ->
-    case get(?DTRACE_UT_KEY) of
-        undefined ->
-            <<>>;
-        X ->
-            X
     end.
 
 %% Scaffolding to write tedious code: quick brute force and not 100% correct.
@@ -242,3 +221,13 @@ scaff() ->
                             ])}
          end || N_int <- [0,1,2,3,4], N_char <- [0,1,2,3,4]],
     [io:format("%%~p\n~s", [N, Str]) || {N, Str} <- lists:sort(L)].
+
+-spec put_utag(undefined | iolist() | binary()) -> ok.
+
+put_utag(Utag) ->
+    file:put_dtrace_utag(Utag).
+
+-spec get_utag() -> binary().
+
+get_utag() ->
+    file:get_dtrace_utag().
