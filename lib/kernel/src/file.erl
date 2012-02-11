@@ -57,7 +57,7 @@
 
 %% Internal export to prim_file and ram_file until they implement
 %% an efficient copy themselves.
--export([copy_opened/4]).
+-export([copy_opened/3, copy_opened/4]).
 
 -export([ipread_s32bu_p32bu_int/3]).
 
@@ -783,6 +783,9 @@ copy_int(Source, Dest, Length) ->
     copy_int({Source, []}, {Dest, []}, Length).
 
 
+
+copy_opened(Source, Dest, Length) ->
+    copy_opened(Source, Dest, Length, get_dtrace_utag()).
 
 copy_opened(Source, Dest, Length, DTraceUtag)
   when is_integer(Length), Length >= 0;
