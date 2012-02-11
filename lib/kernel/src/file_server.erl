@@ -148,8 +148,6 @@ handle_call({get_cwd, Name, DTraceUtag}, _From, Handle) ->
 handle_call({read_file_info, Name, Opts, DTraceUtag}, _From, Handle) ->
     {reply, ?PRIM_FILE:read_file_info(Handle, Name, Opts, DTraceUtag), Handle};
 
-handle_call({altname, Name}, _From, Handle) ->
-    {reply, ?PRIM_FILE:altname(Handle, Name), Handle};
 handle_call({altname, Name, DTraceUtag}, _From, Handle) ->
     {reply, ?PRIM_FILE:altname(Handle, Name, DTraceUtag), Handle};
 
@@ -158,9 +156,6 @@ handle_call({write_file_info, Name, Info, Opts, DTraceUtag}, _From, Handle) ->
 
 handle_call({read_link_info, Name, Opts, DTraceUtag}, _From, Handle) ->
     {reply, ?PRIM_FILE:read_link_info(Handle, Name, Opts, DTraceUtag), Handle};
-
-handle_call({read_link, Name}, _From, Handle) ->
-    {reply, ?PRIM_FILE:read_link(Handle, Name), Handle};
 
 handle_call({read_link, Name, DTraceUtag}, _From, Handle) ->
     {reply, ?PRIM_FILE:read_link(Handle, Name, DTraceUtag), Handle};
