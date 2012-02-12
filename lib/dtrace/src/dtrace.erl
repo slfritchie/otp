@@ -51,6 +51,8 @@
 %% present" indication, we'll allow any atom in the types.
 -type integer_maybe() :: integer() | atom().
 -type iolist_maybe() :: iolist() | atom().
+%% DTrace user-defined tag
+-type utag() :: iolist() | binary().
 
 -spec init() -> ok | {error, {term(), term()}}.
 
@@ -73,7 +75,7 @@ available() ->
 user_trace_s1(_Message) ->
     erlang:nif_error(nif_not_loaded).
 
--spec user_trace_i4s4(iolist(),
+-spec user_trace_i4s4(utag(),
                       integer_maybe(), integer_maybe(),
                           integer_maybe(), integer_maybe(),
                       iolist_maybe(), iolist_maybe(),
