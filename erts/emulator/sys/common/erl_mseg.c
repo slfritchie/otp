@@ -59,7 +59,7 @@
      /* Implement some other way to get the real page size if needed! */
 #endif
 
-#define MAX_CACHE_SIZE 30
+#define MAX_CACHE_SIZE 1000
 
 #undef MIN
 #define MIN(X, Y) ((X) < (Y) ? (X) : (Y))
