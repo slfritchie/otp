@@ -45,7 +45,6 @@ ERTS_SCHED_PREF_QUICK_ALLOC_IMPL(message,
 
 
 
-
 static ERTS_INLINE int in_heapfrag(const Eterm* ptr, const ErlHeapFragment *bp)
 {
     return ((unsigned)(ptr - bp->mem) < bp->used_size);
@@ -388,6 +387,7 @@ erts_queue_dist_message(Process *rcvr,
 	mp->data.dist_ext = dist_ext;
 	LINK_MESSAGE(rcvr, mp);
 
+	erts_incr_message_count(&rcvr->msg_enq);
 	notify_new_message(rcvr);
     }
 }
@@ -462,6 +462,7 @@ erts_queue_message(Process* receiver,
     LINK_MESSAGE(receiver, mp);
 #endif
 
+    erts_incr_message_count(&receiver->msg_enq);
     notify_new_message(receiver);
 
     if (IS_TRACED_FL(receiver, F_TRACE_RECEIVE)) {
@@ -839,6 +840,7 @@ erts_send_message(Process* sender,
         ERL_MESSAGE_TOKEN(mp) = NIL;
         mp->next = NULL;
 	LINK_MESSAGE(receiver, mp);
+	erts_incr_message_count(&receiver->msg_enq);
         ACTIVATE(receiver);
 
         if (receiver->status == P_WAITING) {
@@ -889,6 +891,7 @@ erts_send_message(Process* sender,
 	    
 	    ERTS_SMP_MSGQ_MV_INQ2PRIVQ(receiver);
 	    LINK_MESSAGE_PRIVQ(receiver, mp);
+	    erts_incr_message_count(&receiver->msg_enq);
 
 	    if (IS_TRACED_FL(receiver, F_TRACE_RECEIVE)) {
 		trace_receive(receiver, message);
@@ -933,6 +936,7 @@ erts_send_message(Process* sender,
 	mp->next = NULL;
 	mp->data.attached = NULL;
 	LINK_MESSAGE(receiver, mp);
+	erts_incr_message_count(&receiver->msg_enq);
 
 	if (receiver->status == P_WAITING) {
 	    erts_add_to_runq(receiver);

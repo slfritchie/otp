@@ -379,7 +379,7 @@ static int clock_resolution;
 ** instead of something like select.
 */
 
-static erts_smp_atomic_t last_delivered_ms;
+erts_smp_atomic_t last_delivered_ms;
 
 static void init_erts_deliver_time(Sint64 init_ms)
 {

@@ -6378,6 +6378,27 @@ erl_create_process(Process* parent, /* Parent of process (default group leader).
     p->msg_inq.len = 0;
     p->bound_runq = NULL;
 #endif
+    p->msg_enq.count = 0;
+    p->msg_enq.rate.count = 0;
+    p->msg_enq.rate.time = 0;
+    p->msg_enq.rate.sec1 = 0;
+    p->msg_enq.rate.sec10 = 0;
+    p->msg_enq.rate.sec100 = 0;
+    p->msg_enq.rate.sec1000 = 0;
+    p->msg_deq.count = 0;
+    p->msg_deq.rate.count = 0;
+    p->msg_deq.rate.time = 0;
+    p->msg_deq.rate.sec1 = 0;
+    p->msg_deq.rate.sec10 = 0;
+    p->msg_deq.rate.sec100 = 0;
+    p->msg_deq.rate.sec1000 = 0;
+    p->msg_send.count = 0;
+    p->msg_send.rate.count = 0;
+    p->msg_send.rate.time = 0;
+    p->msg_send.rate.sec1 = 0;
+    p->msg_send.rate.sec10 = 0;
+    p->msg_send.rate.sec100 = 0;
+    p->msg_send.rate.sec1000 = 0;
     p->bif_timers = NULL;
     p->mbuf = NULL;
     p->mbuf_sz = 0;
@@ -7910,6 +7931,60 @@ set_timer(Process* p, Uint timeout)
 		  timeout);
 #endif
 }
+
+
+/* Fast exp() approximation from Schraudolph '99 */
+
+#define EXP_A 1512775.395195
+#define EXP_C 60801
+
+static inline double
+fast_exp (double y)
+{
+  union {
+    double d;
+    struct {
+      int j, i;
+    } n;
+  } eco;
+  eco.n.j = 0;
+  eco.n.i = EXP_A*y + (1072693248 - EXP_C);
+  return eco.d;
+}
+
+static ERTS_INLINE void
+update_msg_rate (double* rate_accum, double rate, double dt, double interval)
+{
+    double decay = fast_exp(-dt/interval);
+    *rate_accum = *rate_accum*decay + rate*(1-decay);
+}
+
+void
+erts_update_msg_rate (ErlMessageCount* c)
+{
+    SysTimeval tv;
+    Uint64 t;
+    sys_gettimeofday(&tv);
+    t = (Uint64)tv.tv_sec*1000000 + tv.tv_usec;
+    if (c->rate.time) {
+	Uint64 tdiff = t - c->rate.time;
+	if (tdiff >= ERTS_MSG_RATE_UPDATE_INTERVAL) {
+	    double dt = (double)tdiff / 1000000.;
+	    double rate = (double)(c->count - c->rate.count) / dt;
+	    update_msg_rate(&c->rate.sec1, rate, dt, 1.);
+	    update_msg_rate(&c->rate.sec10, rate, dt, 10.);
+	    update_msg_rate(&c->rate.sec100, rate, dt, 100.);
+	    update_msg_rate(&c->rate.sec1000, rate, dt, 1000.);
+	    c->rate.time = t;
+	    c->rate.count = c->count;
+	}
+    } else {
+	c->rate.time = t;
+	c->rate.count = c->count;
+    }
+}
+
+
 
 /*
  * Stack dump functions follow.

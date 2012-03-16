@@ -513,6 +513,7 @@ pi_locks(Eterm info)
     case am_messages:
     case am_message_queue_len:
     case am_total_heap_size:
+    case am_message_queue_stats:
 	return ERTS_PROC_LOCK_MAIN|ERTS_PROC_LOCK_MSGQ;
     case am_memory:
 	return ERTS_PROC_LOCK_MAIN|ERTS_PROC_LOCK_LINK|ERTS_PROC_LOCK_MSGQ;
@@ -554,6 +555,7 @@ static Eterm pi_args[] = {
     am_suspending,
     am_min_heap_size,
     am_min_bin_vheap_size,
+    am_message_queue_stats,
 #ifdef HYBRID
     am_message_binary
 #endif
@@ -602,8 +604,9 @@ pi_arg2ix(Eterm arg)
     case am_suspending:				return 26;
     case am_min_heap_size:			return 27;
     case am_min_bin_vheap_size:			return 28;
+    case am_message_queue_stats:			return 29;
 #ifdef HYBRID
-    case am_message_binary:			return 29;
+    case am_message_binary:			return 30;
 #endif
     default:					return -1;
     }
@@ -627,7 +630,8 @@ static Eterm pi_1_keys[] = {
     am_stack_size,
     am_reductions,
     am_garbage_collection,
-    am_suspending
+    am_suspending,
+    am_message_queue_stats
 };
 
 #define ERTS_PI_1_NO_OF_KEYS (sizeof(pi_1_keys)/sizeof(Eterm))
@@ -958,6 +962,32 @@ BIF_RETTYPE process_info_2(BIF_ALIST_2)
     ASSERT(!(BIF_P->flags & F_P2PNR_RESCHED));
     BIF_RET(res);
 }
+
+
+static Eterm
+build_rate_tuple (Eterm** hpp, Uint* hszp, ErlMessageCount* c)
+{
+    Eterm res, t0, t1, t2, t3, t4;
+    if (!hpp) {
+	erts_update_msg_rate(c);
+    }
+    if (hszp) {
+	*hszp += 6;
+    }
+    t0 = erts_bld_uint64(hpp, hszp, c->count);
+    t1 = erts_bld_uint64(hpp, hszp, c->rate.sec1);
+    t2 = erts_bld_uint64(hpp, hszp, c->rate.sec10);
+    t3 = erts_bld_uint64(hpp, hszp, c->rate.sec100);
+    t4 = erts_bld_uint64(hpp, hszp, c->rate.sec1000);
+    if (hpp) {
+	res = TUPLE5(*hpp, t0, t1, t2, t3, t4);
+	*hpp += 6;
+    } else {
+	res = 0;
+    }
+    return res;
+}
+
 
 Eterm
 process_info_aux(Process *BIF_P,
@@ -1595,6 +1625,31 @@ process_info_aux(Process *BIF_P,
 	    hp += 3;
 	    HRelease(BIF_P,limit,hp);
 	    return res;
+	}
+	break;
+    }
+
+    case am_message_queue_stats: {
+	Eterm** hpp = NULL;
+	Uint hsz = 5+3;
+	Uint* hszp = &hsz;
+
+	ERTS_SMP_MSGQ_MV_INQ2PRIVQ(rp);
+
+	for (;;) {
+	    Eterm t1, t2, t3, t4;
+	    t1 = erts_bld_uint(hpp, hszp, rp->msg.len);
+	    t2 = build_rate_tuple(hpp, hszp, &rp->msg_enq);
+	    t3 = build_rate_tuple(hpp, hszp, &rp->msg_deq);
+	    t4 = build_rate_tuple(hpp, hszp, &rp->msg_send);
+	    if (hpp) {
+		res = TUPLE4(hp, t1, t2, t3, t4);
+		hp += 5;
+		break;
+	    }
+	    hp = HAlloc(BIF_P, hsz);
+	    hpp = &hp;
+	    hszp = NULL;
 	}
 	break;
     }
@@ -3080,6 +3135,132 @@ BIF_RETTYPE statistics_1(BIF_ALIST_1)
 	hp += 3;
 	BIF_RET(TUPLE2(hp, r1, r2));
     }
+    else if (ERTS_IS_ATOM_STR("message_queues", BIF_ARG_1)) {
+	Uint i;
+	Uint nproc = 0;
+	Uint msgq_sum = 0;
+	Uint msgq_max = 0;
+	Eterm max_pid = am_undefined;
+	Uint msgq_nproc_nonzero = 0;
+	Eterm res, *hp, **hpp;
+	Uint sz, *szp;
+	Eterm t[5];
+
+	erts_smp_proc_unlock(BIF_P, ERTS_PROC_LOCK_MAIN);
+	erts_smp_block_system(0);
+
+	for (i = 0; i < erts_max_processes; i++) {
+	    if (process_tab[i] != (Process*) 0) {
+		Process* p = process_tab[i];
+		Uint len;
+		ERTS_SMP_MSGQ_MV_INQ2PRIVQ(p);
+		len = p->msg.len;
+		nproc++;
+		if (len) {
+		    msgq_sum += len;
+		    msgq_nproc_nonzero++;
+		    if (len > msgq_max) {
+			msgq_max = len;
+			max_pid = p->id;
+		    }
+		}
+	    }
+	}
+
+	erts_smp_release_system();
+	erts_smp_proc_lock(BIF_P, ERTS_PROC_LOCK_MAIN);
+
+	sz = 0;
+	szp = &sz;
+	hpp = NULL;
+	while (1) {
+	    i = 0;
+	    t[i++] = erts_bld_uint(hpp, szp, nproc);
+	    t[i++] = erts_bld_uint(hpp, szp, msgq_sum);
+	    t[i++] = erts_bld_uint(hpp, szp, msgq_nproc_nonzero);
+	    t[i++] = erts_bld_uint(hpp, szp, msgq_max);
+	    t[i++] = max_pid; ++sz;
+	    res = erts_bld_tuplev(hpp, szp, i, t);
+	    if (hpp) {
+		BIF_RET(res);
+	    }
+	    hp = HAlloc(BIF_P, sz);
+	    szp = NULL;
+	    hpp = &hp;
+	}
+    }
+    else if (ERTS_IS_ATOM_STR("message_counts", BIF_ARG_1)) {
+	Uint i;
+	Uint nproc = 0;
+	Uint64 msgs_recvd_sum = 0;
+	Uint64 msgs_recvd_max = 0;
+	Uint64 msgs_recvd_nproc_nonzero = 0;
+	Eterm msgs_recvd_max_pid = am_undefined;
+	Uint64 msgs_sent_sum = 0;
+	Uint64 msgs_sent_max = 0;
+	Uint64 msgs_sent_nproc_nonzero = 0;
+	Eterm msgs_sent_max_pid = am_undefined;
+	Eterm res, *hp, **hpp;
+	Uint sz, *szp;
+	Eterm t[9];
+
+	erts_smp_proc_unlock(BIF_P, ERTS_PROC_LOCK_MAIN);
+	erts_smp_block_system(0);
+
+	for (i = 0; i < erts_max_processes; i++) {
+	    if (process_tab[i] != (Process*) 0) {
+		Process* p = process_tab[i];
+		Uint recvd;
+		Uint sent;
+		ERTS_SMP_MSGQ_MV_INQ2PRIVQ(p);
+		nproc++;
+		recvd = p->msg_deq.count;
+		if (recvd) {
+		    msgs_recvd_sum += recvd;
+		    msgs_recvd_nproc_nonzero++;
+		    if (recvd > msgs_recvd_max) {
+			msgs_recvd_max = recvd;
+			msgs_recvd_max_pid = p->id;
+		    }
+		}
+		sent = p->msg_enq.count;
+		if (sent) {
+		    msgs_sent_sum += sent;
+		    msgs_sent_nproc_nonzero++;
+		    if (sent > msgs_sent_max) {
+			msgs_sent_max = sent;
+			msgs_sent_max_pid = p->id;
+		    }
+		}
+	    }
+	}
+
+	erts_smp_release_system();
+	erts_smp_proc_lock(BIF_P, ERTS_PROC_LOCK_MAIN);
+
+	sz = 0;
+	szp = &sz;
+	hpp = NULL;
+	while (1) {
+	    i = 0;
+	    t[i++] = erts_bld_uint(hpp, szp, nproc);
+	    t[i++] = erts_bld_uint(hpp, szp, msgs_recvd_sum);
+	    t[i++] = erts_bld_uint(hpp, szp, msgs_recvd_nproc_nonzero);
+	    t[i++] = erts_bld_uint(hpp, szp, msgs_recvd_max);
+	    t[i++] = msgs_recvd_max_pid; sz++;
+	    t[i++] = erts_bld_uint(hpp, szp, msgs_sent_sum);
+	    t[i++] = erts_bld_uint(hpp, szp, msgs_sent_nproc_nonzero);
+	    t[i++] = erts_bld_uint(hpp, szp, msgs_sent_max);
+	    t[i++] = msgs_recvd_max_pid; sz++;
+	    res = erts_bld_tuplev(hpp, szp, i, t);
+	    if (hpp) {
+		BIF_RET(res);
+	    }
+	    hp = HAlloc(BIF_P, sz);
+	    szp = NULL;
+	    hpp = &hp;
+	}
+    }
     else if (ERTS_IS_ATOM_STR("run_queues", BIF_ARG_1)) {
 	Eterm res, *hp, **hpp;
 	Uint sz, *szp;
@@ -3130,7 +3311,7 @@ BIF_RETTYPE statistics_1(BIF_ALIST_1)
 	b6 = erts_bld_uint64(&hp, NULL, runq_samples);
 	b7 = erts_bld_uint64(&hp, NULL, waits);
 	b8 = erts_bld_uint64(&hp, NULL, sleeps);
-	res = TUPLE8(hp, b1, b2, b3, b4, b5, b6, b7, b8); 
+	res = TUPLE8(hp, b1, b2, b3, b4, b5, b6, b7, b8);
 	BIF_RET(res);
     }
     BIF_ERROR(BIF_P, BADARG);

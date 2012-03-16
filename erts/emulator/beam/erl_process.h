@@ -539,6 +539,34 @@ struct ErtsPendingSuspend_ {
 
 #endif
 
+typedef struct {
+    Uint64 count;
+    struct {
+	Uint64 count;
+	Uint64 time;
+	double sec1;
+	double sec10;
+	double sec100;
+	double sec1000;
+    } rate;
+} ErlMessageCount;
+
+#define ERTS_MSG_RATE_UPDATE_INTERVAL	1000000
+#define ERTS_MSG_RATE_MIN_COUNT		10000
+
+void erts_update_msg_rate (ErlMessageCount*);
+
+static ERTS_INLINE void
+erts_incr_message_count (ErlMessageCount* c)
+{
+    if (++c->count >= ERTS_MSG_RATE_MIN_COUNT
+	    && erts_get_timer_time()*1000 - c->rate.time >= ERTS_MSG_RATE_UPDATE_INTERVAL)
+    {
+	erts_update_msg_rate(c);
+    }
+}
+
+
 /* Defines to ease the change of memory architecture */
 #  define HEAP_START(p)     (p)->heap
 #  define HEAP_TOP(p)       (p)->htop
@@ -642,6 +670,8 @@ struct process {
 					     erlang:suspend_process/1 */
 
     ErlMessageQueue msg;	/* Message queue */
+    ErlMessageCount msg_deq;	/* Count of messages dequeued for this process */
+    ErlMessageCount msg_send;	/* Count of messages sent by this process */
 
     ErtsBifTimer *bif_timers;	/* Bif timers aiming at this process */
 
@@ -704,6 +734,9 @@ struct process {
     Uint32 runq_flags;
     Uint32 status_flags;
     ErlMessageInQueue msg_inq;
+#endif
+    ErlMessageCount msg_enq;	/* Count of messages enqueued for this process */
+#ifdef ERTS_SMP
     Eterm suspendee;
     ErtsPendingSuspend *pending_suspenders;
     ErtsPendExit pending_exit;
@@ -749,6 +782,7 @@ struct process {
     Eterm* space_verified_from; /* we rely on available heap space (TestHeap) */
 #endif
 };
+
 
 #ifdef CHECK_FOR_HOLES
 # define INIT_HOLE_CHECK(p)			\
