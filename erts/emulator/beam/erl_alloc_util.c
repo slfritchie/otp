@@ -1268,7 +1268,7 @@ create_carrier(Allctr_t *allctr, Uint umem_sz, UWord flags)
 	goto try_sys_alloc;
     if (flags & CFLG_FORCE_MSEG)
 	goto try_mseg;
-    if (erts_mseg_no() >= max_mseg_carriers)
+    if (max_mseg_carriers > 0 && erts_mseg_no() >= max_mseg_carriers)
 	goto try_sys_alloc;
     if (flags & CFLG_SBC) {
 	if (allctr->sbcs.curr_mseg.no >= allctr->max_mseg_sbcs)
