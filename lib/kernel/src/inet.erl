@@ -1307,7 +1307,11 @@ tcp_controlling_process(S, NewOwner) when is_port(S), is_pid(NewOwner) ->
 	_ ->
 	    case prim_inet:getopt(S, active) of
 		{ok, A0} ->
-		    prim_inet:setopt(S, active, false),
+		    if A0 =/= false ->
+			   prim_inet:setopt(S, active, false);
+		       true ->
+			   ok
+		    end,
 		    case tcp_sync_input(S, NewOwner, false) of
 			true ->  %% socket already closed, 
 			    ok;
@@ -1315,7 +1319,11 @@ tcp_controlling_process(S, NewOwner) when is_port(S), is_pid(NewOwner) ->
 			    try erlang:port_connect(S, NewOwner) of
 				true -> 
 				    unlink(S), %% unlink from port
-				    prim_inet:setopt(S, active, A0),
+				    if A0 =/= false ->
+				    	   prim_inet:setopt(S, active, A0);
+				       true ->
+					   ok
+				    end,
 				    ok
 			    catch
 				error:Reason -> 

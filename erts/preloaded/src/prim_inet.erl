@@ -298,23 +298,11 @@ accept0(L, Time) when is_port(L), is_integer(Time) ->
 	{ok, Ref} ->
 	    receive 
 		{inet_async, L, Ref, {ok,S}} ->
-		    accept_opts(L, S);
+		    {ok, S};
 		{inet_async, L, Ref, Error} ->
 		    Error
 	    end;
 	Error -> Error
-    end.
-
-%% setup options from listen socket on the connected socket
-accept_opts(L, S) ->
-    case getopts(L, [active, nodelay, keepalive, delay_send, priority, tos]) of
-	{ok, Opts} ->
-	    case setopts(S, Opts) of
-		ok -> {ok, S};
-		Error -> close(S), Error
-	    end;
-	Error ->
-	    close(S), Error
     end.
 
 async_accept(L, Time) ->
