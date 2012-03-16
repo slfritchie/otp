@@ -192,8 +192,13 @@ int sys_start_hrvtime(void);
 int sys_stop_hrvtime(void);
 
 #elif defined(HAVE_CLOCK_GETTIME)
+#if defined(CLOCK_PROCESS_CPUTIME_ID)
+#define ERTS_CLOCK_GETTIME_CPU CLOCK_PROCESS_CPUTIME_ID
+#elif defined(CLOCK_THREAD_CPUTIME_ID)
+#define ERTS_CLOCK_GETTIME_CPU CLOCK_THREAD_CPUTIME_ID
+#endif
 #define sys_clock_gettime(cid,tp) clock_gettime((cid),&(tp))
-#define sys_get_proc_cputime(t,tp) sys_clock_gettime(CLOCK_PROCESS_CPUTIME_ID,(tp))
+#define sys_get_proc_cputime(t,tp) sys_clock_gettime(ERTS_CLOCK_GETTIME_CPU,(tp))
 
 #endif
 #endif
