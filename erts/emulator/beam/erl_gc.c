@@ -219,6 +219,13 @@ erts_next_heap_size(Uint size, Uint offset)
     }
     return 0;
 }
+
+static inline Uint
+min_heap_size (Process* p)
+{
+    return MIN_HEAP_SIZE(p)+p->gc_load_bias;
+}
+
 /*
  * Return the next heap size to use. Make sure we never return
  * a smaller heap size than the minimum heap size for the process.
@@ -229,7 +236,7 @@ static Uint
 next_heap_size(Process* p, Uint size, Uint offset)
 {
     size = erts_next_heap_size(size, offset);
-    return size < p->min_heap_size ? p->min_heap_size : size;
+    return size < min_heap_size(p) ? min_heap_size(p) : size;
 }
 
 Eterm
@@ -330,6 +337,14 @@ erts_gc_after_bif_call(Process* p, Eterm result, Eterm* regs, Uint arity)
     return result;
 }
 
+static inline Uint64
+get_usec (void)
+{
+    struct timeval tv;
+    sys_gettimeofday(&tv);
+    return (Uint64)tv.tv_sec*1000000 + tv.tv_usec;
+}
+
 /*
  * Garbage collect a process.
  *
@@ -343,7 +358,9 @@ erts_garbage_collect(Process* p, int need, Eterm* objv, int nobj)
 {
     Uint reclaimed_now = 0;
     int done = 0;
-    Uint ms1, s1, us1;
+    Uint64 tstart;
+    Uint64 tend;
+    Uint64 t;
 
     if (IS_TRACED_FL(p, F_TRACE_GC)) {
         trace_gc(p, am_gc_start);
@@ -352,9 +369,8 @@ erts_garbage_collect(Process* p, int need, Eterm* objv, int nobj)
     erts_smp_proc_lock(p, ERTS_PROC_LOCK_STATUS);
     p->gcstatus = p->status;
     p->status = P_GARBING;
-    if (erts_system_monitor_long_gc != 0) {
-	get_now(&ms1, &s1, &us1);
-    }
+    tstart = get_usec();
+
     erts_smp_proc_unlock(p, ERTS_PROC_LOCK_STATUS);
 
     erts_smp_locked_activity_begin(ERTS_ACTIVITY_GC);
@@ -394,17 +410,44 @@ erts_garbage_collect(Process* p, int need, Eterm* objv, int nobj)
 
     erts_smp_locked_activity_end(ERTS_ACTIVITY_GC);
 
+    if (erts_test_long_gc_sleep)
+	while (0 != erts_milli_sleep(erts_test_long_gc_sleep));
+
+    tend = get_usec();
+    t = tend - tstart;
+    p->gc_time_accum += t;
+    p->gc_count++;
+
+    if (tend - p->gc_time_base > 1000000) {
+	if (p->gc_time_base != 0) {
+	    Uint64 gcfrac;
+
+	    p->gc_time_base = tend - p->gc_time_base;
+	    gcfrac = p->gc_time_accum*100 / p->gc_time_base;
+	    if (gcfrac > 10 && p->msg.len >= 10000 && p->gc_load_bias <= 2*1024*1024) {
+		int offset;
+		if (gcfrac > 50) {
+		    offset = 3;
+		} else if (gcfrac > 20) {
+		    offset = 2;
+		} else {
+		    offset = 1;
+		}
+		p->gc_load_bias = erts_next_heap_size(p->gc_load_bias, offset);
+		monitor_gc_throttle(p);
+	    } else if (p->gc_load_bias > 0 && gcfrac < 2) {
+		p->gc_load_bias = (p->gc_load_bias <= heap_sizes[0]) ? 0 : erts_next_heap_size(p->gc_load_bias, -1);
+		monitor_gc_throttle(p);
+	    }
+	}
+	p->gc_count = 0;
+	p->gc_time_accum = 0;
+	p->gc_time_base = tend;
+    }
+
     if (erts_system_monitor_long_gc != 0) {
-	Uint ms2, s2, us2;
-	Sint t;
-	if (erts_test_long_gc_sleep)
-	    while (0 != erts_milli_sleep(erts_test_long_gc_sleep));
-	get_now(&ms2, &s2, &us2);
-	t = ms2 - ms1;
-	t = t*1000000 + s2 - s1;
-	t = t*1000 + ((Sint) (us2 - us1))/1000;
-	if (t > 0 && (Uint)t > erts_system_monitor_long_gc) {
-	    monitor_long_gc(p, t);
+	if (t > 0 && (Uint)t/1000 > erts_system_monitor_long_gc) {
+	    monitor_long_gc(p, t/1000);
 	}
     }
     if (erts_system_monitor_large_heap != 0) {
@@ -803,8 +846,8 @@ minor_collection(Process* p, int need, Eterm* objv, int nobj, Uint *recl)
 		}
 	    }
 
-            if (wanted < MIN_HEAP_SIZE(p)) {
-                wanted = MIN_HEAP_SIZE(p);
+            if (wanted < min_heap_size(p)) {
+                wanted = min_heap_size(p);
             } else {
                 wanted = next_heap_size(p, wanted, 0);
             }
@@ -1340,8 +1383,8 @@ adjust_after_fullsweep(Process *p, int size_before, int need, Eterm *objv, int n
            I think this is better as fullsweep is used mainly on
            small memory systems, but I could be wrong... */
         wanted = 2 * need_after;
-        if (wanted < p->min_heap_size) {
-            sz = p->min_heap_size;
+        if (wanted < min_heap_size(p)) {
+            sz = min_heap_size(p);
         } else {
             sz = next_heap_size(p, wanted, 0);
         }

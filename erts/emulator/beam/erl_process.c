@@ -6309,6 +6309,11 @@ erl_create_process(Process* parent, /* Parent of process (default group leader).
     p->bin_old_vheap    = 0;
     p->bin_vheap_mature = 0;
 
+    p->gc_time_base = 0;
+    p->gc_time_accum = 0;
+    p->gc_count = 0;
+    p->gc_load_bias = 0;
+
     /* No need to initialize p->fcalls. */
 
     p->current = p->initial+INITIAL_MOD;

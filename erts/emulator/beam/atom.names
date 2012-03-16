@@ -231,6 +231,7 @@ atom garbage_collecting
 atom garbage_collection
 atom gc_end
 atom gc_start
+atom gc_throttle
 atom Ge='>='
 atom generational
 atom get_seq_token

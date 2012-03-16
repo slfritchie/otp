@@ -716,6 +716,11 @@ struct process {
     Uint64 bin_old_vheap_sz;	/* Virtual old heap block size for binaries */
     Uint64 bin_old_vheap;	/* Virtual old heap size for binaries */
 
+    Uint64 gc_time_base;
+    Uint gc_count;
+    Uint gc_time_accum;
+    Uint gc_load_bias;
+
     union {
 #ifdef ERTS_SMP
 	ErtsSmpPTimer *ptimer;
