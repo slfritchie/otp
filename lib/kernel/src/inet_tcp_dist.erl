@@ -183,7 +183,8 @@ do_accept(Kernel, AcceptPid, Socket, MyNode, Allowed, SetupTime) ->
 					   [{active, true},
 					    {deliver, port},
 					    {packet, 4},
-					    nodelay()])
+					    nodelay(),
+					    recbuf()])
 		      end,
 		      f_getll = fun(S) ->
 					inet:getll(S)
@@ -215,7 +216,14 @@ nodelay() ->
 	_ ->
 	    {nodelay, true}
     end.
-	    
+
+recbuf() ->
+    case application:get_env(kernel, dist_recbuf) of
+	{ok, Val} when is_integer(Val) ->
+	    {recbuf, Val};
+	_ ->
+	    {recbuf, 256*1024}
+    end.
 
 %% ------------------------------------------------------------
 %% Get remote information about a Socket.
@@ -285,7 +293,8 @@ do_setup(Kernel, Node, Type, MyNode, LongOrShortNames,SetupTime) ->
 					 [{active, true},
 					  {deliver, port},
 					  {packet, 4},
-					  nodelay()])
+					  nodelay(),
+					  recbuf()])
 			      end,
 			      f_getll = fun inet:getll/1,
 			      f_address = 
