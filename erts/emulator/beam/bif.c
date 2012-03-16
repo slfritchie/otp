@@ -1827,6 +1827,7 @@ do_send(Process *p, Eterm to, Eterm msg, int suspend, int prepend) {
     } else if (is_external_pid(to)) {
 	dep = external_pid_dist_entry(to);
 	if(dep == erts_this_dist_entry) {
+#if DEBUG
 	    erts_dsprintf_buf_t *dsbufp = erts_create_logger_dsbuf();
 	    erts_dsprintf(dsbufp,
 			  "Discarding message %T from %T to %T in an old "
@@ -1837,6 +1838,7 @@ do_send(Process *p, Eterm to, Eterm msg, int suspend, int prepend) {
 			  external_pid_creation(to),
 			  erts_this_node->creation);
 	    erts_send_error_to_logger(p->group_leader, dsbufp);
+#endif
 	    return 0;
 	}
 	return remote_send(p, dep, to, to, msg, suspend);
@@ -1883,6 +1885,7 @@ do_send(Process *p, Eterm to, Eterm msg, int suspend, int prepend) {
     } else if (is_external_port(to)
 	       && (external_port_dist_entry(to)
 		   == erts_this_dist_entry)) {
+#if DEBUG
 	erts_dsprintf_buf_t *dsbufp = erts_create_logger_dsbuf();
 	erts_dsprintf(dsbufp,
 		      "Discarding message %T from %T to %T in an old "
@@ -1893,6 +1896,7 @@ do_send(Process *p, Eterm to, Eterm msg, int suspend, int prepend) {
 		      external_port_creation(to),
 		      erts_this_node->creation);
 	erts_send_error_to_logger(p->group_leader, dsbufp);
+#endif
 	return 0;
     } else if (is_internal_port(to)) {
 	portid = to;
