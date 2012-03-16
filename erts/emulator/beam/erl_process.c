@@ -139,6 +139,7 @@ Uint erts_process_tab_index_mask;
 static int wakeup_other_limit;
 
 int erts_sched_thread_suggested_stack_size = -1;
+erts_smp_atomic32_t erts_sched_context_reds = {ERTS_DEFAULT_CONTEXT_REDS};
 
 #ifdef ERTS_ENABLE_LOCK_CHECK
 ErtsLcPSDLocks erts_psd_required_locks[ERTS_PSD_SIZE];

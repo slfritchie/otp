@@ -4127,6 +4127,12 @@ BIF_RETTYPE system_flag_2(BIF_ALIST_2)
 	    goto error;
         old = erts_sched_set_spincount(ERTS_SET_SCHED_SUSPEND_SPINCOUNT,unsigned_val(BIF_ARG_2));
 	BIF_RET(make_small(old));
+    } else if (ERTS_IS_ATOM_STR("scheduler_context_reductions", BIF_ARG_1)) {
+        erts_aint32_t old;
+	if (!is_small(BIF_ARG_2))
+	    goto error;
+	old = erts_sched_set_context_reds(unsigned_val(BIF_ARG_2));
+	BIF_RET(make_small(old));
     }
     error:
     BIF_ERROR(BIF_P, BADARG);

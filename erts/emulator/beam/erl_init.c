@@ -131,16 +131,16 @@ int erts_no_crash_dump = 0;	/* Use -d to suppress crash dump. */
  */
 
 ErtsModifiedTimings erts_modified_timings[] = {
-    /* 0 */	{make_small(0), CONTEXT_REDS, INPUT_REDUCTIONS},
-    /* 1 */	{make_small(0), 2*CONTEXT_REDS, 2*INPUT_REDUCTIONS},
-    /* 2 */	{make_small(0), CONTEXT_REDS/2, INPUT_REDUCTIONS/2},
-    /* 3 */	{make_small(0), 3*CONTEXT_REDS, 3*INPUT_REDUCTIONS},
-    /* 4 */	{make_small(0), CONTEXT_REDS/3, 3*INPUT_REDUCTIONS},
-    /* 5 */	{make_small(0), 4*CONTEXT_REDS, INPUT_REDUCTIONS/2},
-    /* 6 */	{make_small(1), CONTEXT_REDS/4, 2*INPUT_REDUCTIONS},
-    /* 7 */	{make_small(1), 5*CONTEXT_REDS, INPUT_REDUCTIONS/3},
-    /* 8 */	{make_small(10), CONTEXT_REDS/5, 3*INPUT_REDUCTIONS},
-    /* 9 */	{make_small(10), 6*CONTEXT_REDS, INPUT_REDUCTIONS/4}
+    /* 0 */	{make_small(0), ERTS_DEFAULT_CONTEXT_REDS, ERTS_DEFAULT_INPUT_REDUCTIONS},
+    /* 1 */	{make_small(0), 2*ERTS_DEFAULT_CONTEXT_REDS, 2*ERTS_DEFAULT_INPUT_REDUCTIONS},
+    /* 2 */	{make_small(0), ERTS_DEFAULT_CONTEXT_REDS/2, ERTS_DEFAULT_INPUT_REDUCTIONS/2},
+    /* 3 */	{make_small(0), 3*ERTS_DEFAULT_CONTEXT_REDS, 3*ERTS_DEFAULT_INPUT_REDUCTIONS},
+    /* 4 */	{make_small(0), ERTS_DEFAULT_CONTEXT_REDS/3, 3*ERTS_DEFAULT_INPUT_REDUCTIONS},
+    /* 5 */	{make_small(0), 4*ERTS_DEFAULT_CONTEXT_REDS, ERTS_DEFAULT_INPUT_REDUCTIONS/2},
+    /* 6 */	{make_small(1), ERTS_DEFAULT_CONTEXT_REDS/4, 2*ERTS_DEFAULT_INPUT_REDUCTIONS},
+    /* 7 */	{make_small(1), 5*ERTS_DEFAULT_CONTEXT_REDS, ERTS_DEFAULT_INPUT_REDUCTIONS/3},
+    /* 8 */	{make_small(10), ERTS_DEFAULT_CONTEXT_REDS/5, 3*ERTS_DEFAULT_INPUT_REDUCTIONS},
+    /* 9 */	{make_small(10), 6*ERTS_DEFAULT_CONTEXT_REDS, ERTS_DEFAULT_INPUT_REDUCTIONS/4}
 };
 
 #define ERTS_MODIFIED_TIMING_LEVELS \
@@ -510,6 +510,7 @@ void erts_usage(void)
     erts_fprintf(stderr, "-rg amount  set reader groups limit\n");
     erts_fprintf(stderr, "-sbt type   set scheduler bind type, valid types are:\n");
     erts_fprintf(stderr, "            u|ns|ts|ps|s|nnts|nnps|tnnps|db\n");
+    erts_fprintf(stderr, "-scr reds   set scheduler context reductions\n");
     erts_fprintf(stderr, "-sct cput   set cpu topology,\n");
     erts_fprintf(stderr, "            see the erl(1) documentation for more info.\n");
     erts_fprintf(stderr, "-swt val    set scheduler wakeup threshold, valid values are:\n");
@@ -1153,6 +1154,18 @@ erl_start(int argc, char **argv)
 				 estr);
 		    erts_usage();
 		}
+	    }
+	    else if (has_prefix("cr", sub_param)) {
+		int reds;
+
+		arg = get_arg(sub_param+2, argv[i+1], &i);
+		if (sscanf(arg, "%d", &reds) != 1 || reds <= 0) {
+		    erts_fprintf(stderr,
+				 "bad context reductions value: %s\n",
+				 arg);
+		    erts_usage();
+		}
+		erts_sched_set_context_reds(reds);
 	    }
 	    else if (has_prefix("ct", sub_param)) {
 		arg = get_arg(sub_param+2, argv[i+1], &i);
