@@ -216,6 +216,7 @@ atom first
 atom firstline
 atom flags
 atom flush
+atom flush_message_queue
 atom flush_monitor_message
 atom force
 atom format_cpu_topology
