@@ -23,6 +23,7 @@
 -export([get_closest_pid/1, which_groups/0]).
 -export([start/0,start_link/0,init/1,handle_call/3,handle_cast/2,handle_info/2,
          terminate/2]).
+-export([sync/0]).
 
 %%% As of R13B03 monitors are used instead of links.
 
@@ -153,6 +154,9 @@ get_closest_pid(Name) ->
             Else
     end.
 
+sync () ->
+    gen_server:call(?MODULE, sync).
+
 %%%
 %%% Callback functions from gen_server
 %%%
@@ -192,6 +196,9 @@ handle_call({leave, Name, Pid}, _From, S) ->
     {reply, ok, S};
 handle_call({delete, Name}, _From, S) ->
     delete_group(Name),
+    {reply, ok, S};
+handle_call(sync, _From, S) ->
+    sync_groups(),
     {reply, ok, S};
 handle_call(Request, From, S) ->
     error_logger:warning_msg("The pg2 server received an unexpected message:\n"
@@ -263,11 +270,17 @@ store(List) ->
 
 assure_group(Name) ->
     Key = {group, Name},
-    ets:member(pg2_table, Key) orelse true =:= ets:insert(pg2_table, {Key}).
+    MKey = {group_members, Name},
+    LMKey = {local_group_members, Name},
+    (ets:member(pg2_table, Key) orelse true =:= ets:insert(pg2_table, {Key}))
+    andalso (ets:member(pg2_table, MKey) orelse true =:= ets:insert(pg2_table, {MKey, []}))
+    andalso (ets:member(pg2_table, LMKey) orelse true =:= ets:insert(pg2_table, {LMKey, []})).  
 
 delete_group(Name) ->
     _ = [leave_group(Name, Pid) || Pid <- group_members(Name)],
     true = ets:delete(pg2_table, {group, Name}),
+    true = ets:delete(pg2_table, {group_members, Name}),
+    true = ets:delete(pg2_table, {local_group_members, Name}),
     ok.
 
 member_died(Ref) ->
@@ -296,7 +309,8 @@ join_group(Name, Pid) ->
             _ = [ets:insert(pg2_table, {{local_member, Name, Pid}}) ||
                     node(Pid) =:= node()],
             true = ets:insert(pg2_table, {{pid, Pid, Name}})
-    end.
+    end,
+    sync_group_members(Name).
 
 leave_group(Name, Pid) ->
     Member_Name_Pid = {member, Name, Pid},
@@ -321,20 +335,46 @@ leave_group(Name, Pid) ->
                     kill_monitor_proc(RPid, Pid);
                 _ ->
                     ok
-            end
+            end,
+	    sync_group_members(Name)
     catch _:_ ->
             ok
     end.
+
+sync_groups () ->
+    [ sync_group_members(G) || G <- all_groups() ].
+
+sync_group_members (Name) ->
+    Members = match_group_members(Name),
+    true = ets:insert(pg2_table, {{group_members, Name}, Members}),
+    LMembers = match_local_group_members(Name),
+    true = ets:insert(pg2_table, {{local_group_members, Name}, LMembers}).
 
 all_members() ->
     [[G, group_members(G)] || G <- all_groups()].
 
 group_members(Name) ->
+    case ets:lookup(pg2_table, {group_members, Name}) of
+	[] ->
+	    match_group_members(Name);
+	[{{group_members, Name}, Members}] ->
+	    Members
+    end.
+
+match_group_members(Name) ->
     [P || 
         [P, N] <- ets:match(pg2_table, {{member, Name, '$1'},'$2'}),
         _ <- lists:seq(1, N)].
 
 local_group_members(Name) ->
+    case ets:lookup(pg2_table, {local_group_members, Name}) of
+	[] ->
+	    match_local_group_members(Name);
+	[{{local_group_members, Name}, Members}] ->
+	    Members
+    end.
+
+match_local_group_members (Name) ->
     [P || 
         [Pid] <- ets:match(pg2_table, {{local_member, Name, '$1'}}),
         P <- member_in_group(Pid, Name)].
