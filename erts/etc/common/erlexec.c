@@ -122,6 +122,10 @@ static char *pluss_val_switches[] = {
     "ct",
     "wt",
     "ss",
+    "scy",
+    "sct",
+    "scs",
+    "scp",
     NULL
 };
 /* +h arguments with values */

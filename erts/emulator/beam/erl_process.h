@@ -336,6 +336,17 @@ struct ErtsRunQueue_ {
     int len;
     int wakeup_other;
     int wakeup_other_reds;
+    Uint waits;
+    Uint sleeps;
+    Uint64 runqlen_sum;
+    Uint64 runqlen_samples;
+
+    Uint64 init_clock;
+    Uint64 proc_schedule_clock;
+
+    Uint64 proc_clock_count;
+    Uint64 port_clock_count;
+    Uint64 sys_clock_count;
 
     struct {
 	int len;
@@ -1041,6 +1052,14 @@ int erts_proclist_same(ErtsProcList *, Process *);
 
 int erts_sched_set_wakeup_limit(char *str);
 
+#define ERTS_SET_SCHED_SPIN_UNTIL_YIELD 0
+#define ERTS_SET_SCHED_TSE_SPINCOUNT 1
+#define ERTS_SET_SCHED_SYS_SPINCOUNT 2
+#define ERTS_SET_SCHED_SUSPEND_SPINCOUNT 3
+
+erts_aint32_t erts_sched_set_spincount (Uint which, erts_aint32_t count);
+
+
 #ifdef DEBUG
 void erts_dbg_multi_scheduling_return_trap(Process *, Eterm);
 #endif
@@ -1108,6 +1127,10 @@ Eterm erts_get_process_priority(Process *p);
 Eterm erts_set_process_priority(Process *p, Eterm prio);
 
 Uint erts_get_total_context_switches(void);
+Uint erts_get_total_scheduler_waits(void);
+Uint erts_get_total_scheduler_sleeps(void);
+void erts_get_run_queues_counts (Uint64 *sum, Uint64 *samples);
+void erts_get_total_scheduler_times(Uint64 *total, Uint64 *proc, Uint64 *sys, Uint64 *port);
 void erts_get_total_reductions(Uint *, Uint *);
 void erts_get_exact_total_reductions(Process *, Uint *, Uint *);
 

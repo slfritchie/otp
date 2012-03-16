@@ -518,6 +518,10 @@ void erts_usage(void)
     erts_fprintf(stderr, "            valid range is [%d-%d]\n",
 		 ERTS_SCHED_THREAD_MIN_STACK_SIZE,
 		 ERTS_SCHED_THREAD_MAX_STACK_SIZE);
+    erts_fprintf(stderr, "-sscy count set scheduler spin-until-yield count\n");
+    erts_fprintf(stderr, "-ssct count set scheduler tse spin count\n");
+    erts_fprintf(stderr, "-sscs count set scheduler sys spin count\n");
+    erts_fprintf(stderr, "-sscp count set scheduler suspend spin count\n");
     erts_fprintf(stderr, "-S n1:n2    set number of schedulers (n1), and number of\n");
     erts_fprintf(stderr, "            schedulers online (n2), valid range for both\n");
     erts_fprintf(stderr, "            numbers are [1-%d]\n",
@@ -1225,6 +1229,42 @@ erl_start(int argc, char **argv)
 		VERBOSE(DEBUG_SYSTEM,
 			("suggested scheduler thread stack size %d kilo words\n",
 			 erts_sched_thread_suggested_stack_size));
+	    }
+	    else if (has_prefix("sc", sub_param)) {
+		int spintype = -1;
+		int spincount;
+
+		switch (sub_param[2]) {
+		case 'y':
+		    spintype = ERTS_SET_SCHED_SPIN_UNTIL_YIELD;
+		    break;
+
+		case 't':
+		    spintype = ERTS_SET_SCHED_TSE_SPINCOUNT;
+		    break;
+
+		case 's':
+		    spintype = ERTS_SET_SCHED_SYS_SPINCOUNT;
+		    break;
+
+		case 'p':
+		    spintype = ERTS_SET_SCHED_SUSPEND_SPINCOUNT;
+		    break;
+
+		default:
+		    erts_fprintf(stderr,
+				 "bad spincount type: %s\n",
+				 argv[i]);
+		    erts_usage();
+		}
+		arg = get_arg(sub_param+3, argv[i+1], &i);
+		if (sscanf(arg, "%d", &spincount) != 1 || spincount <= 0) {
+		    erts_fprintf(stderr,
+				 "bad spincount value: %s\n",
+				 arg);
+		    erts_usage();
+		}
+		erts_sched_set_spincount(spintype,spincount);
 	    }
 	    else {
 		erts_fprintf(stderr, "bad scheduling option %s\n", argv[i]);

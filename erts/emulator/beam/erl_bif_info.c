@@ -3102,6 +3102,36 @@ BIF_RETTYPE statistics_1(BIF_ALIST_1)
 	    szp = NULL;
 	    hpp = &hp;
 	}
+    } else if (ERTS_IS_ATOM_STR("scheduler_counts", BIF_ARG_1)) {
+        Uint64 total, proc, sys, port, waits, sleeps, runq_sum, runq_samples;
+	Uint hsz = 9;
+	Eterm b1, b2, b3, b4, b5, b6, b7, b8;
+
+	erts_get_total_scheduler_times(&total, &proc, &sys, &port);
+	erts_get_run_queues_counts(&runq_sum,&runq_samples);
+	waits = erts_get_total_scheduler_waits();
+	sleeps = erts_get_total_scheduler_sleeps();
+
+	(void) erts_bld_uint64(NULL, &hsz, total);
+	(void) erts_bld_uint64(NULL, &hsz, proc);
+	(void) erts_bld_uint64(NULL, &hsz, sys);
+	(void) erts_bld_uint64(NULL, &hsz, port);
+	(void) erts_bld_uint64(NULL, &hsz, runq_sum);
+	(void) erts_bld_uint64(NULL, &hsz, runq_samples);
+	(void) erts_bld_uint64(NULL, &hsz, waits);
+	(void) erts_bld_uint64(NULL, &hsz, sleeps);
+
+	hp = HAlloc(BIF_P, hsz);
+	b1 = erts_bld_uint64(&hp, NULL, total);
+	b2 = erts_bld_uint64(&hp, NULL, proc);
+	b3 = erts_bld_uint64(&hp, NULL, sys);
+	b4 = erts_bld_uint64(&hp, NULL, port);
+	b5 = erts_bld_uint64(&hp, NULL, runq_sum);
+	b6 = erts_bld_uint64(&hp, NULL, runq_samples);
+	b7 = erts_bld_uint64(&hp, NULL, waits);
+	b8 = erts_bld_uint64(&hp, NULL, sleeps);
+	res = TUPLE8(hp, b1, b2, b3, b4, b5, b6, b7, b8); 
+	BIF_RET(res);
     }
     BIF_ERROR(BIF_P, BADARG);
 }
