@@ -1516,16 +1516,21 @@ case $erl_gethrvtime in
 	#include <string.h>
 	#include <stdio.h>
 	#include <time.h>
+	#if defined(CLOCK_PROCESS_CPUTIME_ID)
+	#define ERTS_CLOCK_GETTIME_CPU CLOCK_PROCESS_CPUTIME_ID
+	#elif defined(CLOCK_THREAD_CPUTIME_ID)
+	#define ERTS_CLOCK_GETTIME_CPU CLOCK_THREAD_CPUTIME_ID
+	#endif
 	int main() {
 	    long long start, stop;
 	    int i;
 	    struct timespec tp;
 
-	    if (clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &tp) < 0)
+	    if (clock_gettime(ERTS_CLOCK_GETTIME_CPU, &tp) < 0)
 	      exit(1);
 	    start = ((long long)tp.tv_sec * 1000000000LL) + (long long)tp.tv_nsec;
 	    for (i = 0; i < 100; i++)
-	      clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &tp);
+	      clock_gettime(ERTS_CLOCK_GETTIME_CPU, &tp);
 	    stop = ((long long)tp.tv_sec * 1000000000LL) + (long long)tp.tv_nsec;
 	    if (start == 0)
 	      exit(4);

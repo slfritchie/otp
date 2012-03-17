@@ -1828,6 +1828,7 @@ erts_dist_command(Port *prt, int reds_limit)
 	    bw(foq.first->extp, size);
 #endif
 	    reds += ERTS_PORT_REDS_DIST_CMD_DATA(size);
+	    erts_smp_atomic_add(&erts_bytes_out, size);
 	    fob = foq.first;
 	    obufsize += size_obuf(fob);
 	    foq.first = foq.first->next;
@@ -1911,6 +1912,7 @@ erts_dist_command(Port *prt, int reds_limit)
 	    bw(oq.first->extp, size);
 #endif
 	    reds += ERTS_PORT_REDS_DIST_CMD_DATA(size);
+	    erts_smp_atomic_add(&erts_bytes_out, size);
 	    fob = oq.first;
 	    obufsize += size_obuf(fob);
 	    oq.first = oq.first->next;

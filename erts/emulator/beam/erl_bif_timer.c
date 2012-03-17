@@ -64,8 +64,8 @@ struct ErtsBifTimer_ {
 #define TIMER_HASH_VEC_SZ	3331
 #define BTM_PREALC_SZ		10
 #else
-#define TIMER_HASH_VEC_SZ	10007
-#define BTM_PREALC_SZ		100
+#define TIMER_HASH_VEC_SZ	99991
+#define BTM_PREALC_SZ		1000
 #endif
 static ErtsBifTimer **bif_timer_tab;  
 static Uint no_bif_timers;

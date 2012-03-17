@@ -98,6 +98,7 @@ static erts_smp_mtx_t tiw_lock;
 #endif
 static ErlTimer** tiw;		/* the timing wheel, allocated in init_time() */
 static Uint tiw_pos;		/* current position in wheel */
+static Uint tiw_count;		/* current count */
 static Uint tiw_nto;		/* number of timeouts in wheel */
 static Uint tiw_min;
 static ErlTimer *tiw_min_ptr;
@@ -136,28 +137,22 @@ static erts_aint_t next_time_internal(void) /* PRE: tiw_lock taken by caller */
     min = (unsigned int) -1;	/* max unsigned int */
     i = tiw_pos;
     do {
-	p = tiw[i];
-	while (p != NULL) {
-	    nto++;
-	    if (p->count == 0) {
+	if ((p = tiw[i]) != NULL) {
+	    if (p->count <= tiw_count) {
 		/* found next timeout */
 		dt = do_time_read();
-		/* p->count is zero */
 		tiw_min_ptr = p;
 		tiw_min     = tm;
 		return ((tm >= dt) ? (tm - dt) : 0);
 	    } else {
 		/* keep shortest time in 'min' */
-		if (tm + p->count*TIW_SIZE < min) {
-		    min = tm + p->count*TIW_SIZE;
+		if (tm + (p->count-tiw_count)*TIW_SIZE < min) {
+		    min = tm + (p->count-tiw_count)*TIW_SIZE;
 		    tiw_min_ptr = p;
 		    tiw_min     = min;
 		}
 	    }
-	    p = p->next;
 	}
-	/* when we have found all timeouts the shortest time will be in min */
-	if (nto == tiw_nto) break;
 	tm++;
 	i = (i + 1) % TIW_SIZE;
     } while (i != tiw_pos);
@@ -205,7 +200,7 @@ erts_aint_t erts_next_time(void)
 static ERTS_INLINE void bump_timer_internal(erts_aint_t dt) /* PRE: tiw_lock is write-locked */
 {
     Uint keep_pos;
-    Uint count;
+    Uint extra;
     ErlTimer *p, **prev, *timeout_head, **timeout_tail;
     Uint dtime = (Uint) dt;  
 
@@ -215,44 +210,49 @@ static ERTS_INLINE void bump_timer_internal(erts_aint_t dt) /* PRE: tiw_lock is 
 	return;
     }
 
-    /* if do_time > TIW_SIZE we want to go around just once */
-    count = (Uint)(dtime / TIW_SIZE) + 1;
+    /* if do_time > TIW_SIZE we don't want to go around more than once */
+    if (dtime >= TIW_SIZE) {
+	tiw_count += (Uint)(dtime / TIW_SIZE) - 1;
+	dtime = TIW_SIZE;
+	extra = 1;
+    } else {
+	extra = 0;
+    }
     keep_pos = (tiw_pos + dtime) % TIW_SIZE;
-    if (dtime > TIW_SIZE) dtime = TIW_SIZE;
   
     timeout_head = NULL;
     timeout_tail = &timeout_head;
     while (dtime > 0) {
-	/* this is to decrease the counters with the right amount */
+	/* this is to bump the count with the right amount */
 	/* when dtime >= TIW_SIZE */
-	if (tiw_pos == keep_pos) count--;
+	if (tiw_pos == keep_pos) extra = 0;
 	prev = &tiw[tiw_pos];
 	while ((p = *prev) != NULL) {
 	    ASSERT( p != p->next);
-	    if (p->count < count) {     /* we have a timeout */
-		/* remove min time */
-		if (tiw_min_ptr == p) {
-		    tiw_min_ptr = NULL;
-		    tiw_min = 0;
-		}
+	    if (p->count > tiw_count+extra) {
+		/* no more ripe timeouts in this slot */
+		break;
+	    }
+	    /* reset min time if this timer */
+	    if (tiw_min_ptr == p) {
+		tiw_min_ptr = NULL;
+		tiw_min = 0;
+	    }
 
-		/* Remove from list */
-		remove_timer(p);
-		*timeout_tail = p;	/* Insert in timeout queue */
-		timeout_tail = &p->next;
-	    }
-	    else {
-		/* no timeout, just decrease counter */
-		p->count -= count;
-		prev = &p->next;
-	    }
+	    /* Remove from list */
+	    remove_timer(p);
+	    *timeout_tail = p;	/* Insert in timeout queue */
+	    timeout_tail = &p->next;
 	}
-	tiw_pos = (tiw_pos + 1) % TIW_SIZE;
+	if (++tiw_pos == TIW_SIZE) {
+	    tiw_pos = 0;
+	    ++tiw_count;
+	}
 	dtime--;
     }
     tiw_pos = keep_pos;
     if (tiw_min_ptr)
-	tiw_min -= dt;
+	tiw_min = (tiw_min > dt) ? tiw_min - dt : 0;
     
     erts_smp_mtx_unlock(&tiw_lock);
     
@@ -319,6 +319,8 @@ insert_timer(ErlTimer* p, Uint t)
 {
     Uint tm;
     Uint64 ticks;
+    ErlTimer* tp;
+    ErlTimer* prev;
 
     /* The current slot (tiw_pos) in timing wheel is the next slot to be
      * be processed. Hence no extra time tick is needed.
@@ -336,22 +338,30 @@ insert_timer(ErlTimer* p, Uint t)
     /* calculate slot */
     tm = (ticks + tiw_pos) % TIW_SIZE;
     p->slot = (Uint) tm;
-    p->count = (Uint) (ticks / TIW_SIZE);
+    p->count = tiw_count + (Uint) ((ticks + tiw_pos) / TIW_SIZE);
   
-    /* insert at head of list at slot */
-    p->next = tiw[tm];
-    p->prev = NULL;
-    if (p->next != NULL)
-	p->next->prev = p;
-    tiw[tm] = p;
-
+    /* insert in sorted order */
+    prev = NULL;
+    for (tp = tiw[tm]; tp && p->count > tp->count; prev = tp, tp = tp->next);
+    if (tp) {
+	p->prev = tp->prev;
+	tp->prev = p;
+	p->next = tp;
+    } else {
+	p->prev = prev;
+	p->next = NULL;
+    }
+    if (prev) {
+	prev->next = p;
+    } else {
+	tiw[tm] = p;
+    }
 
     /* insert min time */
     if ((tiw_nto == 0) || ((tiw_min_ptr != NULL) && (ticks < tiw_min))) {
 	tiw_min = ticks;
 	tiw_min_ptr = p;
-    }
-    if ((tiw_min_ptr == p) && (ticks > tiw_min)) {
+    } else if ((tiw_min_ptr == p) && (ticks > tiw_min)) {
 	/* some other timer might be 'min' now */
 	tiw_min = 0;
 	tiw_min_ptr = NULL;
@@ -415,11 +425,26 @@ erts_cancel_timer(ErlTimer* p)
   0 is returned also if the timer is overdue (i.e., would have triggered
   immediately if it hadn't been cancelled).
 */
+static ERTS_INLINE Uint
+time_left_internal (ErlTimer *p)
+{
+    Uint left;
+    erts_aint_t dt;
+
+    left = (p->count - tiw_count)*TIW_SIZE + p->slot - tiw_pos;
+
+    dt = do_time_read();
+    if (left < dt)
+	left = 0;
+    else
+	left -= dt;
+    return left;
+}
+
 Uint
 erts_time_left(ErlTimer *p)
 {
     Uint left;
-    erts_aint_t dt;
 
     erts_smp_mtx_lock(&tiw_lock);
 
@@ -428,15 +453,7 @@ erts_time_left(ErlTimer *p)
 	return 0;
     }
 
-    if (p->slot < tiw_pos)
-	left = (p->count + 1) * TIW_SIZE + p->slot - tiw_pos;
-    else
-	left = p->count * TIW_SIZE + p->slot - tiw_pos;
-    dt = do_time_read();
-    if (left < dt)
-	left = 0;
-    else
-	left -= dt;
+    left = time_left_internal(p);
 
     erts_smp_mtx_unlock(&tiw_lock);
 
@@ -452,24 +469,21 @@ void erts_p_slpq()
     erts_smp_mtx_lock(&tiw_lock);
 
     /* print the whole wheel, starting at the current position */
-    erts_printf("\ntiw_pos = %d tiw_nto %d\n", tiw_pos, tiw_nto);
+    erts_printf("\ntiw_count=%u tiw_pos=%d tiw_nto=%d dt=%u tiw_min_ptr=%p tiw_min=%u\n",
+		tiw_count, tiw_pos, tiw_nto, do_time_read(), tiw_min_ptr, tiw_min);
     i = tiw_pos;
-    if (tiw[i] != NULL) {
-	erts_printf("%d:\n", i);
-	for(p = tiw[i]; p != NULL; p = p->next) {
-	    erts_printf(" (count %d, slot %d)\n",
-			p->count, p->slot);
-	}
-    }
-    for(i = (i+1)%TIW_SIZE; i != tiw_pos; i = (i+1)%TIW_SIZE) {
+    do {
 	if (tiw[i] != NULL) {
 	    erts_printf("%d:\n", i);
 	    for(p = tiw[i]; p != NULL; p = p->next) {
-		erts_printf(" (count %d, slot %d)\n",
-			    p->count, p->slot);
+		erts_printf(" %p (count %d, slot %d, count_rem = %u, time_left = %u)\n",
+			    p, p->count, p->slot, p->count - tiw_count, time_left_internal(p));
 	    }
 	}
-    }
+	if (++i == TIW_SIZE) {
+	    i = 0;
+	}
+    } while (i != tiw_pos);
 
     erts_smp_mtx_unlock(&tiw_lock);
 }

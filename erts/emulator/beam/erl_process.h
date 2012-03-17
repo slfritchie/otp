@@ -336,6 +336,17 @@ struct ErtsRunQueue_ {
     int len;
     int wakeup_other;
     int wakeup_other_reds;
+    Uint waits;
+    Uint sleeps;
+    Uint64 runqlen_sum;
+    Uint64 runqlen_samples;
+
+    Uint64 init_clock;
+    Uint64 proc_schedule_clock;
+
+    Uint64 proc_clock_count;
+    Uint64 port_clock_count;
+    Uint64 sys_clock_count;
 
     struct {
 	int len;
@@ -528,6 +539,34 @@ struct ErtsPendingSuspend_ {
 
 #endif
 
+typedef struct {
+    Uint64 count;
+    struct {
+	Uint64 count;
+	Uint64 time;
+	double sec1;
+	double sec10;
+	double sec100;
+	double sec1000;
+    } rate;
+} ErlMessageCount;
+
+#define ERTS_MSG_RATE_UPDATE_INTERVAL	1000000
+#define ERTS_MSG_RATE_MIN_COUNT		10000
+
+void erts_update_msg_rate (ErlMessageCount*);
+
+static ERTS_INLINE void
+erts_incr_message_count (ErlMessageCount* c)
+{
+    if (++c->count >= ERTS_MSG_RATE_MIN_COUNT
+	    && erts_get_timer_time()*1000 - c->rate.time >= ERTS_MSG_RATE_UPDATE_INTERVAL)
+    {
+	erts_update_msg_rate(c);
+    }
+}
+
+
 /* Defines to ease the change of memory architecture */
 #  define HEAP_START(p)     (p)->heap
 #  define HEAP_TOP(p)       (p)->htop
@@ -631,6 +670,8 @@ struct process {
 					     erlang:suspend_process/1 */
 
     ErlMessageQueue msg;	/* Message queue */
+    ErlMessageCount msg_deq;	/* Count of messages dequeued for this process */
+    ErlMessageCount msg_send;	/* Count of messages sent by this process */
 
     ErtsBifTimer *bif_timers;	/* Bif timers aiming at this process */
 
@@ -675,6 +716,11 @@ struct process {
     Uint64 bin_old_vheap_sz;	/* Virtual old heap block size for binaries */
     Uint64 bin_old_vheap;	/* Virtual old heap size for binaries */
 
+    Uint64 gc_time_base;
+    Uint gc_count;
+    Uint gc_time_accum;
+    Uint gc_load_bias;
+
     union {
 #ifdef ERTS_SMP
 	ErtsSmpPTimer *ptimer;
@@ -693,6 +739,9 @@ struct process {
     Uint32 runq_flags;
     Uint32 status_flags;
     ErlMessageInQueue msg_inq;
+#endif
+    ErlMessageCount msg_enq;	/* Count of messages enqueued for this process */
+#ifdef ERTS_SMP
     Eterm suspendee;
     ErtsPendingSuspend *pending_suspenders;
     ErtsPendExit pending_exit;
@@ -738,6 +787,7 @@ struct process {
     Eterm* space_verified_from; /* we rely on available heap space (TestHeap) */
 #endif
 };
+
 
 #ifdef CHECK_FOR_HOLES
 # define INIT_HOLE_CHECK(p)			\
@@ -1041,6 +1091,14 @@ int erts_proclist_same(ErtsProcList *, Process *);
 
 int erts_sched_set_wakeup_limit(char *str);
 
+#define ERTS_SET_SCHED_SPIN_UNTIL_YIELD 0
+#define ERTS_SET_SCHED_TSE_SPINCOUNT 1
+#define ERTS_SET_SCHED_SYS_SPINCOUNT 2
+#define ERTS_SET_SCHED_SUSPEND_SPINCOUNT 3
+
+erts_aint32_t erts_sched_set_spincount (Uint which, erts_aint32_t count);
+
+
 #ifdef DEBUG
 void erts_dbg_multi_scheduling_return_trap(Process *, Eterm);
 #endif
@@ -1108,6 +1166,10 @@ Eterm erts_get_process_priority(Process *p);
 Eterm erts_set_process_priority(Process *p, Eterm prio);
 
 Uint erts_get_total_context_switches(void);
+Uint erts_get_total_scheduler_waits(void);
+Uint erts_get_total_scheduler_sleeps(void);
+void erts_get_run_queues_counts (Uint64 *sum, Uint64 *samples);
+void erts_get_total_scheduler_times(Uint64 *total, Uint64 *proc, Uint64 *sys, Uint64 *port);
 void erts_get_total_reductions(Uint *, Uint *);
 void erts_get_exact_total_reductions(Process *, Uint *, Uint *);
 
@@ -1342,10 +1404,14 @@ ERTS_GLB_INLINE Eterm erts_get_current_pid(void);
 ERTS_GLB_INLINE Uint erts_get_scheduler_id(void);
 ERTS_GLB_INLINE ErtsRunQueue *erts_get_runq_proc(Process *p);
 ERTS_GLB_INLINE ErtsRunQueue *erts_get_runq_current(ErtsSchedulerData *esdp);
+#ifndef ERTS_ENABLE_LOCK_COUNT
 ERTS_GLB_INLINE void erts_smp_runq_lock(ErtsRunQueue *rq);
+#endif
 ERTS_GLB_INLINE int erts_smp_runq_trylock(ErtsRunQueue *rq);
 ERTS_GLB_INLINE void erts_smp_runq_unlock(ErtsRunQueue *rq);
+#ifndef ERTS_ENABLE_LOCK_COUNT
 ERTS_GLB_INLINE void erts_smp_xrunq_lock(ErtsRunQueue *rq, ErtsRunQueue *xrq);
+#endif
 ERTS_GLB_INLINE void erts_smp_xrunq_unlock(ErtsRunQueue *rq, ErtsRunQueue *xrq);
 ERTS_GLB_INLINE void erts_smp_runqs_lock(ErtsRunQueue *rq1, ErtsRunQueue *rq2);
 ERTS_GLB_INLINE void erts_smp_runqs_unlock(ErtsRunQueue *rq1, ErtsRunQueue *rq2);
@@ -1436,6 +1502,12 @@ erts_get_runq_current(ErtsSchedulerData *esdp)
 #endif
 }
 
+#ifdef ERTS_ENABLE_LOCK_COUNT
+
+#define erts_smp_runq_lock(rq)	erts_smp_mtx_lock_x(&(rq)->mtx, __FILE__, __LINE__)
+
+#else
+
 ERTS_GLB_INLINE void
 erts_smp_runq_lock(ErtsRunQueue *rq)
 {
@@ -1443,6 +1515,8 @@ erts_smp_runq_lock(ErtsRunQueue *rq)
     erts_smp_mtx_lock(&rq->mtx);
 #endif
 }
+
+#endif
 
 ERTS_GLB_INLINE int
 erts_smp_runq_trylock(ErtsRunQueue *rq)
@@ -1462,6 +1536,31 @@ erts_smp_runq_unlock(ErtsRunQueue *rq)
 #endif
 }
 
+#ifdef ERTS_ENABLE_LOCK_COUNT
+
+#define erts_smp_xrunq_lock(rq, xrq)	erts_smp_xrunq_lock_x((rq), (xrq), __FILE__, __LINE__)
+
+ERTS_GLB_INLINE void
+erts_smp_xrunq_lock_x(ErtsRunQueue *rq, ErtsRunQueue *xrq, char* file, int line)
+{
+#ifdef ERTS_SMP
+    ERTS_SMP_LC_ASSERT(erts_smp_lc_mtx_is_locked(&rq->mtx));
+    if (xrq != rq) {
+	if (erts_smp_mtx_trylock(&xrq->mtx) == EBUSY) {
+	    if (rq < xrq)
+		erts_smp_mtx_lock_x(&xrq->mtx, file, line);
+	    else {
+		erts_smp_mtx_unlock(&rq->mtx);
+		erts_smp_mtx_lock_x(&xrq->mtx, file, line);
+		erts_smp_mtx_lock_x(&rq->mtx, file, line);
+	    }
+	}
+    }
+#endif
+}
+
+#else
+
 ERTS_GLB_INLINE void
 erts_smp_xrunq_lock(ErtsRunQueue *rq, ErtsRunQueue *xrq)
 {
@@ -1480,6 +1579,8 @@ erts_smp_xrunq_lock(ErtsRunQueue *rq, ErtsRunQueue *xrq)
     }
 #endif
 }
+
+#endif
 
 ERTS_GLB_INLINE void
 erts_smp_xrunq_unlock(ErtsRunQueue *rq, ErtsRunQueue *xrq)

@@ -45,7 +45,6 @@ ERTS_SCHED_PREF_QUICK_ALLOC_IMPL(message,
 
 
 
-
 static ERTS_INLINE int in_heapfrag(const Eterm* ptr, const ErlHeapFragment *bp)
 {
     return ((unsigned)(ptr - bp->mem) < bp->used_size);
@@ -388,6 +387,7 @@ erts_queue_dist_message(Process *rcvr,
 	mp->data.dist_ext = dist_ext;
 	LINK_MESSAGE(rcvr, mp);
 
+	erts_incr_message_count(&rcvr->msg_enq);
 	notify_new_message(rcvr);
     }
 }
@@ -462,6 +462,7 @@ erts_queue_message(Process* receiver,
     LINK_MESSAGE(receiver, mp);
 #endif
 
+    erts_incr_message_count(&receiver->msg_enq);
     notify_new_message(receiver);
 
     if (IS_TRACED_FL(receiver, F_TRACE_RECEIVE)) {
@@ -470,6 +471,73 @@ erts_queue_message(Process* receiver,
     
 #ifndef ERTS_SMP
     ERTS_HOLE_CHECK(receiver);
+#endif
+}
+
+/* Add a message first in message queue */
+static void
+erts_prepend_message(Process* receiver,
+		     ErtsProcLocks *receiver_locks,
+		     ErlHeapFragment* bp,
+		     Eterm message,
+		     Eterm seq_trace_token);
+
+void
+erts_prepend_message(Process* receiver,
+		     ErtsProcLocks *receiver_locks,
+		     ErlHeapFragment* bp,
+		     Eterm message,
+		     Eterm seq_trace_token)
+{
+#ifdef ERTS_SMP
+    ErlMessage* mp;
+    ErtsProcLocks need_locks;
+
+    ERTS_SMP_LC_ASSERT(((ERTS_PROC_LOCK_MAIN|ERTS_PROC_LOCK_STATUS)
+			& erts_proc_lc_my_proc_locks(receiver)) == (ERTS_PROC_LOCK_MAIN|ERTS_PROC_LOCK_STATUS));
+
+    mp = message_alloc();
+
+    need_locks = ~(*receiver_locks) & (ERTS_PROC_LOCK_STATUS
+				       | ERTS_PROC_LOCK_MAIN);
+    if (need_locks) {
+	*receiver_locks |= need_locks;
+	if (erts_smp_proc_trylock(receiver, need_locks) == EBUSY) {
+	    if (need_locks == ERTS_PROC_LOCK_MAIN) {
+		erts_smp_proc_unlock(receiver, ERTS_PROC_LOCK_STATUS);
+		need_locks = (ERTS_PROC_LOCK_MAIN
+			      | ERTS_PROC_LOCK_STATUS);
+	    }
+	    erts_smp_proc_lock(receiver, need_locks);
+	}
+    }
+
+    if (receiver->is_exiting || ERTS_PROC_PENDING_EXIT(receiver)) {
+	/* Drop message if receiver is exiting or has a pending
+	 * exit ...
+	 */
+	if (bp)
+	    free_message_buffer(bp);
+	message_free(mp);
+	return;
+    }
+
+    ERL_MESSAGE_TERM(mp) = message;
+    ERL_MESSAGE_TOKEN(mp) = seq_trace_token;
+    mp->next = NULL;
+    mp->data.heap_frag = bp;
+
+    PREPEND_MESSAGE_PRIVQ(receiver, mp);
+
+    erts_incr_message_count(&receiver->msg_enq);
+    notify_new_message(receiver);
+
+    if (IS_TRACED_FL(receiver, F_TRACE_RECEIVE)) {
+	trace_receive(receiver, message);
+    }
+#else
+    /* Not supported */
+    erl_exit(ERTS_ABORT_EXIT, "erts_prepend_message(): Not implemented for non-SMP emulator\n");
 #endif
 }
 
@@ -802,11 +870,19 @@ erts_send_message(Process* sender,
         BM_MESSAGE_COPIED(msize);
         BM_SWAP_TIMER(copy,send);
 
-        erts_queue_message(receiver,
-			   receiver_locks,
-			   bp,
-			   message,
-			   token);
+	if (flags & ERTS_SND_FLG_PREPEND) {
+            erts_prepend_message(receiver,
+        			 receiver_locks,
+        			 bp,
+        			 message,
+        			 token);
+	} else {
+	    erts_queue_message(receiver,
+			       receiver_locks,
+			       bp,
+			       message,
+			       token);
+	}
         BM_SWAP_TIMER(send,system);
 #ifdef HYBRID
     } else {
@@ -839,6 +915,7 @@ erts_send_message(Process* sender,
         ERL_MESSAGE_TOKEN(mp) = NIL;
         mp->next = NULL;
 	LINK_MESSAGE(receiver, mp);
+	erts_incr_message_count(&receiver->msg_enq);
         ACTIVATE(receiver);
 
         if (receiver->status == P_WAITING) {
@@ -889,6 +966,7 @@ erts_send_message(Process* sender,
 	    
 	    ERTS_SMP_MSGQ_MV_INQ2PRIVQ(receiver);
 	    LINK_MESSAGE_PRIVQ(receiver, mp);
+	    erts_incr_message_count(&receiver->msg_enq);
 
 	    if (IS_TRACED_FL(receiver, F_TRACE_RECEIVE)) {
 		trace_receive(receiver, message);
@@ -908,7 +986,11 @@ erts_send_message(Process* sender,
 	message = copy_struct(message, msize, &hp, ohp);
 	BM_MESSAGE_COPIED(msz);
 	BM_SWAP_TIMER(copy,send);
-	erts_queue_message(receiver, receiver_locks, bp, message, token);
+	if (flags & ERTS_SND_FLG_PREPEND) {
+	    erts_prepend_message(receiver, receiver_locks, bp, message, token);
+	} else {
+	    erts_queue_message(receiver, receiver_locks, bp, message, token);
+	}
         BM_SWAP_TIMER(send,system);
 #else
 	ErlMessage* mp = message_alloc();
@@ -933,6 +1015,7 @@ erts_send_message(Process* sender,
 	mp->next = NULL;
 	mp->data.attached = NULL;
 	LINK_MESSAGE(receiver, mp);
+	erts_incr_message_count(&receiver->msg_enq);
 
 	if (receiver->status == P_WAITING) {
 	    erts_add_to_runq(receiver);

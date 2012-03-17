@@ -2397,6 +2397,63 @@ trace_gc(Process *p, Eterm what)
 }
 
 
+void
+monitor_gc_throttle(Process *p) {
+    ErlHeapFragment *bp;
+    ErlOffHeap *off_heap;
+#ifndef ERTS_SMP
+    Process *monitor_p;
+#endif
+    Uint hsz;
+    Eterm *hp, list, msg;
+    Eterm tags[] = {
+	    am_call_count,
+	    am_runtime,
+	    am_wall_clock,
+	    am_min_heap_size,
+	    am_message_queue_len
+    };
+    Eterm values[] = {
+	    p->gc_count,
+	    p->gc_time_accum,
+	    p->gc_time_base,
+	    p->min_heap_size+p->gc_load_bias,
+	    p->msg.len
+    };
+
+#ifndef ERTS_SMP
+    ASSERT(is_internal_pid(system_monitor)
+	   && internal_pid_index(system_monitor) < erts_max_processes);
+    monitor_p = process_tab[internal_pid_index(system_monitor)];
+    if (INVALID_PID(monitor_p, system_monitor) || p == monitor_p) {
+	return;
+    }
+#endif
+
+    hsz = 0;
+    (void) erts_bld_atom_uint_2tup_list(NULL,
+					&hsz,
+					sizeof(values)/sizeof(Uint),
+					tags,
+					values);
+    hsz += 5 /* 4-tuple */;
+
+    hp = ERTS_ALLOC_SYSMSG_HEAP(hsz, &bp, &off_heap, monitor_p);
+
+    list = erts_bld_atom_uint_2tup_list(&hp,
+					NULL,
+					sizeof(values)/sizeof(Uint),
+					tags,
+					values);
+    msg = TUPLE4(hp, am_monitor, p->id/* Local pid */, am_gc_throttle, list);
+
+#ifdef ERTS_SMP
+    enqueue_sys_msg(SYS_MSG_TYPE_SYSMON, p->id, NIL, msg, bp);
+#else
+    erts_queue_message(monitor_p, NULL, bp, msg, NIL);
+#endif
+}
+
 
 void
 monitor_long_gc(Process *p, Uint time) {

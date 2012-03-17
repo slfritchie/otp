@@ -46,7 +46,11 @@
 #define EMULATOR "BEAM"
 #define SEQ_TRACE 1
 
-#define CONTEXT_REDS 2000	/* Swap process out after this number */
+#define ERTS_DEFAULT_CONTEXT_REDS 2000
+extern erts_smp_atomic32_t erts_sched_context_reds;
+#define CONTEXT_REDS erts_smp_atomic32_read(&erts_sched_context_reds)	/* Swap process out after this number */
+#define erts_sched_set_context_reds(reds) erts_smp_atomic32_xchg(&erts_sched_context_reds, reds)
+
 #define MAX_ARG 255	        /* Max number of arguments allowed */
 #define MAX_REG 1024            /* Max number of x(N) registers used */
 
@@ -66,6 +70,7 @@
 #define ERTS_X_REGS_ALLOCATED (MAX_REG+3)
 
 #define INPUT_REDUCTIONS (2 * CONTEXT_REDS)
+#define ERTS_DEFAULT_INPUT_REDUCTIONS (2 * ERTS_DEFAULT_CONTEXT_REDS)
 
 #define H_DEFAULT_SIZE  233        /* default (heap + stack) min size */
 #define VH_DEFAULT_SIZE  32768     /* default virtual (bin) heap min size (words) */

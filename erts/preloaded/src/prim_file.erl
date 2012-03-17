@@ -30,7 +30,7 @@
 
 %% Specialized file operations
 -export([open/1, open/3]).
--export([read_file/1, read_file/2, write_file/2]).
+-export([read_file/1, read_file/2, write_file/2, write_file/3, write_file/4]).
 -export([ipread_s32bu_p32bu/3]).
 
 
@@ -534,8 +534,22 @@ write_file(File, Bin) when (is_list(File) orelse is_binary(File)) ->
 	Error ->
 	    Error
     end;
-write_file(_, _) -> 
+write_file(_, _) ->
     {error, badarg}.
+
+write_file(Port, File, Bin) ->
+    write_file(Port, File, Bin, []).
+
+write_file(Port, File, Opts, Bin) when is_port(Port),
+			   	       (is_list(File) orelse is_binary(File)) ->
+    case open(Port, File, [binary, write] ++ Opts) of
+	{ok, Handle} ->
+	    Result = write(Handle, Bin),
+	    drv_command(Port, <<?FILE_CLOSE>>),
+	    Result;
+	Error ->
+	    Error
+    end.
     
 
 

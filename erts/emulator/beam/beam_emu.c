@@ -1846,6 +1846,7 @@ void process_main(void)
 	 seq_trace_output(SEQ_TRACE_TOKEN(c_p), msg, SEQ_TRACE_RECEIVE, 
 			  c_p->id, c_p);
      }
+     erts_incr_message_count(&c_p->msg_deq);
      UNLINK_MESSAGE(c_p, msgp);
      JOIN_MESSAGE(c_p);
      CANCEL_TIMER(c_p);

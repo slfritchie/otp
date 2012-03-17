@@ -1552,7 +1552,7 @@ type(erlang, system_info, 1, Xs) ->
 		   ['dist'] ->
 		     t_binary();
 		   ['dist_ctrl'] ->
-		     t_list(t_tuple([t_atom(), t_sup([t_pid(), t_port])]));
+		     t_list(t_tuple([t_atom(), t_sup([t_pid(), t_port()])]));
 		   %% elib_malloc is intentionally not included,
 		   %% because it scheduled for removal in R15.
 		   ['endian'] ->

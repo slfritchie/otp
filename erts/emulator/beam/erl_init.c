@@ -131,16 +131,16 @@ int erts_no_crash_dump = 0;	/* Use -d to suppress crash dump. */
  */
 
 ErtsModifiedTimings erts_modified_timings[] = {
-    /* 0 */	{make_small(0), CONTEXT_REDS, INPUT_REDUCTIONS},
-    /* 1 */	{make_small(0), 2*CONTEXT_REDS, 2*INPUT_REDUCTIONS},
-    /* 2 */	{make_small(0), CONTEXT_REDS/2, INPUT_REDUCTIONS/2},
-    /* 3 */	{make_small(0), 3*CONTEXT_REDS, 3*INPUT_REDUCTIONS},
-    /* 4 */	{make_small(0), CONTEXT_REDS/3, 3*INPUT_REDUCTIONS},
-    /* 5 */	{make_small(0), 4*CONTEXT_REDS, INPUT_REDUCTIONS/2},
-    /* 6 */	{make_small(1), CONTEXT_REDS/4, 2*INPUT_REDUCTIONS},
-    /* 7 */	{make_small(1), 5*CONTEXT_REDS, INPUT_REDUCTIONS/3},
-    /* 8 */	{make_small(10), CONTEXT_REDS/5, 3*INPUT_REDUCTIONS},
-    /* 9 */	{make_small(10), 6*CONTEXT_REDS, INPUT_REDUCTIONS/4}
+    /* 0 */	{make_small(0), ERTS_DEFAULT_CONTEXT_REDS, ERTS_DEFAULT_INPUT_REDUCTIONS},
+    /* 1 */	{make_small(0), 2*ERTS_DEFAULT_CONTEXT_REDS, 2*ERTS_DEFAULT_INPUT_REDUCTIONS},
+    /* 2 */	{make_small(0), ERTS_DEFAULT_CONTEXT_REDS/2, ERTS_DEFAULT_INPUT_REDUCTIONS/2},
+    /* 3 */	{make_small(0), 3*ERTS_DEFAULT_CONTEXT_REDS, 3*ERTS_DEFAULT_INPUT_REDUCTIONS},
+    /* 4 */	{make_small(0), ERTS_DEFAULT_CONTEXT_REDS/3, 3*ERTS_DEFAULT_INPUT_REDUCTIONS},
+    /* 5 */	{make_small(0), 4*ERTS_DEFAULT_CONTEXT_REDS, ERTS_DEFAULT_INPUT_REDUCTIONS/2},
+    /* 6 */	{make_small(1), ERTS_DEFAULT_CONTEXT_REDS/4, 2*ERTS_DEFAULT_INPUT_REDUCTIONS},
+    /* 7 */	{make_small(1), 5*ERTS_DEFAULT_CONTEXT_REDS, ERTS_DEFAULT_INPUT_REDUCTIONS/3},
+    /* 8 */	{make_small(10), ERTS_DEFAULT_CONTEXT_REDS/5, 3*ERTS_DEFAULT_INPUT_REDUCTIONS},
+    /* 9 */	{make_small(10), 6*ERTS_DEFAULT_CONTEXT_REDS, ERTS_DEFAULT_INPUT_REDUCTIONS/4}
 };
 
 #define ERTS_MODIFIED_TIMING_LEVELS \
@@ -510,6 +510,7 @@ void erts_usage(void)
     erts_fprintf(stderr, "-rg amount  set reader groups limit\n");
     erts_fprintf(stderr, "-sbt type   set scheduler bind type, valid types are:\n");
     erts_fprintf(stderr, "            u|ns|ts|ps|s|nnts|nnps|tnnps|db\n");
+    erts_fprintf(stderr, "-scr reds   set scheduler context reductions\n");
     erts_fprintf(stderr, "-sct cput   set cpu topology,\n");
     erts_fprintf(stderr, "            see the erl(1) documentation for more info.\n");
     erts_fprintf(stderr, "-swt val    set scheduler wakeup threshold, valid values are:\n");
@@ -518,6 +519,10 @@ void erts_usage(void)
     erts_fprintf(stderr, "            valid range is [%d-%d]\n",
 		 ERTS_SCHED_THREAD_MIN_STACK_SIZE,
 		 ERTS_SCHED_THREAD_MAX_STACK_SIZE);
+    erts_fprintf(stderr, "-sscy count set scheduler spin-until-yield count\n");
+    erts_fprintf(stderr, "-ssct count set scheduler tse spin count\n");
+    erts_fprintf(stderr, "-sscs count set scheduler sys spin count\n");
+    erts_fprintf(stderr, "-sscp count set scheduler suspend spin count\n");
     erts_fprintf(stderr, "-S n1:n2    set number of schedulers (n1), and number of\n");
     erts_fprintf(stderr, "            schedulers online (n2), valid range for both\n");
     erts_fprintf(stderr, "            numbers are [1-%d]\n",
@@ -1150,6 +1155,18 @@ erl_start(int argc, char **argv)
 		    erts_usage();
 		}
 	    }
+	    else if (has_prefix("cr", sub_param)) {
+		int reds;
+
+		arg = get_arg(sub_param+2, argv[i+1], &i);
+		if (sscanf(arg, "%d", &reds) != 1 || reds <= 0) {
+		    erts_fprintf(stderr,
+				 "bad context reductions value: %s\n",
+				 arg);
+		    erts_usage();
+		}
+		erts_sched_set_context_reds(reds);
+	    }
 	    else if (has_prefix("ct", sub_param)) {
 		arg = get_arg(sub_param+2, argv[i+1], &i);
 		res = erts_init_cpu_topology_string(arg);
@@ -1225,6 +1242,42 @@ erl_start(int argc, char **argv)
 		VERBOSE(DEBUG_SYSTEM,
 			("suggested scheduler thread stack size %d kilo words\n",
 			 erts_sched_thread_suggested_stack_size));
+	    }
+	    else if (has_prefix("sc", sub_param)) {
+		int spintype = -1;
+		int spincount;
+
+		switch (sub_param[2]) {
+		case 'y':
+		    spintype = ERTS_SET_SCHED_SPIN_UNTIL_YIELD;
+		    break;
+
+		case 't':
+		    spintype = ERTS_SET_SCHED_TSE_SPINCOUNT;
+		    break;
+
+		case 's':
+		    spintype = ERTS_SET_SCHED_SYS_SPINCOUNT;
+		    break;
+
+		case 'p':
+		    spintype = ERTS_SET_SCHED_SUSPEND_SPINCOUNT;
+		    break;
+
+		default:
+		    erts_fprintf(stderr,
+				 "bad spincount type: %s\n",
+				 argv[i]);
+		    erts_usage();
+		}
+		arg = get_arg(sub_param+3, argv[i+1], &i);
+		if (sscanf(arg, "%d", &spincount) != 1 || spincount <= 0) {
+		    erts_fprintf(stderr,
+				 "bad spincount value: %s\n",
+				 arg);
+		    erts_usage();
+		}
+		erts_sched_set_spincount(spintype,spincount);
 	    }
 	    else {
 		erts_fprintf(stderr, "bad scheduling option %s\n", argv[i]);

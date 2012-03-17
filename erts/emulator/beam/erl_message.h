@@ -114,6 +114,16 @@ typedef struct {
     (p)->msg.len++; \
 } while(0)
 
+/* Add message first in private message queue */
+#define PREPEND_MESSAGE_PRIVQ(p, mp) do { \
+    (mp)->next = (p)->msg.first; \
+    if ((p)->msg.first == NULL) { \
+	(p)->msg.last = &(mp)->next; \
+    } \
+    (p)->msg.first = (mp); \
+    (p)->msg.len++; \
+} while(0)
+
 
 #ifdef ERTS_SMP
 
@@ -201,6 +211,7 @@ do {									\
 } while (0)
 
 #define ERTS_SND_FLG_NO_SEQ_TRACE		(((unsigned) 1) << 0)
+#define ERTS_SND_FLG_PREPEND			(((unsigned) 1) << 1)
 
 #define ERTS_HEAP_FRAG_SIZE(DATA_WORDS) \
    (sizeof(ErlHeapFragment) - sizeof(Eterm) + (DATA_WORDS)*sizeof(Eterm))

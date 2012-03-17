@@ -2189,11 +2189,11 @@ clock_add(Table, Id, Clock, T) ->
 	error:badarg ->
 	    ets:insert(Table, #clocks{id = Id}),
 	    X = ets:update_counter(Table, Id, {Clock, T}),
-	    if X >= 0 -> ok;
+	    if X >= 0 -> X;
 	       true -> ?dbg(0, "Negative counter value ~p ~p ~p ~p~n",
-			  [X, Id, Clock, T])
-	    end,
-	    X
+			  [X, Id, Clock, T]),
+		       0
+	    end
     end.
 
 clocks_add(Table, #clocks{id = Id} = Clocks) ->
@@ -2225,11 +2225,11 @@ clocks_sum(#clocks{id = _Id1,
 
 ts_sub({A, B, C} = _T, {A0, B0, C0} = _T0) ->
     X = ((((A-A0)*1000000) + (B-B0))*1000000) + C - C0,
-    if X >= 0 -> ok;
-       true -> ?dbg(9, "Negative counter value ~p ~p ~p~n",
-		    [X, _T, _T0])
-    end,
-    X;
+    if X >= 0 -> X;
+       true -> ?dbg(0, "Negative counter value ~p ~p ~p~n",
+		    [X, _T, _T0]),
+	       0
+    end;
 ts_sub(_, _) ->
     undefined.
 

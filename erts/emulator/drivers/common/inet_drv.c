@@ -7784,6 +7784,9 @@ static tcp_descriptor* tcp_inet_copy(tcp_descriptor* desc,SOCKET s,
     copy_desc->low           = desc->low;
     copy_desc->send_timeout  = desc->send_timeout;
     copy_desc->send_timeout_close = desc->send_timeout_close;
+
+    copy_desc->inet.active   = desc->inet.active;
+    copy_desc->tcp_add_flags = desc->tcp_add_flags & TCP_ADDF_DELAY_SEND;
     
     /* The new port will be linked and connected to the original caller */
     port = driver_create_port(port, owner, "tcp_inet", (ErlDrvData) copy_desc);

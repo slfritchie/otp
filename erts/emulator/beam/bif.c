@@ -1418,6 +1418,58 @@ static BIF_RETTYPE process_flag_aux(Process *BIF_P,
        else
 	   BIF_RET(old_value);
    }
+   else if (flag == am_flush_message_queue) {
+       Sint i;
+       Sint n = 0;
+       ErlMessage* mp;
+
+       if (!is_small(val)) {
+	   goto error;
+       }
+       i = signed_val(val);
+       if (i < 0) {
+	   goto error;
+       }
+
+       erts_smp_proc_lock(rp, ERTS_PROC_LOCK_MSGQ);
+       ERTS_SMP_MSGQ_MV_INQ2PRIVQ(rp);
+       mp = rp->msg.first;
+       while(mp != NULL) {
+	   ErlMessage* next_mp = mp->next;
+	   if (i > 0 && n >= i) {
+	       break;
+	   }
+	   ++n;
+	   if (mp->data.attached) {
+	       if (is_value(mp->m[0]))
+		   free_message_buffer(mp->data.heap_frag);
+	       else {
+		   if (is_not_nil(mp->m[1])) {
+		       ErlHeapFragment *heap_frag;
+		       heap_frag = (ErlHeapFragment *) mp->data.dist_ext->ext_endp;
+		       erts_cleanup_offheap(&heap_frag->off_heap);
+		   }
+		   erts_free_dist_ext_copy(mp->data.dist_ext);
+	       }
+	   }
+	   if (rp->msg.save == &mp->next) {
+	       rp->msg.save = &rp->msg.first;
+	   }
+	   free_message(mp);
+	   mp = next_mp;
+       }
+       if (mp) {
+	   rp->msg.first = mp;
+	   rp->msg.len -= n;
+       } else {
+	   rp->msg.first = NULL;
+	   rp->msg.last = &rp->msg.first;
+	   rp->msg.save = &rp->msg.first;
+	   rp->msg.len = 0;
+       }
+       erts_smp_proc_unlock(rp, ERTS_PROC_LOCK_MSGQ);
+       BIF_RET(make_small(n));
+   }
 
  error:
    BIF_ERROR(BIF_P, BADARG);
@@ -1692,7 +1744,7 @@ ebif_bang_2(Process* p, Eterm To, Eterm Message)
 #define SEND_USER_ERROR		(-5)
 #define SEND_INTERNAL_ERROR	(-6)
 
-Sint do_send(Process *p, Eterm to, Eterm msg, int suspend);
+Sint do_send(Process *p, Eterm to, Eterm msg, int suspend, int prepend);
 
 static Sint remote_send(Process *p, DistEntry *dep,
 			Eterm to, Eterm full_to, Eterm msg, int suspend)
@@ -1746,13 +1798,14 @@ static Sint remote_send(Process *p, DistEntry *dep,
 }
 
 Sint
-do_send(Process *p, Eterm to, Eterm msg, int suspend) {
+do_send(Process *p, Eterm to, Eterm msg, int suspend, int prepend) {
     Eterm portid;
     Port *pt;
     Process* rp;
     DistEntry *dep;
     Eterm* tp;
 
+    erts_incr_message_count(&p->msg_send);
     if (is_internal_pid(to)) {
 	if (IS_TRACED(p))
 	    trace_send(p, to, msg);
@@ -1763,7 +1816,9 @@ do_send(Process *p, Eterm to, Eterm msg, int suspend) {
 	    return SEND_BADARG;
 
 	rp = erts_pid2proc_opt(p, ERTS_PROC_LOCK_MAIN,
-			       to, 0, ERTS_P2P_FLG_SMP_INC_REFC);
+			       to,
+			       prepend ? (ERTS_PROC_LOCK_MAIN|ERTS_PROC_LOCK_STATUS) : 0,
+			       ERTS_P2P_FLG_SMP_INC_REFC);
 	
 	if (!rp) {
 	    ERTS_SMP_ASSERT_IS_NOT_EXITING(p);
@@ -1772,6 +1827,7 @@ do_send(Process *p, Eterm to, Eterm msg, int suspend) {
     } else if (is_external_pid(to)) {
 	dep = external_pid_dist_entry(to);
 	if(dep == erts_this_dist_entry) {
+#if DEBUG
 	    erts_dsprintf_buf_t *dsbufp = erts_create_logger_dsbuf();
 	    erts_dsprintf(dsbufp,
 			  "Discarding message %T from %T to %T in an old "
@@ -1782,6 +1838,7 @@ do_send(Process *p, Eterm to, Eterm msg, int suspend) {
 			  external_pid_creation(to),
 			  erts_this_node->creation);
 	    erts_send_error_to_logger(p->group_leader, dsbufp);
+#endif
 	    return 0;
 	}
 	return remote_send(p, dep, to, to, msg, suspend);
@@ -1828,6 +1885,7 @@ do_send(Process *p, Eterm to, Eterm msg, int suspend) {
     } else if (is_external_port(to)
 	       && (external_port_dist_entry(to)
 		   == erts_this_dist_entry)) {
+#if DEBUG
 	erts_dsprintf_buf_t *dsbufp = erts_create_logger_dsbuf();
 	erts_dsprintf(dsbufp,
 		      "Discarding message %T from %T to %T in an old "
@@ -1838,6 +1896,7 @@ do_send(Process *p, Eterm to, Eterm msg, int suspend) {
 		      external_port_creation(to),
 		      erts_this_node->creation);
 	erts_send_error_to_logger(p->group_leader, dsbufp);
+#endif
 	return 0;
     } else if (is_internal_port(to)) {
 	portid = to;
@@ -1990,9 +2049,11 @@ do_send(Process *p, Eterm to, Eterm msg, int suspend) {
 #ifdef ERTS_SMP
 	if (p == rp)
 	    rp_locks |= ERTS_PROC_LOCK_MAIN;
+	if (prepend)
+	    rp_locks |= (ERTS_PROC_LOCK_MAIN|ERTS_PROC_LOCK_STATUS);
 #endif
 	/* send to local process */
-	erts_send_message(p, rp, &rp_locks, msg, 0);
+	erts_send_message(p, rp, &rp_locks, msg, prepend ? ERTS_SND_FLG_PREPEND : 0);
 	if (!erts_use_sender_punish)
 	    res = 0;
 	else {
@@ -2018,6 +2079,7 @@ Eterm
 send_3(Process *p, Eterm to, Eterm msg, Eterm opts) {
     int connect = !0;
     int suspend = !0;
+    int prepend = 0;
     Eterm l = opts;
     Sint result;
     
@@ -2026,6 +2088,8 @@ send_3(Process *p, Eterm to, Eterm msg, Eterm opts) {
 	    connect = 0;
 	} else if (CAR(list_val(l)) == am_nosuspend) {
 	    suspend = 0;
+	} else if (CAR(list_val(l)) == am_prepend && is_internal_pid(to)) {
+	    prepend = 1;
 	} else {
 	    BIF_ERROR(p, BADARG);
 	}
@@ -2035,7 +2099,7 @@ send_3(Process *p, Eterm to, Eterm msg, Eterm opts) {
 	BIF_ERROR(p, BADARG);
     }
     
-    result = do_send(p, to, msg, suspend);
+    result = do_send(p, to, msg, suspend, prepend);
     if (result > 0) {
 	ERTS_VBUMP_REDS(p, result);
 	BIF_RET(am_ok);
@@ -2081,7 +2145,7 @@ send_3(Process *p, Eterm to, Eterm msg, Eterm opts) {
 
 Eterm
 send_2(Process *p, Eterm to, Eterm msg) {
-    Sint result = do_send(p, to, msg, !0);
+    Sint result = do_send(p, to, msg, !0, 0);
     
     if (result > 0) {
 	ERTS_VBUMP_REDS(p, result);
@@ -4050,6 +4114,36 @@ BIF_RETTYPE system_flag_2(BIF_ALIST_2)
 	BIF_TRAP1(set_cpu_topology_trap, BIF_P, BIF_ARG_2);
     } else if (ERTS_IS_ATOM_STR("scheduler_bind_type", BIF_ARG_1)) {
 	return erts_bind_schedulers(BIF_P, BIF_ARG_2);
+    } else if (ERTS_IS_ATOM_STR("scheduler_spin_until_yield", BIF_ARG_1)) {
+        erts_aint32_t old;
+	if (!is_small(BIF_ARG_2))
+	    goto error;
+        old = erts_sched_set_spincount(ERTS_SET_SCHED_SPIN_UNTIL_YIELD,unsigned_val(BIF_ARG_2));
+	BIF_RET(make_small(old));
+    } else if (ERTS_IS_ATOM_STR("scheduler_tse_spincount", BIF_ARG_1)) {
+        erts_aint32_t old;
+	if (!is_small(BIF_ARG_2))
+	    goto error;
+        old = erts_sched_set_spincount(ERTS_SET_SCHED_TSE_SPINCOUNT,unsigned_val(BIF_ARG_2));
+	BIF_RET(make_small(old));
+    } else if (ERTS_IS_ATOM_STR("scheduler_sys_spincount", BIF_ARG_1)) {
+        erts_aint32_t old;
+	if (!is_small(BIF_ARG_2))
+	    goto error;
+        old = erts_sched_set_spincount(ERTS_SET_SCHED_SYS_SPINCOUNT,unsigned_val(BIF_ARG_2));
+	BIF_RET(make_small(old));
+    } else if (ERTS_IS_ATOM_STR("scheduler_suspend_spincount", BIF_ARG_1)) {
+        erts_aint32_t old;
+	if (!is_small(BIF_ARG_2))
+	    goto error;
+        old = erts_sched_set_spincount(ERTS_SET_SCHED_SUSPEND_SPINCOUNT,unsigned_val(BIF_ARG_2));
+	BIF_RET(make_small(old));
+    } else if (ERTS_IS_ATOM_STR("scheduler_context_reductions", BIF_ARG_1)) {
+        erts_aint32_t old;
+	if (!is_small(BIF_ARG_2))
+	    goto error;
+	old = erts_sched_set_context_reds(unsigned_val(BIF_ARG_2));
+	BIF_RET(make_small(old));
     }
     error:
     BIF_ERROR(BIF_P, BADARG);
