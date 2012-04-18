@@ -223,7 +223,7 @@ erts_next_heap_size(Uint size, Uint offset)
 static inline Uint
 min_heap_size (Process* p)
 {
-    return MIN_HEAP_SIZE(p)+p->gc_load_bias;
+    return MIN_HEAP_SIZE(p) + p->gc_load_bias;
 }
 
 /*
@@ -433,7 +433,7 @@ erts_garbage_collect(Process* p, int need, Eterm* objv, int nobj)
 		} else {
 		    offset = 1;
 		}
-		p->gc_load_bias = erts_next_heap_size(p->gc_load_bias, offset);
+		p->gc_load_bias = erts_next_heap_size(HEAP_TOP(p) - HEAP_START(p), offset);
 		monitor_gc_throttle(p);
 	    } else if (p->gc_load_bias > 0 && gcfrac < 2) {
 		p->gc_load_bias = (p->gc_load_bias <= heap_sizes[0]) ? 0 : erts_next_heap_size(p->gc_load_bias, -1);

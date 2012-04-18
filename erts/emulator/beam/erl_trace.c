@@ -2417,7 +2417,7 @@ monitor_gc_throttle(Process *p) {
 	    p->gc_count,
 	    p->gc_time_accum,
 	    p->gc_time_base,
-	    p->min_heap_size+p->gc_load_bias,
+	    MIN_HEAP_SIZE(p) + p->gc_load_bias,
 	    p->msg.len
     };
 
