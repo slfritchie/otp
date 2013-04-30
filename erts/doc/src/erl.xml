@@ -1159,6 +1159,28 @@
             give lower latency and higher throughput at the expense
             of higher memory usage.</p>
           </item>
+          <tag><marker id="+zdnfgtse"><c>+zdnfgtse usec1:usec2</c></marker></tag>
+          <item>
+            <p>Enable the 'do not go to sleep' scheduler flag and set
+            the two microsecond sleep constants used during idle periods.</p>
+            <p>During certain uncommon workloads, it is possible for
+            Erlang schedulers to go to sleep (for both speed and
+            energy efficiences)  Use of this flag will disable the
+            ability of schedulers to go to sleep merely for being idle.</p>
+            <p>When schedulers are added and removed, e.g., during
+            virtual machine startup or by using the
+            <seealso
+                marker="erlang#system_flag_schedulers_online">erlang:system_flag(schedulers_online)</seealso>
+            BIF, scheduler sleep periods are mandatory.  This flag
+            will not interfere with those sleep periods.</p>
+            <p>The two constants here specify sleep times (in
+            microseconds) for two places where schedulers would
+            otherwise sleep.  Smaller values will lower latency during
+            low-stress time periods but (in trade) will consume more CPU
+            resources.  Suggested values should be at least 1000-2000
+            microseconds each, though experimentation is required to
+            find an acceptable CPU time vs. latency trade-off.</p>
+          </item>
         </taglist>
       </item>
     </taglist>

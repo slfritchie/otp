@@ -5587,6 +5587,13 @@ ok
               connected via TCP/IP (the normal case) is the socket
               actually used in communication with the specific node.</p>
           </item>
+          <tag><marker id="system_info_do_not_sleep_constants"><c>do_not_sleep_constants</c></marker></tag>
+          <item>
+            <p>Returns the values of the two microsecond sleep
+            constants specified by the <seealso
+            marker="erts:erl#+zdnfgtse">+zdnfgtse</seealso> command
+            line flag to <c>erl</c>.</p>
+          </item>
           <tag><c>driver_version</c></tag>
           <item>
             <p>Returns a string containing the erlang driver version

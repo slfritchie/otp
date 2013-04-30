@@ -560,6 +560,9 @@ void erts_usage(void)
     erts_fprintf(stderr, "            see error_logger documentation for details\n");
     erts_fprintf(stderr, "-zdbbl size set the distribution buffer busy limit in kilobytes\n");
     erts_fprintf(stderr, "            valid range is [1-%d]\n", INT_MAX/1024);
+    erts_fprintf(stderr, "-zdnfgtse N:M\n");
+    erts_fprintf(stderr, "            disable scheduler sleeps and replace with\n");
+    erts_fprintf(stderr, "            static N and M microsecond pauses.\n");
     erts_fprintf(stderr, "\n");
     erts_fprintf(stderr, "Note that if the emulator is started with erlexec (typically\n");
     erts_fprintf(stderr, "from the erl script), these flags should be specified with +.\n");
@@ -886,6 +889,7 @@ early_init(int *argc, char **argv) /*
     erts_ets_realloc_always_moves = 0;
     erts_ets_always_compress = 0;
     erts_dist_buf_busy_limit = ERTS_DE_BUSY_LIMIT;
+    dnfgtse_enabled = 0;
 
     return ncpu;
 }
@@ -1598,7 +1602,23 @@ erl_start(int argc, char **argv)
 		} else {
 		    erts_dist_buf_busy_limit = new_limit*1024;
 		}
+            } else if (has_prefix("dnfgtse", sub_param)) {
+                useconds_t m, n;
+                char *arg = get_arg(sub_param+7, argv[i+1], &i);
+                switch (sscanf(arg, "%d:%d", &m, &n)) {
+                case 1:
+                    n = m;
+                    /* fall through */
+                case 2:
+                    dnfgtse_enabled = 1;
+                    dnfgtse_sleep_m = m;
+                    dnfgtse_sleep_n = n;
+                    break;
+                default:
+                    goto bad_z_option;
+                }
 	    } else {
+            bad_z_option:
 		erts_fprintf(stderr, "bad -z option %s\n", argv[i]);
 		erts_usage();
 	    }

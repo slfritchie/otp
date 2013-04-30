@@ -2567,6 +2567,16 @@ BIF_RETTYPE system_info_1(BIF_ALIST_1)
 	hp = hsz ? HAlloc(BIF_P, hsz) : NULL;
 	res = erts_bld_uint(&hp, NULL, erts_dist_buf_busy_limit);
 	BIF_RET(res);
+    } else if (ERTS_IS_ATOM_STR("do_not_sleep_constants", BIF_ARG_1)) {
+        if (!dnfgtse_enabled) {
+            BIF_RET(am_false);
+        } else {
+            Eterm *hp = HAlloc(BIF_P, 3);
+            res = TUPLE2(hp,
+                         erts_make_integer(dnfgtse_sleep_m, BIF_P),
+                         erts_make_integer(dnfgtse_sleep_n, BIF_P));
+            BIF_RET(res);
+        }
     } else if (ERTS_IS_ATOM_STR("print_ethread_info", BIF_ARG_1)) {
 #if defined(ETHR_NATIVE_ATOMIC32_IMPL) \
     || defined(ETHR_NATIVE_ATOMIC64_IMPL) \

@@ -35,7 +35,7 @@
 	 init_per_group/2,end_per_group/2, 
 	 init_per_testcase/2, end_per_testcase/2]).
 
--export([args_file/1, evil_args_file/1, env/1, args_file_env/1, otp_7461/1, otp_7461_remote/1, otp_8209/1, zdbbl_dist_buf_busy_limit/1]).
+-export([args_file/1, evil_args_file/1, env/1, args_file_env/1, otp_7461/1, otp_7461_remote/1, otp_8209/1, zdbbl_dist_buf_busy_limit/1, zdnfgtse_sleep_constants/1]).
 
 -include_lib("test_server/include/test_server.hrl").
     
@@ -57,7 +57,7 @@ suite() -> [{ct_hooks,[ts_install_cth]}].
 
 all() -> 
     [args_file, evil_args_file, env, args_file_env,
-     otp_7461, otp_8209, zdbbl_dist_buf_busy_limit].
+     otp_7461, otp_8209, zdbbl_dist_buf_busy_limit, zdnfgtse_sleep_constants].
 
 groups() -> 
     [].
@@ -368,6 +368,26 @@ zdbbl_dist_buf_busy_limit(Config) when is_list(Config) ->
     ?line ok = cleanup_node(SNameS, 10),
     ok.
     
+zdnfgtse_sleep_constants(doc) ->
+    ["Check +zdnfgtse flag"];
+zdnfgtse_sleep_constants(suite) ->
+    [];
+zdnfgtse_sleep_constants(Config) when is_list(Config) ->
+    M = 500,
+    N = 600,
+    ?line {ok,[[PName]]} = init:get_argument(progname),
+    ?line SNameS = "erlexec_test_03",
+    ?line SName = list_to_atom(SNameS++"@"++
+                         hd(tl(string:tokens(atom_to_list(node()),"@")))),
+    ?line Cmd = PName ++ " -sname "++SNameS++" -setcookie "++
+        atom_to_list(erlang:get_cookie()) ++
+	" +zdnfgtse " ++ integer_to_list(M) ++ ":" ++ integer_to_list(N),
+    ?line open_port({spawn,Cmd},[]),
+    ?line pong = loop_ping(SName,40),
+    ?line {M, N} = rpc:call(SName,erlang,system_info,[do_not_sleep_constants]),
+    ?line ok = cleanup_node(SNameS, 10),
+    ok.
+
 
 %%
 %% Utils

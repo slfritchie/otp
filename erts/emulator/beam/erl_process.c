@@ -270,6 +270,10 @@ Eterm erts_system_monitor_long_gc;
 Eterm erts_system_monitor_large_heap;
 struct erts_system_monitor_flags_t erts_system_monitor_flags;
 
+int dnfgtse_enabled = 0;
+useconds_t dnfgtse_sleep_m = 1000;
+useconds_t dnfgtse_sleep_n = 2000;
+
 /* system performance monitor */
 Eterm erts_system_profile;
 struct erts_system_profile_flags_t erts_system_profile_flags;
@@ -2306,6 +2310,10 @@ scheduler_wait(int *fcalls, ErtsSchedulerData *esdp, ErtsRunQueue *rq)
 	    if (aux_work)
 		flgs = erts_smp_atomic32_read_acqb(&ssi->flags);
 	    else {
+                if (dnfgtse_enabled) {
+                    usleep(dnfgtse_sleep_m);
+                    break;
+                }
 		if (thr_prgr_active) {
 		    erts_thr_progress_active(esdp, thr_prgr_active = 0);
 		    sched_wall_time_change(esdp, 0);
@@ -2468,6 +2476,11 @@ scheduler_wait(int *fcalls, ErtsSchedulerData *esdp, ErtsRunQueue *rq)
 	    goto sys_poll_aux_work;
 	}
 #ifdef ERTS_SMP
+        if (dnfgtse_enabled) {
+            usleep(dnfgtse_sleep_n);
+            erts_smp_runq_unlock(rq);
+            goto sys_woken;
+        } else
 	flgs = sched_set_sleeptype(ssi, ERTS_SSI_FLG_POLL_SLEEPING);
 	if (!(flgs & ERTS_SSI_FLG_SLEEPING)) {
 	    if (!(flgs & ERTS_SSI_FLG_WAITING)) {
