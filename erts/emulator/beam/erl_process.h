@@ -1983,7 +1983,7 @@ extern erts_smp_atomic32_t erts_halt_progress;
 extern int erts_halt_code;
 
 #ifdef ERTS_SMP
-extern int dnfgtse_enabled;
-extern useconds_t dnfgtse_sleep_m;
-extern useconds_t dnfgtse_sleep_n;
+extern int dss_enabled;
+extern useconds_t dss_sleep_m;
+extern useconds_t dss_sleep_n;
 #endif

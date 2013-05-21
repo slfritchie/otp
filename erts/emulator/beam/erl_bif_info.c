@@ -2569,13 +2569,13 @@ BIF_RETTYPE system_info_1(BIF_ALIST_1)
 	BIF_RET(res);
     } else if (ERTS_IS_ATOM_STR("do_not_sleep_constants", BIF_ARG_1)) {
 #ifdef  ERTS_SMP
-        if (!dnfgtse_enabled) {
+        if (!dss_enabled) {
             BIF_RET(am_false);
         } else {
             Eterm *hp = HAlloc(BIF_P, 3);
             res = TUPLE2(hp,
-                         erts_make_integer(dnfgtse_sleep_m, BIF_P),
-                         erts_make_integer(dnfgtse_sleep_n, BIF_P));
+                         erts_make_integer(dss_sleep_m, BIF_P),
+                         erts_make_integer(dss_sleep_n, BIF_P));
             BIF_RET(res);
         }
 #else

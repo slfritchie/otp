@@ -1159,9 +1159,9 @@
             give lower latency and higher throughput at the expense
             of higher memory usage.</p>
           </item>
-          <tag><marker id="+zdnfgtse"><c>+zdnfgtse usec1:usec2</c></marker></tag>
+          <tag><marker id="+zdss"><c>+zdss usec1:usec2</c></marker></tag>
           <item>
-            <p>Enable the 'do not go to sleep' scheduler flag and set
+            <p>Enable the 'disable scheduler sleep' flag and set
             the two microsecond sleep constants used during idle periods.</p>
             <p>During certain uncommon workloads, it is possible for
             Erlang schedulers to go to sleep (for both speed and
@@ -1177,7 +1177,7 @@
             microseconds) for two places where schedulers would
             otherwise sleep.  Smaller values will lower latency during
             low-stress time periods but (in trade) will consume more CPU
-            resources.  Suggested values should be at least 1000-2000
+            resources.  Suggested values should be at least 500-2000
             microseconds each, though experimentation is required to
             find an acceptable CPU time vs. latency trade-off.</p>
           </item>

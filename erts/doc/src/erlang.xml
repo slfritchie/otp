@@ -5591,7 +5591,7 @@ ok
           <item>
             <p>Returns the values of the two microsecond sleep
             constants specified by the <seealso
-            marker="erts:erl#+zdnfgtse">+zdnfgtse</seealso> command
+            marker="erts:erl#+zdss">+zdss</seealso> command
             line flag to <c>erl</c>.</p>
           </item>
           <tag><c>driver_version</c></tag>
