@@ -2568,6 +2568,7 @@ BIF_RETTYPE system_info_1(BIF_ALIST_1)
 	res = erts_bld_uint(&hp, NULL, erts_dist_buf_busy_limit);
 	BIF_RET(res);
     } else if (ERTS_IS_ATOM_STR("do_not_sleep_constants", BIF_ARG_1)) {
+#ifdef  ERTS_SMP
         if (!dnfgtse_enabled) {
             BIF_RET(am_false);
         } else {
@@ -2577,6 +2578,9 @@ BIF_RETTYPE system_info_1(BIF_ALIST_1)
                          erts_make_integer(dnfgtse_sleep_n, BIF_P));
             BIF_RET(res);
         }
+#else
+        BIF_RET(am_false);
+#endif
     } else if (ERTS_IS_ATOM_STR("print_ethread_info", BIF_ARG_1)) {
 #if defined(ETHR_NATIVE_ATOMIC32_IMPL) \
     || defined(ETHR_NATIVE_ATOMIC64_IMPL) \

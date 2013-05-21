@@ -889,7 +889,9 @@ early_init(int *argc, char **argv) /*
     erts_ets_realloc_always_moves = 0;
     erts_ets_always_compress = 0;
     erts_dist_buf_busy_limit = ERTS_DE_BUSY_LIMIT;
+#ifdef ERTS_SMP
     dnfgtse_enabled = 0;
+#endif
 
     return ncpu;
 }
@@ -1610,9 +1612,11 @@ erl_start(int argc, char **argv)
                     n = m;
                     /* fall through */
                 case 2:
+#ifdef ERTS_SMP
                     dnfgtse_enabled = 1;
                     dnfgtse_sleep_m = m;
                     dnfgtse_sleep_n = n;
+#endif
                     break;
                 default:
                     goto bad_z_option;
