@@ -4166,7 +4166,7 @@ static int inet_ctl_ifget(inet_descriptor* desc, char* buf, int len,
 	    break;
 
 	case INET_IFOPT_HWADDR: {
-#ifdef SIOCGIFHWADDR
+#if defined(SIOCGIFHWADDR) && !defined(__sun)
 	    if (ioctl(desc->s, SIOCGIFHWADDR, (char *)&ifreq) < 0)
 		break;
 	    buf_check(sptr, s_end, 1+2+IFHWADDRLEN);
