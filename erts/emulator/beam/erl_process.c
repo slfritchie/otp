@@ -339,7 +339,7 @@ static void save_terminating_process(Process *p);
 static void exec_misc_ops(ErtsRunQueue *);
 static void print_function_from_pc(int to, void *to_arg, BeamInstr* x);
 static int stack_element_dump(int to, void *to_arg, Process* p, Eterm* sp,
-			      int yreg);
+			      int yreg, int abbreviated);
 
 static void aux_work_timeout(void *unused);
 static void aux_work_timeout_early_init(int no_schedulers);
@@ -941,6 +941,7 @@ handle_delayed_aux_work_wakeup(ErtsAuxWorkData *awdp, erts_aint32_t aux_work, in
 
     ASSERT(awdp->delayed_wakeup.next != ERTS_DELAYED_WAKEUP_INFINITY);
 
+    /* GOOFUSgoofus: do we want a check at aux work?? */
     if (!waiting && awdp->delayed_wakeup.next > awdp->esdp->reductions)
 	return aux_work;
 
@@ -4153,6 +4154,7 @@ erts_init_scheduling(int no_schedulers, int no_schedulers_online)
 #endif
 
 	esdp->reductions = 0;
+	esdp->goofus_count = 0;
 
 	init_sched_wall_time(&esdp->sched_wall_time);
     }
@@ -9133,8 +9135,22 @@ set_timer(Process* p, Uint timeout)
  * Stack dump functions follow.
  */
 
+void erts_stack_dump2(int to, void *to_arg, Process *p, int abbreviated);
+
 void
 erts_stack_dump(int to, void *to_arg, Process *p)
+{
+    erts_stack_dump2(to, to_arg, p, 0);
+}
+
+void
+erts_stack_dump_abbreviated(int to, void *to_arg, Process *p)
+{
+    erts_stack_dump2(to, to_arg, p, 1);
+}
+
+void
+erts_stack_dump2(int to, void *to_arg, Process *p, int abbreviated)
 {
     Eterm* sp;
     int yreg = -1;
@@ -9144,7 +9160,7 @@ erts_stack_dump(int to, void *to_arg, Process *p)
     }
     erts_program_counter_info(to, to_arg, p);
     for (sp = p->stop; sp < STACK_START(p); sp++) {
-        yreg = stack_element_dump(to, to_arg, p, sp, yreg);
+        yreg = stack_element_dump(to, to_arg, p, sp, yreg, abbreviated);
     }
 }
 
@@ -9197,16 +9213,19 @@ print_function_from_pc(int to, void *to_arg, BeamInstr* x)
 }
 
 static int
-stack_element_dump(int to, void *to_arg, Process* p, Eterm* sp, int yreg)
+stack_element_dump(int to, void *to_arg, Process* p, Eterm* sp, int yreg, int abbreviated)
 {
     Eterm x = *sp;
 
     if (yreg < 0 || is_CP(x)) {
         erts_print(to, to_arg, "\n%p ", sp);
     } else {
-        char sbuf[16];
-        sprintf(sbuf, "y(%d)", yreg);
-        erts_print(to, to_arg, "%-8s ", sbuf);
+        if (! abbreviated) {
+            /* GOOFUSgoofus */
+            char sbuf[16];
+            erts_snprintf(sbuf, sizeof(sbuf), "y(%d)", yreg);
+            erts_print(to, to_arg, "%-8s ", sbuf);
+        }
         yreg++;
     }
 
@@ -9215,11 +9234,11 @@ stack_element_dump(int to, void *to_arg, Process* p, Eterm* sp, int yreg)
         print_function_from_pc(to, to_arg, cp_val(x));
         erts_print(to, to_arg, ")\n");
         yreg = 0;
-    } else if is_catch(x) {
+    } else if (! abbreviated && is_catch(x)) {
         erts_print(to, to_arg, "Catch %p (", catch_pc(x));
         print_function_from_pc(to, to_arg, catch_pc(x));
         erts_print(to, to_arg, ")\n");
-    } else {
+    } else if (!abbreviated) {
 	erts_print(to, to_arg, "%T\n", x);
     }
     return yreg;
