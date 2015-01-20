@@ -255,6 +255,7 @@ typedef enum {
     matchSelf,
     matchWaste,
     matchReturn,
+    matchProcessBacktrace,
     matchProcessDump,
     matchDisplay,
     matchIsSeqTrace,
@@ -2201,6 +2202,14 @@ restart:
 	case matchReturn:
 	    ret = *--esp;
 	    break;
+	case matchProcessBacktrace: {
+	    erts_dsprintf_buf_t *dsbufp = erts_create_tmp_dsbuf(0);
+	    erts_stack_dump_abbreviated(ERTS_PRINT_DSBUF, (void *) dsbufp, c_p);
+	    *esp++ = new_binary(build_proc, (byte *)dsbufp->str,
+				dsbufp->str_len);
+	    erts_destroy_tmp_dsbuf(dsbufp);
+	    break;
+	}
 	case matchProcessDump: {
 	    erts_dsprintf_buf_t *dsbufp = erts_create_tmp_dsbuf(0);
 	    print_process_info(ERTS_PRINT_DSBUF, (void *) dsbufp, c_p);
@@ -4137,6 +4146,36 @@ static DMCRet dmc_display(DMCContext *context,
     return retOk;
 }
 
+static DMCRet dmc_process_backtrace(DMCContext *context,
+                                    DMCHeap *heap,
+                                    DMC_STACK_TYPE(UWord) *text,
+                                    Eterm t,
+                                    int *constant)
+{
+    Eterm *p = tuple_val(t);
+    Uint a = arityval(*p);
+    
+    if (!(context->cflags & DCOMP_TRACE)) {
+	RETURN_ERROR("Special form 'process_backtrace' used in wrong dialect.",
+		     context, 
+		     *constant);
+    }
+    if (context->is_guard) {
+	RETURN_ERROR("Special form 'process_backtrace' called in "
+		     "guard context.", context, *constant);
+    }
+
+    if (a != 1) {
+	RETURN_TERM_ERROR("Special form 'process_backtrace' called with "
+			  "arguments in %T.", t, context, *constant);
+    }
+    *constant = 0;
+    DMC_PUSH(*text, matchProcessBacktrace); /* Creates binary */
+    if (++context->stack_used > context->stack_need)
+	context->stack_need = context->stack_used;
+    return retOk;
+}
+
 static DMCRet dmc_process_dump(DMCContext *context,
 			       DMCHeap *heap,
 			       DMC_STACK_TYPE(UWord) *text,
@@ -4477,6 +4516,8 @@ static DMCRet dmc_fun(DMCContext *context,
 	return dmc_exception_trace(context, heap, text, t, constant);
     case am_display:
 	return dmc_display(context, heap, text, t, constant);
+    case am_process_backtrace:
+	return dmc_process_backtrace(context, heap, text, t, constant);
     case am_process_dump:
 	return dmc_process_dump(context, heap, text, t, constant);
     case am_enable_trace:
@@ -5345,6 +5386,10 @@ void db_match_dis(Binary *bp)
 	case matchReturn:
 	    ++t;
 	    erts_printf("Return\n");
+	    break;
+	case matchProcessBacktrace:
+	    ++t;
+	    erts_printf("ProcessBacktrace\n");
 	    break;
 	case matchProcessDump:
 	    ++t;

@@ -778,6 +778,19 @@ action_function(Config) when is_list(Config) ->
 	    "return_trace(), "
 	    "exception_trace() end)">>),
     ?line [{['$1','$2'],[],
+	    [{process_backtrace},
+	     {enable_trace,send},
+	     {enable_trace,'$2',send},
+	     {disable_trace,procs},
+	     {disable_trace,'$2',procs}]}] =
+	compile_and_run
+	  (<<"dbg:fun2ms(fun([X,Y]) -> "
+	    "process_backtrace(), "
+	    "enable_trace(send), "
+	    "enable_trace(Y, send), "
+	    "disable_trace(procs), "
+	    "disable_trace(Y, procs) end)">>),
+    ?line [{['$1','$2'],[],
 	    [{process_dump},
 	     {enable_trace,send},
 	     {enable_trace,'$2',send},

@@ -459,6 +459,7 @@ atom processes_used
 atom process_count
 atom process_display
 atom process_limit
+atom process_backtrace
 atom process_dump
 atom procs
 atom proc_sig

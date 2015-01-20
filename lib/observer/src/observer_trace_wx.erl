@@ -114,6 +114,7 @@ default_matchspecs() ->
     Ms = [{"Return Trace", [{'_', [], [{return_trace}]}], "fun(_) -> return_trace() end"},
 	  {"Exception Trace", [{'_', [], [{exception_trace}]}], "fun(_) -> exception_trace() end"},
 	  {"Message Caller", [{'_', [], [{message,{caller}}]}], "fun(_) -> message(caller()) end"},
+	  {"Message Backtrace", [{'_', [], [{message,{process_backtrace}}]}], "fun(_) -> message(process_backtrace()) end"},
 	  {"Message Dump", [{'_', [], [{message,{process_dump}}]}], "fun(_) -> message(process_dump()) end"}],
     [make_ms(Name,Term,FunStr) || {Name,Term,FunStr} <- Ms].
 

@@ -943,6 +943,7 @@ action_function(get_seq_token,0) -> true;
 action_function(message,1) -> true;
 action_function(return_trace,0) -> true;
 action_function(exception_trace,0) -> true;
+action_function(process_backtrace,0) -> true;
 action_function(process_dump,0) -> true;
 action_function(enable_trace,1) -> true;
 action_function(enable_trace,2) -> true;
