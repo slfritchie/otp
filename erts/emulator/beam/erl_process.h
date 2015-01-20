@@ -1401,6 +1401,7 @@ void erts_cleanup_empty_process(Process* p);
 void erts_debug_verify_clean_empty_process(Process* p);
 #endif
 void erts_stack_dump(int to, void *to_arg, Process *);
+void erts_stack_dump_abbreviated(int to, void *to_arg, Process *);
 void erts_program_counter_info(int to, void *to_arg, Process *);
 
 Eterm erts_get_process_priority(Process *p);
