@@ -1009,6 +1009,7 @@ handle_delayed_aux_work_wakeup(ErtsAuxWorkData *awdp, erts_aint32_t aux_work, in
 
     ASSERT(awdp->delayed_wakeup.next != ERTS_DELAYED_WAKEUP_INFINITY);
 
+    /* GOOFUSgoofus: do we want a check at aux work?? */
     if (!waiting && awdp->delayed_wakeup.next > awdp->esdp->reductions)
 	return aux_work;
 
@@ -4744,6 +4745,7 @@ erts_init_scheduling(int no_schedulers, int no_schedulers_online)
 #endif
 
 	esdp->reductions = 0;
+	esdp->goofus_count = 0;
 
 	init_sched_wall_time(&esdp->sched_wall_time);
 	erts_port_task_handle_init(&esdp->nosuspend_port_task_handle);

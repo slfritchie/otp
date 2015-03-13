@@ -519,14 +519,19 @@ extern int count_instructions;
 #define Self(R) R = c_p->common.id
 #define Node(R) R = erts_this_node->sysname
 
+#define GOOFUS_CHECK \
+    if (ERTS_GET_SCHEDULER_DATA_FROM_PROC(c_p)->goofus_count != 0) goofus_doit(c_p)
+
 #define Arg(N)       I[(N)+1]
 #define Next(N)                \
+    GOOFUS_CHECK;              \
     I += (N) + 1;              \
     ASSERT(VALID_INSTR(*I));   \
     Goto(*I)
 
 #define PreFetch(N, Dst) do { Dst = (BeamInstr *) *(I + N + 1); } while (0)
 #define NextPF(N, Dst)         \
+    GOOFUS_CHECK;              \
     I += N + 1;                \
     ASSERT(VALID_INSTR(Dst));  \
     Goto(Dst)
@@ -1070,6 +1075,79 @@ init_emulator(void)
 #define DTRACE_NIF_RETURN(p, m, f, a)  do {} while (0)
 
 #endif /* USE_VM_PROBES */
+
+static FILE *goofus_fp = NULL;
+
+int goofus_open()
+{
+    if (goofus_fp == NULL) {
+        char path[1024];
+        int fd;
+
+        sprintf(path, "/tmp/goofus.%d.out", getpid());
+        if ((fd = open(path, O_WRONLY|O_CREAT|O_EXCL, 0644)) > 0) {
+            goofus_fp = fdopen(fd, "w");
+            return 1;
+        }
+    }
+    return 0;
+}
+
+int goofus_close()
+{
+    if (goofus_fp != NULL) {
+        fclose(goofus_fp);
+        goofus_fp = NULL;
+        return 1;
+    }
+    return 0;
+}
+
+int goofus_doit2(Process *c_p)
+{
+    erts_dsprintf_buf_t *dsbufp = erts_create_tmp_dsbuf(0);
+    char pidbuf[64];
+    Eterm esp;
+
+    if (goofus_fp == NULL) {
+        return 0;
+    }
+
+    /* Format the message */
+    dtrace_proc_str(c_p, pidbuf);
+    erts_print(ERTS_PRINT_DSBUF, (void *) dsbufp, "Pid %s\n", pidbuf);
+    erts_stack_dump_abbreviated(ERTS_PRINT_DSBUF, (void *) dsbufp, c_p);
+    erts_print(ERTS_PRINT_DSBUF, (void *) dsbufp, ".\n");
+    fwrite(dsbufp->str, 1, dsbufp->str_len, goofus_fp);
+#ifdef  QQQ_WHOA_SO_BROKEN_MUCH_SORROW
+    /* Make a binary on the current proc's heap */
+    erts_fprintf(stderr, "<1");
+    esp = erts_new_mso_binary(c_p, (byte *)dsbufp->str, dsbufp->str_len);
+    erts_fprintf(stderr, "2");
+    /* send it */
+    /* trace_proc(NULL, c_p, am_backtrace, esp); */
+    erts_fprintf(stderr, "3 ..(refc = %d)", ((ProcBin *) binary_val(esp))->val->refc);
+
+    /* clean up */
+    erts_refc_dec(&((ProcBin *) binary_val(esp))->val->refc, 0);
+    erts_fprintf(stderr, "4");
+#endif	/* QQQ_WHOA_SO_BROKEN_MUCH_SORROW */
+    /* clean up */
+    /* fwrite(dsbufp->str, 1, dsbufp->str_len, stderr); */
+    erts_destroy_tmp_dsbuf(dsbufp);
+    ERTS_GET_SCHEDULER_DATA_FROM_PROC(c_p)->goofus_count = 0;
+    return 1;
+}
+
+int goofus_doit(Process *c_p)
+{
+#ifdef QQQ
+    if (! IS_TRACED(c_p)) {
+        return 0;
+    }
+#endif
+    return goofus_doit2(c_p);
+}
 
 /*
  * process_main() is called twice:
