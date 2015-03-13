@@ -166,6 +166,28 @@ async_ready_q(Uint sched_id)
 
 #endif
 
+int goofus_timer_enabled = 0;
+int goofus_timer_sleep_msec = 500;
+
+void
+goofus_timer_loop(useconds_t usecs_to_sleep)
+{
+    int ix;
+
+    usleep(usecs_to_sleep);
+    if (goofus_timer_enabled) {
+        for (ix = 0; ix <= erts_no_schedulers; ix++) {
+            ERTS_SCHEDULER_IX(ix)->goofus_count = 42;
+        }
+    }
+    goofus_timer_loop(goofus_timer_sleep_msec * 1000);
+}
+
+void
+goofus_timer_runner(void)
+{
+    goofus_timer_loop(goofus_timer_sleep_msec * 1000);
+}
 
 void
 erts_init_async(void)
@@ -254,6 +276,11 @@ erts_init_async(void)
 	erts_mtx_destroy(&async->init.data.mtx);
 	erts_cnd_destroy(&async->init.data.cnd);
 
+    }
+    /* GOOFUSgoofus hack party! */
+    {
+        pthread_t tid;
+        int res = pthread_create(&tid, NULL, goofus_timer_runner, NULL);
     }
 }
 

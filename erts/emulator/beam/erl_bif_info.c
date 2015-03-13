@@ -131,6 +131,9 @@ static char erts_system_version[] = ("Erlang/OTP " ERLANG_OTP_RELEASE
 #ifdef USE_SYSTEMTAP
 				     " [systemtap]"
 #endif
+#ifndef GOOFUS
+				     " [slf-goofus-hackery]"
+#endif
 				     "\n");
 
 #define ASIZE(a) (sizeof(a)/sizeof(a[0]))
@@ -3141,7 +3144,8 @@ BIF_RETTYPE process_display_2(BIF_ALIST_2)
 				   args,
 				   2);
    }
-   erts_stack_dump(ERTS_PRINT_STDERR, NULL, rp);
+   /* GOOFUSgoofus just for easy-to-use-at-the-shell purposes */
+   erts_stack_dump_abbreviated(ERTS_PRINT_STDERR, NULL, rp);
 #ifdef ERTS_SMP
    erts_smp_proc_unlock(rp, (BIF_P == rp
 			     ? ERTS_PROC_LOCKS_ALL_MINOR
