@@ -483,6 +483,7 @@ struct ErtsSchedulerData_ {
     ErtsSchedAllocData alloc_data;
 
     Uint64 reductions;
+    Uint goofus_count;
     ErtsSchedWallTime sched_wall_time;
 
 #ifdef ERTS_DO_VERIFY_UNUSED_TEMP_ALLOC
