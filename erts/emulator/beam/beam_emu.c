@@ -1389,14 +1389,17 @@ void process_main(void)
 	    Eterm result;
 
 	OpCase(i_increment_yIId):
+            GOOFUS_CHECK;
 	    increment_reg_val = yb(Arg(0));
 	    goto do_increment;
 
 	OpCase(i_increment_xIId):
+            GOOFUS_CHECK;
 	    increment_reg_val = xb(Arg(0));
 	    goto do_increment;
 
 	OpCase(i_increment_rIId):
+            GOOFUS_CHECK;
 	    increment_reg_val = r(0);
 	    I--;
 
@@ -1432,6 +1435,7 @@ void process_main(void)
  {
      Eterm result;
 
+     GOOFUS_CHECK;
      if (is_both_small(tmp_arg1, tmp_arg2)) {
 	 Sint i = signed_val(tmp_arg1) + signed_val(tmp_arg2);
 	 ASSERT(MY_IS_SSMALL(i) == IS_SSMALL(i));
@@ -1449,6 +1453,7 @@ void process_main(void)
  {
      Eterm result;
 
+     GOOFUS_CHECK;
      if (is_both_small(tmp_arg1, tmp_arg2)) {
 	 Sint i = signed_val(tmp_arg1) - signed_val(tmp_arg2);
 	 ASSERT(MY_IS_SSMALL(i) == IS_SSMALL(i));
@@ -1538,11 +1543,13 @@ void process_main(void)
     }
 
  OpCase(i_move_call_only_fcr): {
+     GOOFUS_CHECK;
      r(0) = Arg(1);
  }
  /* FALL THROUGH */
  OpCase(i_call_only_f): {
-     SET_I((BeamInstr *) Arg(0));
+     GOOFUS_CHECK;
+    SET_I((BeamInstr *) Arg(0));
      DTRACE_LOCAL_CALL(c_p, (Eterm)I[-3], (Eterm)I[-2], I[-1]);
      Dispatch();
  }
@@ -1552,6 +1559,7 @@ void process_main(void)
  }
  /* FALL THROUGH */
  OpCase(i_call_last_fP): {
+    GOOFUS_CHECK;
      RESTORE_CP(E);
      E = ADD_BYTE_OFFSET(E, Arg(1));
      SET_I((BeamInstr *) Arg(0));
@@ -1560,11 +1568,13 @@ void process_main(void)
  }
 
  OpCase(i_move_call_crf): {
+     GOOFUS_CHECK;
      r(0) = Arg(0);
      I++;
  }
  /* FALL THROUGH */
  OpCase(i_call_f): {
+     GOOFUS_CHECK;
      SET_CP(c_p, I+2);
      SET_I((BeamInstr *) Arg(0));
      DTRACE_LOCAL_CALL(c_p, (Eterm)I[-3], (Eterm)I[-2], I[-1]);
@@ -1572,10 +1582,12 @@ void process_main(void)
  }
 
  OpCase(i_move_call_ext_last_ePcr): {
+     GOOFUS_CHECK;
      r(0) = Arg(2);
  }
  /* FALL THROUGH */
  OpCase(i_call_ext_last_eP):
+    GOOFUS_CHECK;
     RESTORE_CP(E);
     E = ADD_BYTE_OFFSET(E, Arg(1));
 
@@ -1593,11 +1605,13 @@ void process_main(void)
     Dispatchx();
 
  OpCase(i_move_call_ext_cre): {
+    GOOFUS_CHECK;
      r(0) = Arg(0);
      I++;
  }
  /* FALL THROUGH */
  OpCase(i_call_ext_e):
+    GOOFUS_CHECK;
     SET_CP(c_p, I+2);
 #ifdef USE_VM_CALL_PROBES
     if (DTRACE_ENABLED(global_function_entry)) {
@@ -1608,10 +1622,12 @@ void process_main(void)
     Dispatchx();
 
  OpCase(i_move_call_ext_only_ecr): {
+     GOOFUS_CHECK;
      r(0) = Arg(1);
  }
  /* FALL THROUGH */
  OpCase(i_call_ext_only_e):
+    GOOFUS_CHECK;
 #ifdef USE_VM_CALL_PROBES
     if (DTRACE_ENABLED(global_function_entry)) {
 	BeamInstr* fp = (BeamInstr *) (((Export *) Arg(0))->address);
@@ -1656,6 +1672,7 @@ void process_main(void)
 #ifdef USE_VM_CALL_PROBES
     BeamInstr* fptr;
 #endif
+    GOOFUS_CHECK;
     SET_I(c_p->cp);
 
 #ifdef USE_VM_CALL_PROBES
@@ -1685,6 +1702,7 @@ void process_main(void)
      BeamInstr *next;
      Eterm result;
 
+     GOOFUS_CHECK;
      PRE_BIF_SWAPOUT(c_p);
      c_p->fcalls = FCALLS - 1;
      reg[0] = r(0);
@@ -1718,16 +1736,19 @@ void process_main(void)
 	Eterm element_tuple;
 
     OpCase(i_element_xjsd):
+        GOOFUS_CHECK;
 	element_tuple = xb(Arg(0));
 	I++;
 	goto do_element;
 
     OpCase(i_element_yjsd):
+    GOOFUS_CHECK;
 	element_tuple = yb(Arg(0));
 	I++;
 	goto do_element;
 
     OpCase(i_element_rjsd):
+    GOOFUS_CHECK;
 	element_tuple = r(0);
 	/* Fall through */
 
@@ -1747,6 +1768,7 @@ void process_main(void)
 
  OpCase(badarg_j):
  badarg:
+    GOOFUS_CHECK;
     c_p->freason = BADARG;
     goto lb_Cl_error;
 
@@ -1754,6 +1776,7 @@ void process_main(void)
 	Eterm fast_element_tuple;
 
     OpCase(i_fast_element_rjId):
+        GOOFUS_CHECK;
 	fast_element_tuple = r(0);
 
     do_fast_element:
@@ -1768,11 +1791,13 @@ void process_main(void)
      goto badarg;
 
     OpCase(i_fast_element_xjId):
+     GOOFUS_CHECK;
      fast_element_tuple = xb(Arg(0));
      I++;
      goto do_fast_element;
 
     OpCase(i_fast_element_yjId):
+     GOOFUS_CHECK;
      fast_element_tuple = yb(Arg(0));
      I++;
      goto do_fast_element;
@@ -1861,6 +1886,7 @@ void process_main(void)
  }
 
  OpCase(i_recv_set): {
+     GOOFUS_CHECK;
      /*
       * If the mark is valid (points to the loop_rec/2
       * instruction that follows), we know that the saved
@@ -1886,6 +1912,7 @@ void process_main(void)
      BeamInstr *next;
      ErlMessage* msgp;
 
+     GOOFUS_CHECK;
  loop_rec__:
 
      PROCESS_MAIN_CHK_LOCKS(c_p);
@@ -1948,6 +1975,7 @@ void process_main(void)
      BeamInstr *next;
      ErlMessage* msgp;
 
+     GOOFUS_CHECK;
      PROCESS_MAIN_CHK_LOCKS(c_p);
 
      PreFetch(0, next);
@@ -2055,6 +2083,7 @@ void process_main(void)
      * message didn't match), then jump to the loop_rec instruction.
      */
  OpCase(loop_rec_end_f): {
+     GOOFUS_CHECK;
      SET_I((BeamInstr *) Arg(0));
      SAVE_MESSAGE(c_p);
      goto loop_rec__;
@@ -2069,6 +2098,7 @@ void process_main(void)
 
 
  OpCase(i_wait_timeout_fs): {
+     GOOFUS_CHECK;
      erts_smp_proc_lock(c_p, ERTS_PROC_LOCKS_MSG_RECEIVE);
 
      /* Fall through */
@@ -2076,6 +2106,7 @@ void process_main(void)
  OpCase(i_wait_timeout_locked_fs): {
      Eterm timeout_value;
 
+     GOOFUS_CHECK;
      /*
       * If we have already set the timer, we must NOT set it again.  Therefore,
       * we must test the F_INSLPQUEUE flag as well as the F_TIMO flag.
@@ -2117,10 +2148,12 @@ void process_main(void)
 #endif
 	 } else {		/* Wrong time */
 	     OpCase(i_wait_error_locked): {
+                 GOOFUS_CHECK;
 		 erts_smp_proc_unlock(c_p, ERTS_PROC_LOCKS_MSG_RECEIVE);
 		 /* Fall through */
 	     }
 	     OpCase(i_wait_error): {
+                 GOOFUS_CHECK;
 		 c_p->freason = EXC_TIMEOUT_VALUE;
 		 goto find_func_info;
 	     }
@@ -2138,6 +2171,7 @@ void process_main(void)
 
 	 OpCase(wait_locked_f):
 	 OpCase(wait_f):
+         GOOFUS_CHECK;
 
 	 wait2: {
 	     ASSERT(!ERTS_PROC_IS_EXITING(c_p));
@@ -2150,6 +2184,7 @@ void process_main(void)
 	     goto do_schedule;
 	 }
 	 OpCase(wait_unlocked_f): {
+             GOOFUS_CHECK;
 	     erts_smp_proc_lock(c_p, ERTS_PROC_LOCKS_MSG_RECEIVE);
 	     goto wait2;
 	 }
@@ -2159,11 +2194,13 @@ void process_main(void)
  }
 
  OpCase(i_wait_timeout_fI): {
+     GOOFUS_CHECK;
      erts_smp_proc_lock(c_p, ERTS_PROC_LOCKS_MSG_RECEIVE);
  }
 
  OpCase(i_wait_timeout_locked_fI):
  {
+     GOOFUS_CHECK;
      /*
       * If we have already set the timer, we must NOT set it again.  Therefore,
       * we must test the F_INSLPQUEUE flag as well as the F_TIMO flag.
@@ -2181,6 +2218,7 @@ void process_main(void)
      * receive statement will examine the first message first.
      */
  OpCase(timeout_locked): {
+     GOOFUS_CHECK;
      erts_smp_proc_unlock(c_p, ERTS_PROC_LOCKS_MSG_RECEIVE);
  }
 
@@ -2204,18 +2242,22 @@ void process_main(void)
      Eterm select_val2;
 
  OpCase(i_select_tuple_arity2_yfAfAf):
+     GOOFUS_CHECK;
      select_val2 = yb(Arg(0));
      goto do_select_tuple_arity2;
 
  OpCase(i_select_tuple_arity2_xfAfAf):
+     GOOFUS_CHECK;
      select_val2 = xb(Arg(0));
      goto do_select_tuple_arity2;
 
  OpCase(i_select_tuple_arity2_rfAfAf):
+     GOOFUS_CHECK;
      select_val2 = r(0);
      I--;
 
  do_select_tuple_arity2:
+     GOOFUS_CHECK;
      if (is_not_tuple(select_val2)) {
 	 goto select_val2_fail;
      }
@@ -2223,14 +2265,17 @@ void process_main(void)
      goto do_select_val2;
 
  OpCase(i_select_val2_yfcfcf):
+     GOOFUS_CHECK;
      select_val2 = yb(Arg(0));
      goto do_select_val2;
 
  OpCase(i_select_val2_xfcfcf):
+     GOOFUS_CHECK;
      select_val2 = xb(Arg(0));
      goto do_select_val2;
 
  OpCase(i_select_val2_rfcfcf):
+     GOOFUS_CHECK;
      select_val2 = r(0);
      I--;
 
@@ -2250,14 +2295,17 @@ void process_main(void)
      Eterm select_val;
 
  OpCase(i_select_tuple_arity_xfI):
+     GOOFUS_CHECK;
      select_val = xb(Arg(0));
      goto do_select_tuple_arity;
 
  OpCase(i_select_tuple_arity_yfI):
+     GOOFUS_CHECK;
      select_val = yb(Arg(0));
      goto do_select_tuple_arity;
 
  OpCase(i_select_tuple_arity_rfI):
+     GOOFUS_CHECK;
      select_val = r(0);
      I--;
 
@@ -2270,14 +2318,17 @@ void process_main(void)
      Goto(*I);
 
  OpCase(i_select_val_xfI):
+     GOOFUS_CHECK;
      select_val = xb(Arg(0));
      goto do_binary_search;
 
  OpCase(i_select_val_yfI):
+     GOOFUS_CHECK;
      select_val = yb(Arg(0));
      goto do_binary_search;
      
  OpCase(i_select_val_rfI):
+     GOOFUS_CHECK;
      select_val = r(0);
      I--;
 
@@ -2334,14 +2385,17 @@ void process_main(void)
      Eterm jump_on_val_zero_index;
      
  OpCase(i_jump_on_val_zero_yfI):
+     GOOFUS_CHECK;
      jump_on_val_zero_index = yb(Arg(0));
      goto do_jump_on_val_zero_index;
 
  OpCase(i_jump_on_val_zero_xfI):
+     GOOFUS_CHECK;
      jump_on_val_zero_index = xb(Arg(0));
      goto do_jump_on_val_zero_index;
 
  OpCase(i_jump_on_val_zero_rfI):
+     GOOFUS_CHECK;
      jump_on_val_zero_index = r(0);
      I--;
 
@@ -2362,14 +2416,17 @@ void process_main(void)
 
  
  OpCase(i_jump_on_val_yfII):
+     GOOFUS_CHECK;
      jump_on_val_index = yb(Arg(0));
      goto do_jump_on_val_index;
 
  OpCase(i_jump_on_val_xfII):
+     GOOFUS_CHECK;
      jump_on_val_index = xb(Arg(0));
      goto do_jump_on_val_index;
 
  OpCase(i_jump_on_val_rfII):
+     GOOFUS_CHECK;
      jump_on_val_index = r(0);
      I--;
 
@@ -2388,6 +2445,7 @@ void process_main(void)
  do_put_tuple: {
      Eterm* hp = HTOP;
 
+     GOOFUS_CHECK;
      *hp++ = make_arityval(pt_arity);
 
      do {
@@ -2431,6 +2489,7 @@ void process_main(void)
 	Eterm tmp_reg[1];
 	Eterm result;
 
+        GOOFUS_CHECK;
 	GetArg1(2, tmp_reg[0]);
 	bf = (BifFunction) Arg(1);
 	c_p->fcalls = FCALLS;
@@ -2460,6 +2519,7 @@ void process_main(void)
 	Eterm tmp_reg[1];
 	Eterm result;
 
+        GOOFUS_CHECK;
 	GetArg1(1, tmp_reg[0]);
 	bf = (BifFunction) Arg(0);
 	c_p->fcalls = FCALLS;
@@ -2488,6 +2548,7 @@ void process_main(void)
 	Eterm result;
 	Uint live = (Uint) Arg(3);
 
+        GOOFUS_CHECK;
 	GetArg1(2, arg);
 	reg[0] = r(0);
 	reg[live] = arg;
@@ -2524,6 +2585,7 @@ void process_main(void)
 	Eterm result;
 	Uint live = (Uint) Arg(2);
 
+        GOOFUS_CHECK;
 	reg[0] = r(0);
 	reg[live++] = tmp_arg1;
 	reg[live] = tmp_arg2;
@@ -2561,6 +2623,7 @@ void process_main(void)
 	Eterm result;
 	Uint live = (Uint) Arg(3);
 
+        GOOFUS_CHECK;
 	GetArg1(2, arg);
 	reg[0] = r(0);
 	reg[live++] = arg;
@@ -2602,6 +2665,7 @@ void process_main(void)
 	Eterm (*bf)(Process*, Eterm*);
 	Eterm result;
 
+        GOOFUS_CHECK;
 	bf = (BifFunction) Arg(1);
 	c_p->fcalls = FCALLS;
 	PROCESS_MAIN_CHK_LOCKS(c_p);
@@ -2628,6 +2692,7 @@ void process_main(void)
 	Eterm (*bf)(Process*, Eterm*);
 	Eterm result;
 
+        GOOFUS_CHECK;
 	bf = (BifFunction) Arg(0);
 	PROCESS_MAIN_CHK_LOCKS(c_p);
 	ASSERT(!ERTS_PROC_IS_EXITING(c_p));
@@ -2657,6 +2722,7 @@ void process_main(void)
 	Eterm result;
 	BeamInstr *next;
 
+        GOOFUS_CHECK;
 	PRE_BIF_SWAPOUT(c_p);
 	c_p->fcalls = FCALLS - 1;
 	if (FCALLS <= 0) {
@@ -2703,12 +2769,14 @@ void process_main(void)
 
  OpCase(i_times_jId):
  {
+     GOOFUS_CHECK;
      arith_func = ARITH_FUNC(mixed_times);
      goto do_big_arith2;
  }
 
  OpCase(i_m_div_jId):
  {
+     GOOFUS_CHECK;
      arith_func = ARITH_FUNC(mixed_div);
      goto do_big_arith2;
  }
@@ -2717,6 +2785,7 @@ void process_main(void)
  {
      Eterm result;
 
+     GOOFUS_CHECK;
      if (tmp_arg2 == SMALL_ZERO) {
 	 goto badarith;
      } else if (is_both_small(tmp_arg1, tmp_arg2)) {
@@ -2734,6 +2803,7 @@ void process_main(void)
  {
      Eterm result;
 
+     GOOFUS_CHECK;
      if (tmp_arg2 == SMALL_ZERO) {
 	 goto badarith;
      } else if (is_both_small(tmp_arg1, tmp_arg2)) {
@@ -2749,6 +2819,7 @@ void process_main(void)
  {
      Eterm result;
 
+     GOOFUS_CHECK;
      if (is_both_small(tmp_arg1, tmp_arg2)) {
 	 /*
 	  * No need to untag -- TAG & TAG == TAG.
@@ -2765,6 +2836,7 @@ void process_main(void)
      Eterm result;
      Uint live = Arg(1);
 
+     GOOFUS_CHECK;
      SWAPOUT;
      reg[0] = r(0);
      reg[live] = tmp_arg1;
@@ -2788,6 +2860,7 @@ void process_main(void)
  lb_Cl_error: {
      if (Arg(0) != 0) {
 	 OpCase(jump_f): {
+         GOOFUS_CHECK;
 	 jump_f:
 	     SET_I((BeamInstr *) Arg(0));
 	     Goto(*I);
@@ -2801,6 +2874,7 @@ void process_main(void)
  {
      Eterm result;
 
+     GOOFUS_CHECK;
      if (is_both_small(tmp_arg1, tmp_arg2)) {
 	 /*
 	  * No need to untag -- TAG | TAG == TAG.
@@ -2816,6 +2890,7 @@ void process_main(void)
  {
      Eterm result;
 
+     GOOFUS_CHECK;
      if (is_both_small(tmp_arg1, tmp_arg2)) {
 	 /*
 	  * We could extract the tag from one argument, but a tag extraction
@@ -2834,6 +2909,7 @@ void process_main(void)
      Eterm* bigp;
 
      OpCase(i_bsr_jId):
+         GOOFUS_CHECK;
 	 if (is_small(tmp_arg2)) {
 	     i = -signed_val(tmp_arg2);
 	     if (is_small(tmp_arg1)) {
@@ -2857,6 +2933,7 @@ void process_main(void)
      
      OpCase(i_bsl_jId):
  do_bsl:
+         GOOFUS_CHECK;
 	 if (is_small(tmp_arg2)) {
 	     i = signed_val(tmp_arg2);
 
@@ -2959,6 +3036,7 @@ void process_main(void)
  {
      Eterm bnot_val;
 
+     GOOFUS_CHECK;
      GetArg1(1, bnot_val);
      if (is_small(bnot_val)) {
 	 bnot_val = make_small(~signed_val(bnot_val));
@@ -2984,6 +3062,7 @@ void process_main(void)
 
  OpCase(i_apply): {
      BeamInstr *next;
+     GOOFUS_CHECK;
      SWAPOUT;
      next = apply(c_p, r(0), x(1), x(2), reg);
      SWAPIN;
@@ -2999,6 +3078,7 @@ void process_main(void)
 
  OpCase(i_apply_last_P): {
      BeamInstr *next;
+     GOOFUS_CHECK;
      SWAPOUT;
      next = apply(c_p, r(0), x(1), x(2), reg);
      SWAPIN;
@@ -3015,6 +3095,7 @@ void process_main(void)
 
  OpCase(i_apply_only): {
      BeamInstr *next;
+     GOOFUS_CHECK;
      SWAPOUT;
      next = apply(c_p, r(0), x(1), x(2), reg);
      SWAPIN;
@@ -3030,6 +3111,7 @@ void process_main(void)
  OpCase(apply_I): {
      BeamInstr *next;
 
+     GOOFUS_CHECK;
      reg[0] = r(0);
      SWAPOUT;
      next = fixed_apply(c_p, reg, Arg(0));
@@ -3047,6 +3129,7 @@ void process_main(void)
  OpCase(apply_last_IP): {
      BeamInstr *next;
 
+     GOOFUS_CHECK;
      reg[0] = r(0);
      SWAPOUT;
      next = fixed_apply(c_p, reg, Arg(0));
@@ -3065,6 +3148,7 @@ void process_main(void)
  OpCase(i_apply_fun): {
      BeamInstr *next;
 
+     GOOFUS_CHECK;
      SWAPOUT;
      next = apply_fun(c_p, r(0), x(1), reg);
      SWAPIN;
@@ -3080,6 +3164,7 @@ void process_main(void)
  OpCase(i_apply_fun_last_P): {
      BeamInstr *next;
 
+     GOOFUS_CHECK;
      SWAPOUT;
      next = apply_fun(c_p, r(0), x(1), reg);
      SWAPIN;
@@ -3096,6 +3181,7 @@ void process_main(void)
  OpCase(i_apply_fun_only): {
      BeamInstr *next;
 
+     GOOFUS_CHECK;
      SWAPOUT;
      next = apply_fun(c_p, r(0), x(1), reg);
      SWAPIN;
@@ -3110,6 +3196,7 @@ void process_main(void)
  OpCase(i_call_fun_I): {
      BeamInstr *next;
 
+     GOOFUS_CHECK;
      SWAPOUT;
      reg[0] = r(0);
 
@@ -3127,6 +3214,7 @@ void process_main(void)
  OpCase(i_call_fun_last_IP): {
      BeamInstr *next;
 
+     GOOFUS_CHECK;
      SWAPOUT;
      reg[0] = r(0);
      next = call_fun(c_p, Arg(0), reg, THE_NON_VALUE);
@@ -3251,6 +3339,7 @@ void process_main(void)
     Next(1);
 
  OpCase(normal_exit): {
+     GOOFUS_CHECK;
      SWAPOUT;
      c_p->freason = EXC_NORMAL;
      c_p->arity = 0;		/* In case this process will ever be garbed again. */
@@ -3261,6 +3350,7 @@ void process_main(void)
  }
 
  OpCase(continue_exit): {
+     GOOFUS_CHECK;
      ERTS_SMP_UNREQ_PROC_MAIN_LOCK(c_p);
      erts_continue_exit_process(c_p);
      ERTS_SMP_REQ_PROC_MAIN_LOCK(c_p);
@@ -3268,6 +3358,7 @@ void process_main(void)
  }
 
  OpCase(raise_ss): {
+     GOOFUS_CHECK;
      /* This was not done very well in R10-0; then, we passed the tag in
 	the first argument and hoped that the existing c_p->ftrace was
 	still correct. But the ftrace-object already includes the tag
@@ -3317,14 +3408,17 @@ void process_main(void)
 	Eterm badmatch_val;
 
     OpCase(badmatch_y):
+        GOOFUS_CHECK;
 	badmatch_val = yb(Arg(0));
 	goto do_badmatch;
 
     OpCase(badmatch_x):
+        GOOFUS_CHECK;
 	badmatch_val = xb(Arg(0));
 	goto do_badmatch;
 
     OpCase(badmatch_r):
+        GOOFUS_CHECK;
 	badmatch_val = r(0);
 
     do_badmatch:
@@ -3341,6 +3435,7 @@ void process_main(void)
  }
 
  OpCase(call_error_handler):
+    GOOFUS_CHECK;
     /*
      * At this point, I points to the code[3] in the export entry for
      * a function which is not loaded.
@@ -3362,6 +3457,7 @@ void process_main(void)
 
  /* Fall through */
  OpCase(error_action_code): {
+    GOOFUS_CHECK;
     handle_error:
      reg[0] = r(0);
      SWAPOUT;
@@ -3398,6 +3494,7 @@ void process_main(void)
 	     */
 	    BifFunction vbf;
 
+            GOOFUS_CHECK;
 	    DTRACE_NIF_ENTRY(c_p, (Eterm)I[-3], (Eterm)I[-2], (Uint)I[-1]);
 	    c_p->current = I-3; /* current and vbf set to please handle_error */ 
 	    SWAPOUT;
@@ -3425,6 +3522,7 @@ void process_main(void)
 	    goto apply_bif_or_nif_epilogue;
 	 
 	OpCase(apply_bif):
+             GOOFUS_CHECK;
 	    /*
 	     * At this point, I points to the code[3] in the export entry for
 	     * the BIF:
@@ -3498,6 +3596,7 @@ void process_main(void)
 	Eterm arg;
 	Eterm result;
 
+        GOOFUS_CHECK;
 	GetArg1(0, arg);
 	result = erts_pd_hash_get(c_p, arg);
 	StoreBifResult(1, result);
@@ -3507,14 +3606,17 @@ void process_main(void)
 	Eterm case_end_val;
 
     OpCase(case_end_x):
+        GOOFUS_CHECK;
 	case_end_val = xb(Arg(0));
 	goto do_case_end;
 
     OpCase(case_end_y):
+        GOOFUS_CHECK;
 	case_end_val = yb(Arg(0));
 	goto do_case_end;
 
     OpCase(case_end_r):
+        GOOFUS_CHECK;
 	case_end_val = r(0);
 
     do_case_end:
@@ -3524,10 +3626,12 @@ void process_main(void)
     }
 
  OpCase(if_end):
+    GOOFUS_CHECK;
     c_p->freason = EXC_IF_CLAUSE;
     goto find_func_info;
 
  OpCase(i_func_info_IaaI): {
+    GOOFUS_CHECK;
      c_p->freason = EXC_FUNCTION_CLAUSE;
      c_p->current = I + 2;
      goto handle_error;
@@ -3535,6 +3639,7 @@ void process_main(void)
 
  OpCase(try_case_end_s):
     {
+    GOOFUS_CHECK;
 	Eterm try_case_end_val;
 	GetArg1(0, try_case_end_val);
 	c_p->fvalue = try_case_end_val;
@@ -3553,6 +3658,7 @@ void process_main(void)
      Uint num_bytes;
 
      OpCase(i_bs_init_bits_heap_IIId): {
+         GOOFUS_CHECK;
 	 num_bits = Arg(0);
 	 alloc = Arg(1);
 	 I++;
@@ -3560,12 +3666,14 @@ void process_main(void)
      }
      
      OpCase(i_bs_init_bits_IId): {
+         GOOFUS_CHECK;
 	 num_bits = Arg(0);
 	 alloc = 0;
 	 goto do_bs_init_bits_known;
      }
 
      OpCase(i_bs_init_bits_fail_heap_IjId): {
+         GOOFUS_CHECK;
 	 /* tmp_arg1 was fetched by an i_fetch instruction */
 	 num_bits_term = tmp_arg1;
 	 alloc = Arg(0);
@@ -3574,17 +3682,20 @@ void process_main(void)
      }
 
      OpCase(i_bs_init_bits_fail_rjId): {
+         GOOFUS_CHECK;
 	 num_bits_term = r(0);
 	 alloc = 0;
 	 goto do_bs_init_bits;
      }
      OpCase(i_bs_init_bits_fail_yjId): {
+         GOOFUS_CHECK;
 	 num_bits_term = yb(Arg(0));
 	 I++;
 	 alloc = 0;
 	 goto do_bs_init_bits;
      }
      OpCase(i_bs_init_bits_fail_xjId): {
+         GOOFUS_CHECK;
 	 num_bits_term = xb(Arg(0));
 	 I++;
 	 alloc = 0;
@@ -3700,6 +3811,7 @@ void process_main(void)
 
  {
      OpCase(i_bs_init_fail_heap_IjId): {
+         GOOFUS_CHECK;
 	 /* tmp_arg1 was fetched by an i_fetch instruction */
 	 tmp_arg2 = Arg(0);
 	 I++;
@@ -3707,12 +3819,14 @@ void process_main(void)
      }
 
      OpCase(i_bs_init_fail_rjId): {
+         GOOFUS_CHECK;
 	 tmp_arg1 = r(0);
 	 tmp_arg2 = 0;
 	 goto do_bs_init;
      }
 
      OpCase(i_bs_init_fail_yjId): {
+         GOOFUS_CHECK;
 	 tmp_arg1 = yb(Arg(0));
 	 tmp_arg2 = 0;
 	 I++;
@@ -3720,6 +3834,7 @@ void process_main(void)
      }
 
      OpCase(i_bs_init_fail_xjId): {
+         GOOFUS_CHECK;
 	 tmp_arg1 = xb(Arg(0));
 	 tmp_arg2 = 0;
 	 I++;
@@ -3752,6 +3867,7 @@ void process_main(void)
 
 
      OpCase(i_bs_init_heap_IIId): {
+         GOOFUS_CHECK;
 	 tmp_arg1 = Arg(0);
 	 tmp_arg2 = Arg(1);
 	 I++;
@@ -3759,6 +3875,7 @@ void process_main(void)
      }
 
      OpCase(i_bs_init_IId): {
+         GOOFUS_CHECK;
 	 tmp_arg1 = Arg(0);
 	 tmp_arg2 = 0;
      }
@@ -3800,6 +3917,7 @@ void process_main(void)
      }
 
      OpCase(i_bs_init_heap_bin_heap_IIId): {
+         GOOFUS_CHECK;
 	 tmp_arg1 = Arg(0);
 	 tmp_arg2 = Arg(1);
 	 I++;
@@ -3807,6 +3925,7 @@ void process_main(void)
      }
 
      OpCase(i_bs_init_heap_bin_IId): {
+         GOOFUS_CHECK;
 	 tmp_arg1 = Arg(0);
 	 tmp_arg2 = 0;
      }
@@ -3831,6 +3950,7 @@ void process_main(void)
  }
 
  OpCase(i_bs_add_jId): {
+     GOOFUS_CHECK;
      Uint Unit = Arg(1);
      if (is_both_small(tmp_arg1, tmp_arg2)) {
 	 Sint Arg1 = signed_val(tmp_arg1);
@@ -3931,6 +4051,7 @@ void process_main(void)
      Uint live = Arg(2);
      Uint res;
 
+     GOOFUS_CHECK;
      SWAPOUT;
      reg[0] = r(0);
      reg[live] = tmp_arg2;
@@ -3952,6 +4073,7 @@ void process_main(void)
  OpCase(i_bs_private_append_jId): {
      Eterm res;
 
+     GOOFUS_CHECK;
      res = erts_bs_private_append(c_p, tmp_arg2, tmp_arg1, Arg(1));
      if (is_non_value(res)) {
 	 /* c_p->freason is already set (may be either BADARG or SYSTEM_LIMIT). */
@@ -3982,6 +4104,7 @@ void process_main(void)
      Eterm arg;
      Eterm result;
 
+     GOOFUS_CHECK;
      GetArg1(0, arg);
      if (arg < make_small(0x80UL)) {
 	 result = make_small(1);
@@ -3998,6 +4121,7 @@ void process_main(void)
  OpCase(i_bs_put_utf8_js): {
      Eterm arg;
 
+     GOOFUS_CHECK;
      GetArg1(1, arg);
      if (!erts_bs_put_utf8(ERL_BITS_ARGS_1(arg))) {
 	 goto badarg;
@@ -4017,6 +4141,7 @@ void process_main(void)
      Eterm arg;
      Eterm result = make_small(2);
 
+     GOOFUS_CHECK;
      GetArg1(0, arg);
      if (arg >= make_small(0x10000UL)) {
 	 result = make_small(4);
@@ -4090,6 +4215,7 @@ void process_main(void)
      Eterm context;
 
      OpCase(i_bs_start_match2_rfIId): {
+         GOOFUS_CHECK;
 	 context = r(0);
 
      do_start_match:
@@ -4140,11 +4266,13 @@ void process_main(void)
 	 NextPF(4, next);
      }
      OpCase(i_bs_start_match2_xfIId): {
+         GOOFUS_CHECK;
 	 context = xb(Arg(0));
 	 I++;
 	 goto do_start_match;
      }
      OpCase(i_bs_start_match2_yfIId): {
+         GOOFUS_CHECK;
 	 context = yb(Arg(0));
 	 I++;
 	 goto do_start_match;
@@ -4242,11 +4370,13 @@ void process_main(void)
      Eterm bs_get_integer8_context;
 
  OpCase(i_bs_get_integer_8_rfd): {
+         GOOFUS_CHECK;
 	 bs_get_integer8_context = r(0);
 	 goto do_bs_get_integer_8;
      }
 
  OpCase(i_bs_get_integer_8_xfd): {
+         GOOFUS_CHECK;
 	 bs_get_integer8_context = xb(Arg(0));
 	 I++;
      }
@@ -4272,10 +4402,12 @@ void process_main(void)
      Eterm bs_get_integer_16_context;
 
  OpCase(i_bs_get_integer_16_rfd):
+     GOOFUS_CHECK;
      bs_get_integer_16_context = r(0);
      goto do_bs_get_integer_16;
 
  OpCase(i_bs_get_integer_16_xfd):
+     GOOFUS_CHECK;
      bs_get_integer_16_context = xb(Arg(0));
      I++;
 
@@ -4301,11 +4433,13 @@ void process_main(void)
      Eterm bs_get_integer_32_context;
 
  OpCase(i_bs_get_integer_32_rfId):
+     GOOFUS_CHECK;
      bs_get_integer_32_context = r(0);
      goto do_bs_get_integer_32;
 
      
  OpCase(i_bs_get_integer_32_xfId):
+     GOOFUS_CHECK;
      bs_get_integer_32_context = xb(Arg(0));
      I++;
 
@@ -4341,6 +4475,7 @@ void process_main(void)
 
  /* Operands: Size Live Fail Flags Dst */
  OpCase(i_bs_get_integer_imm_rIIfId): {
+     GOOFUS_CHECK;
      tmp_arg1 = r(0);
      /* Operands: Size Live Fail Flags Dst */
      goto do_bs_get_integer_imm_test_heap;
@@ -4348,6 +4483,7 @@ void process_main(void)
 
  /* Operands: x(Reg) Size Live Fail Flags Dst */
  OpCase(i_bs_get_integer_imm_xIIfId): {
+     GOOFUS_CHECK;
      tmp_arg1 = xb(Arg(0));
      I++;
      /* Operands: Size Live Fail Flags Dst */
@@ -4370,6 +4506,7 @@ void process_main(void)
 
  /* Operands: Size Fail Flags Dst */
  OpCase(i_bs_get_integer_small_imm_rIfId): {
+     GOOFUS_CHECK;
      tmp_arg1 = r(0);
      tmp_arg2 = Arg(0);
      I++;
@@ -4379,6 +4516,7 @@ void process_main(void)
 
  /* Operands: x(Reg) Size Fail Flags Dst */
  OpCase(i_bs_get_integer_small_imm_xIfId): {
+     GOOFUS_CHECK;
      tmp_arg1 = xb(Arg(0));
      tmp_arg2 = Arg(1);
      I += 2;
@@ -4417,6 +4555,7 @@ void process_main(void)
      ErlBinMatchBuffer* mb;
      Eterm result;
 
+     GOOFUS_CHECK;
      flags = Arg(2);
      BsGetFieldSize(tmp_arg2, (flags >> 3), ClauseFail(), size);
      if (size >= SMALL_BITS) {
@@ -4439,11 +4578,13 @@ void process_main(void)
 
      /* Operands: MatchContext Fail Dst */
  OpCase(i_bs_get_utf8_rfd): {
+         GOOFUS_CHECK;
 	 get_utf8_context = r(0);
 	 goto do_bs_get_utf8;
      }
 
  OpCase(i_bs_get_utf8_xfd): {
+         GOOFUS_CHECK;
 	 get_utf8_context = xb(Arg(0));
 	 I++;
      }
@@ -4467,11 +4608,13 @@ void process_main(void)
 
      /* Operands: MatchContext Fail Flags Dst */
  OpCase(i_bs_get_utf16_rfId): {
+         GOOFUS_CHECK;
 	 get_utf16_context = r(0);
 	 goto do_bs_get_utf16;
      }
 
  OpCase(i_bs_get_utf16_xfId): {
+         GOOFUS_CHECK;
 	 get_utf16_context = xb(Arg(0));
 	 I++;
      }
@@ -4500,6 +4643,7 @@ void process_main(void)
      Uint hole_size;
 
      OpCase(bs_context_to_binary_r): {
+         GOOFUS_CHECK;
 	 context_to_binary_context = x0;
 	 I -= 2;
 	 goto do_context_to_binary;
@@ -4507,11 +4651,13 @@ void process_main(void)
 
      /* Unfortunately, inlining can generate this instruction. */
      OpCase(bs_context_to_binary_y): {
+         GOOFUS_CHECK;
 	 context_to_binary_context = yb(Arg(0));
 	 goto do_context_to_binary0;
      }
 
      OpCase(bs_context_to_binary_x): {
+         GOOFUS_CHECK;
 	 context_to_binary_context = xb(Arg(0));
      
      do_context_to_binary0:
@@ -4531,11 +4677,13 @@ void process_main(void)
      Next(2);
 
      OpCase(i_bs_get_binary_all_reuse_rfI): {
+         GOOFUS_CHECK;
 	 context_to_binary_context = x0;
 	 goto do_bs_get_binary_all_reuse;
      }
 
      OpCase(i_bs_get_binary_all_reuse_xfI): {
+         GOOFUS_CHECK;
 	 context_to_binary_context = xb(Arg(0));
 	 I++;
      }
@@ -4569,10 +4717,12 @@ void process_main(void)
      Eterm match_string_context;
 
      OpCase(i_bs_match_string_rfII): {
+         GOOFUS_CHECK;
 	 match_string_context = r(0);
 	 goto do_bs_match_string;
      }
      OpCase(i_bs_match_string_xfII): {
+         GOOFUS_CHECK;
 	 match_string_context = xb(Arg(0));
 	 I++;
      }
@@ -4720,6 +4870,7 @@ void process_main(void)
  OpCase(return_trace): {
      BeamInstr* code = (BeamInstr *) (UWord) E[0];
      
+     GOOFUS_CHECK;
      SWAPOUT;		/* Needed for shared heap */
      ERTS_SMP_UNREQ_PROC_MAIN_LOCK(c_p);
      erts_trace_return(c_p, code, r(0), E+1/*Process tracer*/);
@@ -4748,6 +4899,7 @@ void process_main(void)
      BpData **bds = (BpData **) (I)[-4];
      BpDataTime *bdt = NULL;
      Uint ix = 0;
+     GOOFUS_CHECK;
 #ifdef ERTS_SMP
      ix = c_p->scheduler_data->no - 1;
 #else
@@ -4803,6 +4955,7 @@ void process_main(void)
 
  OpCase(i_return_time_trace): {
      BeamInstr *pc = (BeamInstr *) (UWord) E[0];
+     GOOFUS_CHECK;
      SWAPOUT;
      erts_trace_time_break(c_p, pc, NULL, ERTS_BP_CALL_TIME_RETURN);
      SWAPIN;
@@ -4921,6 +5074,7 @@ void process_main(void)
  }
  
  OpCase(i_return_to_trace): {
+     GOOFUS_CHECK;
      if (IS_TRACED_FL(c_p, F_TRACE_RETURN_TO)) {
 	 Uint *cpp = (Uint*) E;
 	 for(;;) {
@@ -4973,6 +5127,7 @@ void process_main(void)
      Eterm fr = Arg(0);
      Eterm dest = make_float(HTOP);
 
+     GOOFUS_CHECK;
      PUT_DOUBLE(*(FloatDef*)ADD_BYTE_OFFSET(freg, fr), HTOP);
      HTOP += FLOAT_SIZE_OBJECT;
      StoreBifResult(1, dest);
@@ -5002,6 +5157,7 @@ void process_main(void)
 #ifdef NO_FPE_SIGNALS
      OpCase(fclearerror):
      OpCase(i_fcheckerror):
+         GOOFUS_CHECK;
 	 erl_exit(1, "fclearerror/i_fcheckerror without fpe signals (beam_emu)");
 #  define ERTS_NO_FPE_CHECK_INIT ERTS_FP_CHECK_INIT
 #  define ERTS_NO_FPE_ERROR ERTS_FP_ERROR
@@ -5091,6 +5247,7 @@ void process_main(void)
 	  * I[ 0]: &&lb_hipe_trap_call
 	  * ... remainder of original BEAM code
 	  */
+         GOOFUS_CHECK;
 	 ASSERT(I[-5] == (Uint) OpCode(i_func_info_IaaI));
 	 c_p->hipe.ncallee = (void(*)(void)) I[-4];
 	 cmd = HIPE_MODE_SWITCH_CMD_CALL | (I[-1] << 8);
@@ -5098,6 +5255,7 @@ void process_main(void)
 	 goto L_hipe_mode_switch;
      }
      OpCase(hipe_trap_call_closure): {
+       GOOFUS_CHECK;
        ASSERT(I[-5] == (Uint) OpCode(i_func_info_IaaI));
        c_p->hipe.ncallee = (void(*)(void)) I[-4];
        cmd = HIPE_MODE_SWITCH_CMD_CALL_CLOSURE | (I[-1] << 8);
@@ -5105,14 +5263,17 @@ void process_main(void)
        goto L_hipe_mode_switch;
      }
      OpCase(hipe_trap_return): {
+         GOOFUS_CHECK;
 	 cmd = HIPE_MODE_SWITCH_CMD_RETURN;
 	 goto L_hipe_mode_switch;
      }
      OpCase(hipe_trap_throw): {
+         GOOFUS_CHECK;
 	 cmd = HIPE_MODE_SWITCH_CMD_THROW;
 	 goto L_hipe_mode_switch;
      }
      OpCase(hipe_trap_resume): {
+         GOOFUS_CHECK;
 	 cmd = HIPE_MODE_SWITCH_CMD_RESUME;
 	 goto L_hipe_mode_switch;
      }
@@ -5171,6 +5332,7 @@ void process_main(void)
       * ... remainder of original BEAM code
       */
      struct hipe_call_count *hcc = (struct hipe_call_count*)I[-4];
+     GOOFUS_CHECK;
      ASSERT(I[-5] == (Uint) OpCode(i_func_info_IaaI));
      ASSERT(hcc != NULL);
      ASSERT(VALID_INSTR(hcc->opcode));
@@ -5185,6 +5347,7 @@ void process_main(void)
       * in c_p->arg_reg[0]. It is currently stored in c_p->def_arg_reg[5],
       * which may be c_p->arg_reg[5], which is close, but no banana.
       */
+     GOOFUS_CHECK;
      c_p->arg_reg[0] = am_true;
      c_p->arity = 1; /* One living register (the 'true' return value) */
      SWAPOUT;
@@ -5197,6 +5360,7 @@ void process_main(void)
  }
 
  OpCase(i_hibernate): {
+     GOOFUS_CHECK;
      SWAPOUT;
      if (erts_hibernate(c_p, r(0), x(1), x(2), reg)) {
 	 c_p->flags &= ~F_HIBERNATE_SCHED;
@@ -5208,6 +5372,7 @@ void process_main(void)
  }
 
  OpCase(i_debug_breakpoint): {
+     GOOFUS_CHECK;
      SWAPOUT;
      reg[0] = r(0);
      I = call_error_handler(c_p, I-3, reg, am_breakpoint);
@@ -5222,6 +5387,7 @@ void process_main(void)
 
  OpCase(system_limit_j):
  system_limit:
+     GOOFUS_CHECK;
     c_p->freason = SYSTEM_LIMIT;
     goto lb_Cl_error;
 
@@ -5240,6 +5406,7 @@ void process_main(void)
  OpCase(label_L):
  OpCase(on_load):
  OpCase(line_I):
+    GOOFUS_CHECK;
     erl_exit(1, "meta op\n");
 
     /*
