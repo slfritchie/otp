@@ -1077,6 +1077,7 @@ init_emulator(void)
 #endif /* USE_VM_PROBES */
 
 static FILE *goofus_fp = NULL;
+static int goofus_dump_based_on_proc_tracing_status = 0;
 
 int goofus_open()
 {
@@ -1103,6 +1104,11 @@ int goofus_close()
     return 0;
 }
 
+int goofus_set_dump_based_on_proc_tracing_status(int new)
+{
+    return (goofus_dump_based_on_proc_tracing_status = new);
+}
+
 int goofus_doit2(Process *c_p)
 {
     erts_dsprintf_buf_t *dsbufp = erts_create_tmp_dsbuf(0);
@@ -1119,34 +1125,31 @@ int goofus_doit2(Process *c_p)
     erts_stack_dump_abbreviated(ERTS_PRINT_DSBUF, (void *) dsbufp, c_p);
     erts_print(ERTS_PRINT_DSBUF, (void *) dsbufp, ".\n");
     fwrite(dsbufp->str, 1, dsbufp->str_len, goofus_fp);
-#ifdef  QQQ_WHOA_SO_BROKEN_MUCH_SORROW
-    /* Make a binary on the current proc's heap */
-    erts_fprintf(stderr, "<1");
-    esp = erts_new_mso_binary(c_p, (byte *)dsbufp->str, dsbufp->str_len);
-    erts_fprintf(stderr, "2");
-    /* send it */
-    /* trace_proc(NULL, c_p, am_backtrace, esp); */
-    erts_fprintf(stderr, "3 ..(refc = %d)", ((ProcBin *) binary_val(esp))->val->refc);
-
-    /* clean up */
-    erts_refc_dec(&((ProcBin *) binary_val(esp))->val->refc, 0);
-    erts_fprintf(stderr, "4");
-#endif	/* QQQ_WHOA_SO_BROKEN_MUCH_SORROW */
-    /* clean up */
-    /* fwrite(dsbufp->str, 1, dsbufp->str_len, stderr); */
     erts_destroy_tmp_dsbuf(dsbufp);
-    ERTS_GET_SCHEDULER_DATA_FROM_PROC(c_p)->goofus_count = 0;
     return 1;
 }
 
 int goofus_doit(Process *c_p)
 {
-#ifdef QQQ
-    if (! IS_TRACED(c_p)) {
+    int ret;
+
+    /*
+     * The "problem" with selective tracing based on
+     * goofus_dump_based_on_proc_tracing_status is that for procs that
+     * do not have tracing status on, this function will get called
+     * very frequently.  And the per-scheduler flag,
+     * (c_p)->goofus_count, might remain enabled for quite a while.
+     * In fact, if only one Erlang process has tracing enabled, and
+     * that process is blocked for a long time (e.g. waiting to
+     * receive a message), then the overhead of this
+     * allegedly-selective scheme may cost more than it's worth?
+     */
+    if (goofus_dump_based_on_proc_tracing_status && (! IS_TRACED(c_p))) {
         return 0;
     }
-#endif
-    return goofus_doit2(c_p);
+    ret = goofus_doit2(c_p);
+    ERTS_GET_SCHEDULER_DATA_FROM_PROC(c_p)->goofus_count = 0;
+    return ret;
 }
 
 /*

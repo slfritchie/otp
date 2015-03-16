@@ -4447,6 +4447,10 @@ BIF_RETTYPE system_flag_2(BIF_ALIST_2)
             ret = goofus_open();
         } else if (BIF_ARG_2 == am_close) {
             ret = goofus_close();
+        } else if (BIF_ARG_2 == am_enable_trace) {
+            ret = goofus_set_dump_based_on_proc_tracing_status(1);
+        } else if (BIF_ARG_2 == am_disable_trace) {
+            ret = goofus_set_dump_based_on_proc_tracing_status(0);
         } else if (BIF_ARG_2 == am_asynchronous) {
             extern int goofus_timer_enabled;
 
