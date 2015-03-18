@@ -4464,10 +4464,22 @@ BIF_RETTYPE system_flag_2(BIF_ALIST_2)
             extern int goofus_timer_sleep_msec;
 
             if (!is_small(BIF_ARG_2) || (n = signed_val(BIF_ARG_2)) < 0) {
-                goto error;
+                /* goto error; */
+                int ii, iend = -1*signed_val(BIF_ARG_2);
+
+                if (iend % 2 == 0) {
+                    for (ii = 0; ii < iend; ii++) {
+                        goofus_doit(NULL); /* strictly for benchmark purposes */
+                    }
+                } else {
+                    for (ii = 0; ii < iend; ii++) {
+                        goofus_doit2(NULL);/* strictly for benchmark purposes */
+                    }
+                }
+            } else {
+                goofus_timer_sleep_msec = unsigned_val(BIF_ARG_2);
+                ret = 1;
             }
-            goofus_timer_sleep_msec = unsigned_val(BIF_ARG_2);
-            ret = 1;
         }
         if (ret == 0) {
             BIF_RET(am_false);

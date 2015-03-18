@@ -1083,7 +1083,7 @@ int goofus_open()
 {
     if (goofus_fp == NULL) {
         char path[1024];
-        int fd;
+        int fd = -1;
 
         sprintf(path, "/tmp/goofus.%d.out", getpid());
         if ((fd = open(path, O_WRONLY|O_CREAT|O_EXCL, 0644)) > 0) {
@@ -1111,15 +1111,16 @@ int goofus_set_dump_based_on_proc_tracing_status(int new)
 
 int goofus_doit2(Process *c_p)
 {
-    erts_dsprintf_buf_t *dsbufp = erts_create_tmp_dsbuf(0);
+    erts_dsprintf_buf_t *dsbufp = NULL;
     char pidbuf[64];
     Eterm esp;
 
-    if (goofus_fp == NULL) {
+    if (goofus_fp == NULL || c_p == NULL) {
         return 0;
     }
 
     /* Format the message */
+    dsbufp = erts_create_tmp_dsbuf(0);
     dtrace_proc_str(c_p, pidbuf);
     erts_print(ERTS_PRINT_DSBUF, (void *) dsbufp, "Pid %s\n", pidbuf);
     erts_stack_dump_abbreviated(ERTS_PRINT_DSBUF, (void *) dsbufp, c_p);
@@ -1129,7 +1130,7 @@ int goofus_doit2(Process *c_p)
     return 1;
 }
 
-int goofus_doit(Process *c_p)
+int goofus_doit(Process *c_p) NOINLINE
 {
     int ret;
 
@@ -1144,11 +1145,14 @@ int goofus_doit(Process *c_p)
      * receive a message), then the overhead of this
      * allegedly-selective scheme may cost more than it's worth?
      */
-    if (goofus_dump_based_on_proc_tracing_status && (! IS_TRACED(c_p))) {
+    if (goofus_dump_based_on_proc_tracing_status &&
+        c_p != NULL && !IS_TRACED(c_p)) {
         return 0;
     }
     ret = goofus_doit2(c_p);
-    ERTS_GET_SCHEDULER_DATA_FROM_PROC(c_p)->goofus_count = 0;
+    if (c_p != NULL) {
+        ERTS_GET_SCHEDULER_DATA_FROM_PROC(c_p)->goofus_count = 0;
+    }
     return ret;
 }
 
